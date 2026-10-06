@@ -1,0 +1,137 @@
+[{
+    "pkgName": "com.jingdong.app.mall",
+    "activityName": "com.jd.lib.mylive.view.activity.VideoLiveRoomActivity"
+  },
+  {
+    "pkgName": "com.taobao.taobao",
+    "activityName": "com.taobao.taolive.room.TaoLiveVideoActivity"
+  },
+  {
+    "pkgName": "com.ss.android.article.news",
+    "activityName": "com.ss.android.detail.feature.detail2.view.NewVideoDetailActivity"
+  },
+  {
+    "pkgName": "com.ss.android.article.news",
+    "activityName": "com.ss.android.xiagualongvideo.detail.LongVideoDetailActivity"
+  },
+  {
+    "pkgName": "com.ss.android.article.news",
+    "activityName": "com.ss.android.live.host.livehostimpl.LivePlayerTransActivity"
+  },
+  {
+    "pkgName": "com.android.browser",
+    "activityName": "com.android.browser.shortvideo.ShortVideoActivity"
+  },
+  {
+    "pkgName": "com.android.browser",
+    "activityName": "com.android.browser.homepage.infoflow.InfoFlowVideoActivity"
+  },
+  {
+    "pkgName": "com.netease.cloudmusic",
+    "activityName": "com.netease.play.livepage.LiveViewerActivity"
+  },
+  {
+    "pkgName": "com.netease.cloudmusic",
+    "activityName": "com.netease.cloudmusic.activity.MLogVideoActivity"
+  },
+  {
+    "pkgName": "com.kugou.android",
+    "activityName": "com.kugou.fanxing.allinone.watch.liveroominone.media.FALiveRoomInOneActivity"
+  },
+  {
+    "pkgName": "com.sina.weibo",
+    "activityName": "com.sina.weibo.video.tabcontainer.VideoTabContainerActivity"
+  },
+  {
+    "pkgName": "com.sina.weibo",
+    "activityName": "com.sina.weibo.video.detail.VideoDetailActivity"
+  },
+  {
+    "pkgName": "com.sina.weibo",
+    "activityName": "tv.xiaoka.play.activity.PlayerContainerActivity"
+  },
+  {
+    "pkgName": "com.tencent.qqmusic",
+    "activityName": "com.tencent.qqmusic.activity.MVPlayerActivity"
+  },
+  {
+    "pkgName": "com.tencent.qqmusic",
+    "activityName": "com.tencent.qqmusic.activity.FeedsIjkVideoActivity"
+  },
+  {
+    "pkgName": "com.ss.android.article.lite",
+    "activityName": "com.ss.android.article.base.feature.detail2.view.NewVideoDetailActivity"
+  },
+  {
+    "pkgName": "com.tencent.news",
+    "activityName": "com.tencent.news.kkvideo.shortvideo.VerticalVideoVideoActivity"
+  },
+  {
+    "pkgName": "com.tencent.news",
+    "activityName": "com.tencent.news.rose.RoseLiveDetailActivity"
+  },
+  {
+    "pkgName": "com.tencent.news",
+    "activityName": "com.tencent.news.topic.weibo.detail.graphic.WeiboGraphicDetailActivity"
+  },
+  {
+    "pkgName": "com.zhihu.android",
+    "activityName": "com.zhihu.android.video_entity.VideoEntityHostActivity"
+  },
+  {
+    "pkgName": "com.zhihu.android",
+    "activityName": "com.zhihu.android.videox.VideoXHostActivity"
+  },
+  {
+    "pkgName": "com.tencent.karaoke",
+    "activityName": "com.tencent.karaoke.module.live.ui.LiveActivity"
+  },
+  {
+    "pkgName": "com.tencent.karaoke",
+    "activityName": "com.tencent.karaoke.module.ktv.ui.KtvRoomActivity"
+  },
+  {
+    "pkgName": "com.tencent.karaoke",
+    "activityName": "com.tencent.karaoke.module.detail.ui.DetailActivity"
+  },
+  {
+    "pkgName": "com.xingin.xhs",
+    "activityName": "com.xingin.matrix.v2.videofeed.VideoFeedActivity"
+  },
+  {
+    "pkgName": "com.xingin.xhs",
+    "activityName": "com.xingin.alpha.audience.AlphaAudienceActivity"
+  },
+  {
+    "pkgName": "com.jifen.qukan",
+    "activityName": "com.jifen.qukan.content.videodetail.VideoDetailsActivity"
+  },
+  {
+    "pkgName": "com.jifen.qukan",
+    "activityName": "qukan.jifen.com.library.STK$1"
+  },
+  {
+    "pkgName": "com.jifen.qukan",
+    "activityName": "qukan.jifen.com.library.STK$2"
+  },
+  {
+    "pkgName": "com.jifen.qukan",
+    "activityName": "com.jifen.qukan.content.videodetail.VideoDetailsActivity"
+  },
+  {
+    "pkgName": "com.jifen.qukan",
+    "activityName": "qukan.jifen.com.library.STP$1"
+  },
+  {
+    "pkgName": "com.ss.android.auto",
+    "activityName": "com.ss.android.auto.live.activity.LiveActivity"
+  },
+  {
+    "pkgName": "com.ss.android.auto",
+    "activityName": "com.ss.android.article.base.feature.detail2.view.NewVideoDetailActivity"
+  },
+  {
+    "pkgName": "com.ss.android.auto",
+    "activityName": "com.ss.android.auto.ugc.video.activity.UgcVideoDetailActivity"
+  }
+]

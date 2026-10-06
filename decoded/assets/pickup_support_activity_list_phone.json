@@ -1,0 +1,78 @@
+[
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.voip.ui.VideoActivity"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.multitalk.ui.MultiTalkMainUI"
+  },
+  {
+    "pkgName": "com.tencent.mobileqq",
+    "activityName": "com.tencent.av.ui.AVActivity"
+  },
+  {
+    "pkgName": "com.alibaba.android.rimet",
+    "activityName": "com.alibaba.android.teleconf.mozi.activity.TeleVideoConfActivity"
+  },
+  {
+    "pkgName": "com.ss.android.lark",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivityInstance"
+  },
+  {
+    "pkgName": "com.ss.android.lark",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivityAffinity"
+  },
+  {
+    "pkgName": "com.tencent.wework",
+    "activityName": "com.tencent.wemeet.sdk.meeting.inmeeting.InMeetingActivity"
+  },
+  {
+    "pkgName": "com.tencent.wemeet.app",
+    "activityName": "com.tencent.wemeet.sdk.meeting.inmeeting.InMeetingActivity"
+  },
+  {
+    "pkgName": "us.zoom.videomeetings",
+    "activityName": "com.zipow.videobox.conference.ui.ZmConfActivity"
+  },
+  {
+    "pkgName": "com.microsoft.teams",
+    "activityName": "com.microsoft.skype.teams.views.activities.PreJoinActivity"
+  },
+  {
+    "pkgName": "com.skype.raider",
+    "activityName": "com.skype.m2.views.CallScreen"
+  },
+  {
+    "pkgName": "com.ss.android.lark.kami",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivity"
+  },
+  {
+    "pkgName": "com.ss.android.lark.kami",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivityInstance"
+  },
+  {
+    "pkgName": "com.ss.android.lark.kami",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivityAffinity"
+  },
+  {
+    "pkgName": "com.whatsapp",
+    "activityName": "com.whatsapp.voipcalling.VoipActivityV2"
+  },
+  {
+    "pkgName": "com.facebook.orca",
+    "activityName": "com.facebook.messaging.rtc.incall.activity.InCallActivity"
+  },
+  {
+    "pkgName": "cn.eeo.classin",
+    "activityName": "cn.eeo.liveroom.ClassRoomActivity"
+  },
+  {
+    "pkgName": "com.google.android.apps.tachyon",
+    "activityName": "com.google.android.libraries.communications.conference.ui.callui.SingleCallActivity"
+  },
+  {
+    "pkgName": "com.android.incallui",
+    "activityName": "com.android.incallui.InCallActivity"
+  }
+]

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="text_toast_font_size_36">13.709991sp</dimen>
+    <dimen name="view_dimen_48">18.289978dip</dimen>
+    <dimen name="view_toast_dimen_124">47.22998dip</dimen>
+    <dimen name="view_toast_dimen_18">6.8599854dip</dimen>
+    <dimen name="view_toast_dimen_36">13.709991dip</dimen>
+    <dimen name="view_toast_dimen_42">15.0dip</dimen>
+    <dimen name="view_toast_dimen_43">17.0dip</dimen>
+</resources>

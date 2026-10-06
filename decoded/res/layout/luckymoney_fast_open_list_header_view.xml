@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout android:id="@id/item_head_layout_fast_open" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingStart="@dimen/lucky_settingitem_margin_left" android:paddingEnd="@dimen/lucky_settingitem_margin_right"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textSize="14.0sp" android:textColor="@color/lucky_fastopen_type_title_color" android:gravity="start" android:id="@id/header_title" android:background="@color/lucky_fastopen_header_color" android:paddingTop="9.089996dip" android:paddingBottom="9.819977dip" android:clickable="false" android:layout_width="fill_parent" android:layout_height="wrap_content" />
+</FrameLayout>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <include android:id="@id/protect_phone" layout="@layout/electric_protection_item_icon_title_summary" />
+    <include android:id="@id/protect_mms" layout="@layout/electric_protection_item_icon_title_summary" />
+    <include android:id="@id/protect_app" layout="@layout/electric_protection_item_icon_title_summary" />
+    <include android:id="@id/protect_web" layout="@layout/electric_protection_item_icon_title_summary" />
+    <include android:id="@id/protect_screen_share" layout="@layout/electric_protection_item_icon_title_summary" />
+    <include android:layout_width="fill_parent" android:layout_height="@dimen/view_dimen_4" layout="@layout/preference_empty_layout" />
+</LinearLayout>

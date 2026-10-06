@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:paddingTop="17.089996dip" android:paddingBottom="17.089996dip" android:layout_width="fill_parent" android:layout_height="wrap_content"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textSize="18.0dip" android:textColor="@color/bh_black_daynight" android:id="@id/tv_number" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+    <TextView android:textSize="13.0dip" android:textColor="@color/recent_number_text_color" android:id="@id/tv_info" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1.8199768dip" android:singleLine="true" android:layout_below="@id/tv_number" android:layout_marginEnd="50.0dip" />
+    <ImageView android:id="@id/iv_del" android:layout_width="40.0dip" android:layout_height="40.0dip" android:src="@drawable/bh_ic_del" android:scaleType="centerInside" android:contentDescription="Delete phoneNum" android:layout_alignParentEnd="true" />
+</RelativeLayout>

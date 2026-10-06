@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:paddingTop="16.359985dip" android:paddingBottom="16.359985dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingStart="@dimen/pc_power_save_activity_detail_preference_padding" android:paddingEnd="@dimen/pc_power_save_activity_detail_preference_padding"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:id="@id/txt_descriptiontitle" android:text="@string/superpower_savemode_description_title" style="@style/PowerSaveDescriptionTitle" />
+    <TextView android:id="@id/txt_description1" android:layout_marginTop="3.6399841dip" android:text="@string/superpower_savemode_limit1" style="@style/PowerSaveDescription" />
+    <TextView android:id="@id/txt_description2" android:text="@string/superpower_savemode_limit2" style="@style/PowerSaveDescription" />
+    <com.miui.superpower.utils.DotsFirstLineCenterTextView android:id="@id/txt_description3" android:text="@string/superpower_savemode_limit3" style="@style/PowerSaveDescription" />
+    <TextView android:id="@id/txt_description4" android:text="@string/superpower_savemode_limit4" style="@style/PowerSaveDescription" />
+</LinearLayout>

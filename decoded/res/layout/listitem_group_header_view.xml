@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout android:background="@color/na_nd_bg" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingStart="@dimen/privacy_safety_list_common_horizontal" android:paddingEnd="@dimen/privacy_safety_list_common_horizontal"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textAppearance="@style/Miuix.AppCompat.TextAppearance.List.Secondary" android:textColor="@color/app_behavior_record_header_color" android:gravity="center_vertical" android:layout_gravity="center_vertical" android:id="@id/header_title" android:layout_width="fill_parent" android:layout_height="wrap_content" android:minHeight="@dimen/applock_list_view_header_height" android:fontFamily="mipro-regular" android:textDirection="locale" />
+</FrameLayout>

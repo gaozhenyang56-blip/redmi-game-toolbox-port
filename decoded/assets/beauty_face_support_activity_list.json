@@ -1,0 +1,18 @@
+[
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.voip.ui.VideoActivity"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.multitalk.ui.MultiTalkMainUI"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.flutter.ui.CachedFlutterActivity"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.flash.FaceFlashUI"
+  }
+]

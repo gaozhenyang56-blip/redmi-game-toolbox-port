@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<miuix.springback.view.SpringBackLayout android:layout_width="fill_parent" android:layout_height="fill_parent" app:scrollableView="@id/scroll_view"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <androidx.core.widget.NestedScrollView android:id="@id/scroll_view" android:layout_width="fill_parent" android:layout_height="fill_parent">
+        <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_marginStart="@dimen/view_dimen_80" android:layout_marginEnd="@dimen/view_dimen_80">
+            <RelativeLayout android:background="@drawable/sp_shape_website_check_image_bg" android:layout_width="fill_parent" android:layout_height="@dimen/view_dimen_480" android:layout_marginTop="@dimen/view_dimen_20" android:layout_marginBottom="@dimen/view_dimen_20">
+                <ImageView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/view_dimen_1" android:src="@drawable/sp_browser_check_image" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" android:contentDescription="@null" />
+            </RelativeLayout>
+            <RelativeLayout android:paddingTop="@dimen/view_dimen_45" android:paddingBottom="@dimen/view_dimen_45" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@id/title1" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                    <TextView android:textSize="@dimen/sp_17" android:textColor="@color/sp_website_check_title_color" android:ellipsize="end" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="@string/antivirus_browser_check" android:maxLines="2" android:layout_weight="1.0" android:fontFamily="mipro-medium" android:textAlignment="viewStart" />
+                    <TextView android:textSize="@dimen/sp_14" android:textColor="@color/color_blue_primary_default" android:background="@drawable/sp_website_check_status_bg" android:paddingTop="@dimen/view_dimen_5" android:paddingBottom="@dimen/view_dimen_5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/antivirus_website_check_status" android:paddingStart="@dimen/view_dimen_20" android:paddingEnd="@dimen/view_dimen_20" />
+                </LinearLayout>
+                <TextView android:textSize="@dimen/sp_14" android:textColor="@color/sp_website_check_summary_color" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/view_dimen_4" android:text="@string/antivirus_browser_check_summary" android:layout_below="@id/title1" android:textAlignment="viewStart" />
+            </RelativeLayout>
+            <RelativeLayout android:background="@drawable/sp_shape_website_check_image_bg" android:layout_width="fill_parent" android:layout_height="@dimen/view_dimen_480" android:layout_marginTop="@dimen/view_dimen_20" android:layout_marginBottom="@dimen/view_dimen_20">
+                <ImageView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/view_dimen_1" android:src="@drawable/sp_sms_check_image" android:layout_centerHorizontal="true" android:contentDescription="@null" />
+            </RelativeLayout>
+            <RelativeLayout android:paddingTop="@dimen/view_dimen_45" android:paddingBottom="@dimen/view_dimen_45" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@id/title2" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                    <TextView android:textSize="@dimen/sp_17" android:textColor="@color/sp_website_check_title_color" android:ellipsize="end" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="@string/antivirus_sms_check" android:maxLines="2" android:layout_weight="1.0" android:fontFamily="mipro-medium" android:textAlignment="viewStart" />
+                    <TextView android:textSize="@dimen/sp_14" android:textColor="@color/color_blue_primary_default" android:background="@drawable/sp_website_check_status_bg" android:paddingTop="@dimen/view_dimen_5" android:paddingBottom="@dimen/view_dimen_5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/antivirus_website_check_status" android:paddingStart="@dimen/view_dimen_20" android:paddingEnd="@dimen/view_dimen_20" />
+                </LinearLayout>
+                <TextView android:textSize="@dimen/sp_14" android:textColor="@color/sp_website_check_summary_color" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/view_dimen_4" android:text="@string/antivirus_sms_check_summary" android:layout_below="@id/title2" android:textAlignment="viewStart" />
+            </RelativeLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</miuix.springback.view.SpringBackLayout>

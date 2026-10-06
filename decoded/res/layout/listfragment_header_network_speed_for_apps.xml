@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout android:layout_width="fill_parent" android:layout_height="wrap_content"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <View android:id="@id/speed_divider" android:background="@color/na_nd_line" android:layout_width="fill_parent" android:layout_height="1.0dip" android:layout_marginTop="@dimen/view_dimen_20" android:layout_marginStart="29.099976dip" android:layout_marginEnd="29.099976dip" />
+    <LinearLayout android:orientation="horizontal" android:background="@color/na_nd_bg" android:layout_width="fill_parent" android:layout_height="58.19998dip" android:layout_marginTop="12.0dip" style="@style/Widget.ListView.Item.DoubleLine">
+        <TextView android:textSize="13.799988sp" android:textColor="@color/na_nd_toolbar_title" android:ellipsize="marquee" android:gravity="center_vertical" android:id="@id/textview_header" android:layout_width="wrap_content" android:layout_height="fill_parent" android:maxWidth="@dimen/dp_120" android:text="@string/network_speed_for_apps_total" android:singleLine="true" android:fontFamily="sans-serif" android:layout_marginStart="27.299988dip" style="@style/Miuix.AppCompat.TextAppearance.List.Primary" />
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="100.0" />
+        <TextView android:textSize="15.299988sp" android:textStyle="normal" android:textColor="@color/network_speed_rx_color" android:gravity="center_vertical" android:id="@id/textview_traffic_rxTotal" android:layout_width="wrap_content" android:layout_height="fill_parent" android:minWidth="60.0dip" android:drawablePadding="3.0dip" android:drawableEnd="@drawable/network_speed_rx" android:layout_marginStart="6.0dip" android:layout_marginEnd="22.5dip" style="@style/Miuix.AppCompat.TextAppearance.List.Secondary" />
+        <TextView android:textSize="15.299988sp" android:textStyle="normal" android:textColor="@color/network_speed_tx_color" android:gravity="center_vertical" android:id="@id/textview_traffic_txTotal" android:layout_width="wrap_content" android:layout_height="fill_parent" android:minWidth="60.0dip" android:drawablePadding="3.0dip" android:drawableEnd="@drawable/network_speed_tx" android:layout_marginEnd="22.5dip" style="@style/Miuix.AppCompat.TextAppearance.List.Secondary" />
+    </LinearLayout>
+</FrameLayout>

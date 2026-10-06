@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:id="@id/container" android:background="@color/pa_apps_page_bg" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <RelativeLayout android:id="@id/root_layout" android:paddingTop="@dimen/dp_8" android:paddingBottom="@dimen/dp_8" android:layout_width="fill_parent" android:layout_height="@dimen/view_dimen_160" android:layout_marginTop="@dimen/activity_actionbar_margin_top" android:paddingStart="@dimen/dp_20" android:paddingEnd="@dimen/dp_20">
+        <ImageView android:id="@id/iv_back" android:background="@drawable/icon_privacy_apps_back" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:contentDescription="@string/back_description_securitycenter" android:layout_alignParentStart="true" />
+        <TextView android:textSize="@dimen/text_font_size_54" android:textColor="@color/pa_dialog_button_text_color" android:id="@id/privay_apps_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/privacy_apps" android:layout_centerInParent="true" />
+        <ImageView android:id="@id/iv_settings" android:background="@drawable/miuix_action_icon_settings_dark" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:contentDescription="@string/activity_title_settings" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <LinearLayout android:orientation="vertical" android:id="@id/center_layout" android:paddingBottom="@dimen/dp_28" android:layout_width="fill_parent" android:layout_height="fill_parent" android:paddingStart="@dimen/dp_12" android:paddingEnd="@dimen/dp_12">
+        <miuix.recyclerview.widget.RecyclerView android:id="@id/privacy_apps_gridview" android:scrollbars="none" android:layout_width="fill_parent" android:layout_height="0.0dip" android:layout_marginTop="@dimen/view_dimen_126" android:layout_weight="1.0" android:overScrollMode="never" />
+        <com.miui.privacyapps.view.PrivacyBottomSlideView android:id="@id/hide_notification" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content" />
+        <com.miui.privacyapps.view.PrivacyBottomSlideView android:id="@id/password_enable" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+</LinearLayout>

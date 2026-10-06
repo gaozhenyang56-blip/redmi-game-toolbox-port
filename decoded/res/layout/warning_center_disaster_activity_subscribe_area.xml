@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <include android:id="@id/search_view" layout="@layout/miuix_appcompat_search_stub" />
+    <ListView android:id="@id/search_result_list" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="fill_parent" android:paddingStart="@dimen/pad_common_margin_start" android:paddingEnd="@dimen/pad_common_margin_start" />
+    <LinearLayout android:orientation="vertical" android:id="@id/empty_view_container" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="fill_parent" android:paddingStart="@dimen/pad_common_margin_start" android:paddingEnd="@dimen/pad_common_margin_start">
+        <TextView android:textSize="@dimen/wc_text_summary_text_size" android:textColor="@color/ew_text_summary_color" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/view_dimen_34" android:layout_marginBottom="@dimen/view_dimen_68" android:text="@string/warningcenter_disaster_area_tips" android:layout_marginStart="@dimen/wc_disaster_level_height" android:layout_marginEnd="@dimen/wc_disaster_level_height" />
+        <include android:id="@id/empty_view" android:visibility="gone" layout="@layout/ew_data_empty" />
+    </LinearLayout>
+    <miuix.springback.view.SpringBackLayout android:layout_width="fill_parent" android:layout_height="fill_parent" app:scrollOrientation="vertical|angle" app:scrollableView="@id/scrollview">
+        <androidx.core.widget.NestedScrollView android:id="@id/scrollview" android:layout_width="fill_parent" android:layout_height="fill_parent" android:overScrollMode="ifContentScrolls">
+            <LinearLayout android:orientation="vertical" android:id="@id/temp1" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_marginStart="@dimen/wc_preference_margin_x" android:layout_marginEnd="@dimen/wc_preference_margin_x">
+                <TextView android:textSize="@dimen/wc_text_summary_text_size" android:textColor="@color/ew_text_summary_color" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/view_dimen_34" android:layout_marginBottom="@dimen/view_dimen_52" android:text="@string/warningcenter_disaster_area_tips" />
+                <TextView android:textSize="@dimen/wc_text_summary_text_size" android:textColor="#ff8c93b0" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/warningcenter_disaster_area_select" android:textDirection="locale" />
+                <miuix.recyclerview.widget.RecyclerView android:id="@id/container_select" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/view_dimen_44" />
+                <View android:background="#1a000000" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="@dimen/view_dimen_2" android:layout_marginTop="@dimen/view_dimen_100" android:layout_marginBottom="@dimen/view_dimen_100" />
+                <TextView android:textSize="@dimen/wc_text_summary_text_size" android:textColor="@color/ew_main_detail_title_color" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/warningcenter_disaster_area_suggest" />
+                <miuix.recyclerview.widget.RecyclerView android:id="@id/container_normal" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/view_dimen_44" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </miuix.springback.view.SpringBackLayout>
+</LinearLayout>

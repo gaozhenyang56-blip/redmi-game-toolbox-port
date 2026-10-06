@@ -1,0 +1,126 @@
+[
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.voip.ui.VideoActivity"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.multitalk.ui.MultiTalkMainUI"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.flutter.ui.CachedFlutterActivity"
+  },
+  {
+    "pkgName": "com.tencent.mobileqq",
+    "activityName": "com.tencent.av.ui.VideoInviteFull"
+  },
+  {
+    "pkgName": "com.tencent.mobileqq",
+    "activityName": "com.tencent.av.ui.VideoInviteLock"
+  },
+  {
+    "pkgName": "com.tencent.mobileqq",
+    "activityName": "com.tencent.av.ui.AVActivity"
+  },
+  {
+    "pkgName": "com.icbc",
+    "activityName": "com.icbc.icbcbasfaceenc.activity.BASFaceNewActivity"
+  },
+  {
+    "pkgName": "com.android.bankabc",
+    "activityName": "cn.cloudwalk.libproject.LiveActivity"
+  },
+  {
+    "pkgName": "com.mipay.wallet",
+    "activityName": "com.webank.facelight.ui.FaceVerifyActivity"
+  },
+  {
+    "pkgName": "com.unionpay",
+    "activityName": "com.unionpay.liveness.ui.LivenessActivity"
+  },
+  {
+    "pkgName": "cmb.pb",
+    "activityName": "com.cmb.rbslivedetectsdk.yitu.YituLivenessActivity"
+  },
+  {
+    "pkgName": "com.jd.jrapp",
+    "activityName": "com.jdjr.risk.identity.face.activity.VerityFaceNormalActivity"
+  },
+  {
+    "pkgName": "com.cmbchina.ccd.pluto.cmbActivity",
+    "activityName": "com.cmbchina.ccd.pluto.cmbActivity.secplugin.activity.certification.facepp.cmbG1EXBD"
+  },
+  {
+    "pkgName": "com.bankcomm.Bankcomm",
+    "activityName": "com.bankcomm.lib.biz.biometric.faceEngine.FaceLivingDetectActivity"
+  },
+  {
+    "pkgName": "cn.gov.tax.its",
+    "activityName": "com.google.zxing.client.android.CaptureActivity"
+  },
+  {
+    "pkgName": "cn.com.spdb.mobilebank.per",
+    "activityName": "com.spdb.hybrid.face.activity.FaceVerificationActivity"
+  },
+  {
+    "pkgName": "com.ecitic.bank.mobile",
+    "activityName": "com.ecitic.bank.mobile.ui.megvii.activity.LivenessPluginActivity"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.flash.FaceFlashUI"
+  },
+  {
+    "pkgName": "com.ss.android.ugc.aweme",
+    "activityName": "com.ss.android.ugc.aweme.shortvideo.ui.VideoRecordNewActivity"
+  },
+  {
+    "pkgName": "com.smile.gifmaker",
+    "activityName": "com.yxcorp.gifshow.camera.record.CameraActivity"
+  },
+  {
+    "pkgName": "com.kuaishou.nebula",
+    "activityName": "com.yxcorp.gifshow.camera.record.CameraActivity"
+  },
+  {
+    "pkgName": "com.ss.android.ugc.aweme.lite",
+    "activityName": "com.bytedance.mira.stub.p0.StubSingleTaskActivity1"
+  },
+  {
+    "pkgName": "com.alibaba.android.rimet",
+    "activityName": "com.alibaba.android.teleconf.mozi.activity.TeleVideoConfActivity"
+  },
+  {
+    "pkgName": "com.netease.cloudmusic",
+    "activityName": "com.netease.cloudmusic.music.biz.mlogpublish.launcher.PublishVideoMLogLaunchActivity"
+  },
+  {
+    "pkgName": "com.xingin.xhs",
+    "activityName": "com.xingin.capa.lib.entrance.CapaEntranceActivity"
+  },
+  {
+    "pkgName": "com.whatsapp",
+    "activityName": "com.whatsapp.voipcalling.VoipActivityV2"
+  },
+  {
+    "pkgName": "org.telegram.messenger",
+    "activityName": "org.telegram.ui.LaunchActivity"
+  },
+  {
+    "pkgName": "com.facebook.orca",
+    "activityName": "com.facebook.rtc.activities.InCallActivity"
+  },
+  {
+    "pkgName": "jp.naver.line.android",
+    "activityName": "com.linecorp.voip2.service.VoIPServiceActivity"
+  },
+  {
+    "pkgName": "com.ss.android.ugc.trill",
+    "activityName": "com.ss.android.ugc.aweme.shortvideo.ui.VideoRecordNewActivity"
+  },
+  {
+    "pkgName": "com.instagram.android",
+    "activityName": "com.instagram.mainactivity.MainActivity"
+  }
+]

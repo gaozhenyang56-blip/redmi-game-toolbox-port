@@ -1,0 +1,182 @@
+[
+    {
+        "code": "11B01",
+        "data": {
+            "blue": "warningcenter_11B01_blue.png",
+            "yellow": "warningcenter_11B01_yellow.png",
+            "orange": "warningcenter_11B01_orange.png",
+            "red": "warningcenter_11B01_red.png"
+        }
+    },
+    {
+        "code": "11B03",
+        "data": {
+            "blue": "warningcenter_11B03_blue.png",
+            "yellow": "warningcenter_11B03_yellow.png",
+            "orange": "warningcenter_11B03_orange.png",
+            "red": "warningcenter_11B03_red.png"
+        }
+    },
+    {
+        "code": "11B04",
+        "data": {
+            "blue": "warningcenter_11B04_blue.png",
+            "yellow": "warningcenter_11B04_yellow.png",
+            "orange": "warningcenter_11B04_orange.png",
+            "red": "warningcenter_11B04_red.png"
+        }
+    },
+    {
+        "code": "11B05",
+        "data": {
+            "blue": "warningcenter_11B05_blue.png",
+            "yellow": "warningcenter_11B05_yellow.png",
+            "orange": "warningcenter_11B05_orange.png",
+            "red": "warningcenter_11B05_red.png"
+        }
+    },
+    {
+        "code": "11B06",
+        "data": {
+            "blue": "warningcenter_11B06_blue.png",
+            "yellow": "warningcenter_11B06_yellow.png",
+            "orange": "warningcenter_11B06_orange.png",
+            "red": "warningcenter_11B06_red.png"
+        }
+    },
+    {
+        "code": "11B07",
+        "data": {
+            "yellow": "warningcenter_11B07_yellow.png",
+            "orange": "warningcenter_11B07_orange.png",
+            "red": "warningcenter_11B07_red.png"
+        }
+    },
+    {
+        "code": "11B09",
+        "data": {
+            "yellow": "warningcenter_11B09_yellow.png",
+            "orange": "warningcenter_11B09_orange.png",
+            "red": "warningcenter_11B09_red.png"
+        }
+    },
+    {
+        "code": "11B14",
+        "data": {
+            "yellow": "warningcenter_11B14_yellow.png",
+            "orange": "warningcenter_11B14_orange.png",
+            "red": "warningcenter_11B14_red.png"
+        }
+    },
+    {
+        "code": "11B15",
+        "data": {
+            "blue": "warningcenter_11B15_blue.png",
+            "orange": "warningcenter_11B15_orange.png",
+            "red": "warningcenter_11B15_red.png"
+        }
+    },
+    {
+        "code": "11B16",
+        "data": {
+            "blue": "warningcenter_11B16_blue.png",
+            "yellow": "warningcenter_11B16_yellow.png",
+            "orange": "warningcenter_11B16_orange.png"
+        }
+    },
+    {
+        "code": "11B17",
+        "data": {
+            "blue": "warningcenter_11B17_blue.png",
+            "yellow": "warningcenter_11B17_yellow.png",
+            "orange": "warningcenter_11B17_orange.png",
+            "red": "warningcenter_11B17_red.png"
+        }
+    },
+    {
+        "code": "11B19",
+        "data": {
+            "yellow": "warningcenter_11B19_yellow.png",
+            "orange": "warningcenter_11B19_orange.png",
+            "red": "warningcenter_11B19_red.png"
+        }
+    },
+    {
+        "code": "11B21",
+        "data": {
+            "yellow": "warningcenter_11B21_yellow.png",
+            "orange": "warningcenter_11B21_orange.png",
+            "red": "warningcenter_11B21_red.png"
+        }
+    },
+    {
+        "code": "11B22",
+        "data": {
+            "orange": "warningcenter_11B22_orange.png",
+            "red": "warningcenter_11B22_red.png"
+        }
+    },
+    {
+        "code": "11A01",
+        "data": {
+            "blue": "warningcenter_11A01_blue.webp",
+            "yellow": "warningcenter_11A01_yellow.webp",
+            "orange": "warningcenter_11A01_orange.webp",
+            "red": "warningcenter_11A01_red.webp"
+        }
+    },
+    {
+        "code": "11A02",
+        "data": {
+            "blue": "warningcenter_11A02_blue.webp",
+            "yellow": "warningcenter_11A02_yellow.webp",
+            "orange": "warningcenter_11A02_orange.webp",
+            "red": "warningcenter_11A02_red.webp"
+       }
+   },
+   {
+       "code": "11A51",
+       "data": {
+           "blue": "warningcenter_11A51_blue.webp",
+           "yellow": "warningcenter_11A51_yellow.webp",
+           "orange": "warningcenter_11A51_orange.webp",
+           "red": "warningcenter_11A51_red.webp"
+       }
+   },
+   {
+       "code": "11D01",
+       "data": {
+           "blue": "warningcenter_11D01_blue.webp",
+           "yellow": "warningcenter_11D01_yellow.webp",
+           "orange": "warningcenter_11D01_orange.webp",
+           "red": "warningcenter_11D01_red.webp"
+       }
+   },
+   {
+       "code": "11D02",
+       "data": {
+           "blue": "warningcenter_11D02_blue.webp",
+           "yellow": "warningcenter_11D02_yellow.webp",
+           "orange": "warningcenter_11D02_orange.webp",
+           "red": "warningcenter_11D02_red.webp"
+       }
+   },
+   {
+       "code": "11G01",
+       "data": {
+           "blue": "warningcenter_fire_blue.webp",
+           "yellow": "warningcenter_fire_yellow.webp",
+           "orange": "warningcenter_fire_orange.webp",
+           "red": "warningcenter_fire_red.webp"
+        }
+   },
+   {
+       "code": "11G05",
+       "data": {
+           "blue": "warningcenter_fire_blue.webp",
+           "yellow": "warningcenter_fire_yellow.webp",
+           "orange": "warningcenter_fire_orange.webp",
+           "red": "warningcenter_fire_red.webp"
+       }
+   },
+]

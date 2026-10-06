@@ -1,0 +1,34 @@
+.class Lcom/miui/blur/sdk/backdrop/r$a;
+.super Ljava/lang/Object;
+.source "SourceFile"
+
+
+# annotations
+.annotation system Ldalvik/annotation/EnclosingClass;
+    value = Lcom/miui/blur/sdk/backdrop/r;
+.end annotation
+
+.annotation system Ldalvik/annotation/InnerClass;
+    accessFlags = 0x8
+    name = "a"
+.end annotation
+
+
+# instance fields
+.field final a:I
+
+.field final b:Landroid/graphics/BlendMode;
+
+
+# direct methods
+.method constructor <init>(ILandroid/graphics/BlendMode;)V
+    .locals 0
+
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    iput p1, p0, Lcom/miui/blur/sdk/backdrop/r$a;->a:I
+
+    iput-object p2, p0, Lcom/miui/blur/sdk/backdrop/r$a;->b:Landroid/graphics/BlendMode;
+
+    return-void
+.end method

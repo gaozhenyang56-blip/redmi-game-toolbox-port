@@ -1,0 +1,62 @@
+[
+  {
+    "device_standard_power": 67,
+    "is_fast_charge_mode": 0,
+    "is_double_battery": 0,
+    "wattage_33": 55,
+    "wattage_55": 48,
+    "wattage_65": 45,
+    "wattage_67": 45
+  },
+  {
+    "device_standard_power": 67,
+    "is_fast_charge_mode": 0,
+    "is_double_battery": 1,
+    "wattage_33": 58,
+    "wattage_55": 50,
+    "wattage_65": 47,
+    "wattage_67": 47
+  },
+  {
+    "device_standard_power": 90,
+    "is_fast_charge_mode": 0,
+    "is_double_battery": 0,
+    "wattage_33": 52,
+    "wattage_55": 44,
+    "wattage_65": 41,
+    "wattage_67": 41,
+    "wattage_90": 38
+  },
+  {
+    "device_standard_power": 90,
+    "is_fast_charge_mode": 1,
+    "is_double_battery": 0,
+    "wattage_33": 48,
+    "wattage_55": 37,
+    "wattage_65": 34,
+    "wattage_67": 34,
+    "wattage_90": 31
+  },
+  {
+    "device_standard_power": 120,
+    "is_fast_charge_mode": 0,
+    "is_double_battery": 0,
+    "wattage_33": 44,
+    "wattage_55": 30,
+    "wattage_65": 28,
+    "wattage_67": 28,
+    "wattage_90": 26,
+    "wattage_120": 24
+  },
+  {
+    "device_standard_power": 120,
+    "is_fast_charge_mode": 1,
+    "is_double_battery": 0,
+    "wattage_33": 44,
+    "wattage_55": 25,
+    "wattage_65": 24,
+    "wattage_67": 24,
+    "wattage_90": 20,
+    "wattage_120": 18
+  }
+]

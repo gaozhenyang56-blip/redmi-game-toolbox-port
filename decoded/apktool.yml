@@ -1,0 +1,33 @@
+version: 2.12.1
+apkFileName: Redmi-Original-10.4.5-Universal-starttest11-Shizuku-FPS.apk
+usesFramework:
+  ids:
+  - 1
+sdkInfo:
+  minSdkVersion: 23
+  targetSdkVersion: 34
+packageInfo:
+  forcedPackageId: 127
+versionInfo:
+  versionCode: 40001053
+  versionName: 10.4.5-huawei-repair14-shizuku
+doNotCompress:
+- arsc
+- gif
+- mp3
+- mp4
+- ogg
+- png
+- so
+- wav
+- webp
+- META-INF/services/kotlinx.coroutines.internal.r
+- META-INF/services/lk.e0
+- assets/censor_source
+- assets/dexopt/baseline.prof
+- assets/dexopt/baseline.profm
+- assets/dock_tips.zip
+- assets/night_charge_back_list.json
+- assets/placement_id
+- assets/rec_model_20230425.mnn
+- okhttp3/internal/publicsuffix/publicsuffixes.gz

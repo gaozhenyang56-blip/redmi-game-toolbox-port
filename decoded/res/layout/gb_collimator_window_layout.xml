@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:layout_gravity="center_vertical" android:orientation="vertical" android:id="@id/view_layout" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <com.miui.gamebooster.windowmanager.GBTopbarLayout android:id="@id/topview" android:layout_width="fill_parent" android:layout_height="wrap_content" app:turboTitleCenter="@string/gamebox_collimator" />
+    <FrameLayout android:layout_width="fill_parent" android:layout_height="@dimen/gt_pannel_second_title_height" android:layout_marginStart="@dimen/view_dimen_60" android:layout_marginEnd="@dimen/view_dimen_60">
+        <TextView android:textSize="@dimen/view_dimen_38" android:textColor="@color/gb_member_vip_text_color" android:layout_gravity="left|center" android:id="@id/tv_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/gamebox_collimator" />
+        <miuix.slidingwidget.widget.SlidingButton android:layout_gravity="right|center" android:id="@id/gb_switch" android:layout_width="wrap_content" android:layout_height="wrap_content" style="@style/Widget.SlidingButton.Dark" />
+    </FrameLayout>
+    <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/gt_voice_aution_title_mb" android:layout_marginStart="@dimen/view_dimen_60">
+        <TextView android:textSize="@dimen/view_dimen_30" android:textColor="@color/whitealpha50" android:gravity="center_vertical" android:layout_gravity="left" android:layout_width="wrap_content" android:layout_height="@dimen/gt_collimator_subtitle_height" android:text="@string/gb_collimator_style" />
+        <LinearLayout android:orientation="horizontal" android:id="@id/container_style" android:layout_width="fill_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+    <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/gt_voice_aution_title_mb" android:layout_marginStart="@dimen/view_dimen_52">
+        <TextView android:textSize="@dimen/view_dimen_30" android:textColor="@color/whitealpha50" android:gravity="center_vertical" android:layout_gravity="left" android:layout_width="wrap_content" android:layout_height="@dimen/gt_collimator_subtitle_height" android:text="@string/gb_collimator_color" android:layout_marginStart="@dimen/view_dimen_8" />
+        <LinearLayout android:orientation="horizontal" android:id="@id/container_color" android:layout_width="fill_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+    <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginStart="@dimen/view_dimen_60" android:layout_marginEnd="@dimen/view_dimen_60">
+        <TextView android:textSize="@dimen/view_dimen_30" android:textColor="@color/whitealpha50" android:gravity="center_vertical" android:layout_gravity="left" android:layout_width="wrap_content" android:layout_height="@dimen/gt_collimator_subtitle_height" android:text="@string/gb_collimator_size" />
+        <miuix.androidbasewidget.widget.SeekBar android:id="@id/gb_seekbar" android:layout_width="fill_parent" android:layout_height="wrap_content" android:max="100" style="@style/CollimatorSeekbarStyle" />
+    </LinearLayout>
+</LinearLayout>

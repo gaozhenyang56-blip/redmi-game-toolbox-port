@@ -1,0 +1,7 @@
+build/
+output/
+decoded/build/
+decoded/dist/
+*.p12
+*.jks
+*.keystore

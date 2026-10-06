@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:layout_gravity="bottom" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <Button android:textColor="#ffffffff" android:id="@id/confirm_button" android:background="@drawable/confirm_background" android:layout_width="@dimen/provision_navigation_button_width" android:layout_height="@dimen/provision_navigation_button_height" android:layout_marginTop="@dimen/provision_margin_top" android:text="@string/provision_next" android:layout_centerHorizontal="true" />
+    <Button android:id="@id/skip_button" android:background="@drawable/skip_background" android:visibility="gone" android:layout_width="@dimen/provision_navigation_button_width" android:layout_height="@dimen/provision_navigation_button_height" android:layout_marginTop="12.0dip" android:text="@string/provision_skip_underline" android:layout_below="@id/confirm_button" android:layout_centerHorizontal="true" />
+</RelativeLayout>

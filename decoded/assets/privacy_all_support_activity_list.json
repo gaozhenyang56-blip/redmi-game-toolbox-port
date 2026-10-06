@@ -1,0 +1,26 @@
+[
+  {
+    "pkgName": "com.icbc",
+    "activityName": "com.icbc.icbcbasfaceenc.activity.BASFaceNewActivity"
+  },
+  {
+    "pkgName": "com.mipay.wallet",
+    "activityName": "com.webank.facelight.ui.FaceVerifyActivity"
+  },
+  {
+    "pkgName": "com.unionpay",
+    "activityName": "com.unionpay.liveness.ui.LivenessActivity"
+  },
+  {
+    "pkgName": "com.bankcomm.Bankcomm",
+    "activityName": "com.bankcomm.lib.biz.biometric.faceEngine.FaceLivingDetectActivity"
+  },
+  {
+    "pkgName": "cn.gov.tax.its",
+    "activityName": "com.google.zxing.client.android.CaptureActivity"
+  },
+  {
+    "pkgName": "cn.com.spdb.mobilebank.per",
+    "activityName": "com.spdb.hybrid.face.activity.FaceVerificationActivity"
+  }
+]

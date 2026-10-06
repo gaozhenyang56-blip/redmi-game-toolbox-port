@@ -1,0 +1,22 @@
+[
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.voip.ui.VideoActivity"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.multitalk.ui.MultiTalkMainUI"
+  },
+  {
+    "pkgName": "com.tencent.mobileqq",
+    "activityName": "com.tencent.av.ui.VideoInviteFull"
+  },
+  {
+    "pkgName": "com.tencent.mobileqq",
+    "activityName": "com.tencent.av.ui.AVActivity"
+  },
+  {
+    "pkgName": "com.alibaba.android.rimet",
+    "activityName": "com.alibaba.android.teleconf.mozi.activity.TeleVideoConfActivity"
+  }
+]

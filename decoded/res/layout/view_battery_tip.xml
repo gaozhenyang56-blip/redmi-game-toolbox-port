@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="horizontal" android:id="@id/ll_root_view" android:background="@drawable/pc_button_scan_selector_health" android:paddingTop="13.799988dip" android:paddingBottom="13.799988dip" android:layout_width="fill_parent" android:layout_height="wrap_content"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textSize="@dimen/text_font_size_40" android:textColor="@color/pc_scan_button_health_text_blue" android:layout_gravity="center_vertical" android:id="@id/tv_battery_tip" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" android:layout_marginStart="16.0dip" />
+    <ImageView android:layout_gravity="center_vertical" android:id="@id/iv_close" android:layout_width="wrap_content" android:layout_height="fill_parent" android:src="@drawable/ic_close_battery_health_tip_blue" android:contentDescription="@string/close" android:paddingStart="20.199982dip" android:paddingEnd="20.199982dip" />
+    <ImageView android:layout_gravity="center_vertical" android:id="@id/iv_lookup_repair_site" android:visibility="gone" android:layout_width="7.0dip" android:layout_height="11.799988dip" android:src="@drawable/ic_pc_sacn_right_arrow_orange" android:layout_marginStart="27.899994dip" android:layout_marginEnd="21.799988dip" />
+</LinearLayout>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:background="@drawable/warning_center_disaster_area_bg_select" android:paddingTop="@dimen/wc_disaster_area_padding_top" android:paddingBottom="@dimen/wc_disaster_area_padding_top" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/view_dimen_40" android:paddingStart="@dimen/wc_disaster_area_padding_start" android:paddingEnd="@dimen/wc_disaster_area_padding_end"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <ImageView android:id="@id/location" android:layout_width="@dimen/view_dimen_31" android:layout_height="@dimen/view_dimen_36" android:src="@drawable/warning_center_disaster_icon_local" android:layout_marginEnd="@dimen/view_dimen_18" />
+    <TextView android:textSize="@dimen/wc_disaster_area_text_size" android:textStyle="bold" android:textColor="#ff0d84ff" android:id="@id/text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_weight="1.0" />
+    <ImageView android:id="@id/operate" android:layout_width="@dimen/wc_disaster_delete_icon_size" android:layout_height="@dimen/wc_disaster_delete_icon_size" android:src="@drawable/warning_center_disaster_area_delete" android:contentDescription="@string/delete" android:layout_marginStart="@dimen/view_dimen_20" />
+</LinearLayout>

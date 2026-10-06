@@ -1,0 +1,46 @@
+.class public final synthetic Lcom/miui/networkassistant/utils/i;
+.super Ljava/lang/Object;
+.source "SourceFile"
+
+# interfaces
+.implements Ljava/lang/Runnable;
+
+
+# instance fields
+.field public final synthetic a:Lcom/miui/networkassistant/utils/TelephonyUtil$PhoneNumberLoadedBySlotListener;
+
+.field public final synthetic b:Ljava/lang/String;
+
+.field public final synthetic c:I
+
+
+# direct methods
+.method public synthetic constructor <init>(Lcom/miui/networkassistant/utils/TelephonyUtil$PhoneNumberLoadedBySlotListener;Ljava/lang/String;I)V
+    .locals 0
+
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    iput-object p1, p0, Lcom/miui/networkassistant/utils/i;->a:Lcom/miui/networkassistant/utils/TelephonyUtil$PhoneNumberLoadedBySlotListener;
+
+    iput-object p2, p0, Lcom/miui/networkassistant/utils/i;->b:Ljava/lang/String;
+
+    iput p3, p0, Lcom/miui/networkassistant/utils/i;->c:I
+
+    return-void
+.end method
+
+
+# virtual methods
+.method public final run()V
+    .locals 3
+
+    iget-object v0, p0, Lcom/miui/networkassistant/utils/i;->a:Lcom/miui/networkassistant/utils/TelephonyUtil$PhoneNumberLoadedBySlotListener;
+
+    iget-object v1, p0, Lcom/miui/networkassistant/utils/i;->b:Ljava/lang/String;
+
+    iget v2, p0, Lcom/miui/networkassistant/utils/i;->c:I
+
+    invoke-static {v0, v1, v2}, Lcom/miui/networkassistant/utils/TelephonyUtil;->b(Lcom/miui/networkassistant/utils/TelephonyUtil$PhoneNumberLoadedBySlotListener;Ljava/lang/String;I)V
+
+    return-void
+.end method

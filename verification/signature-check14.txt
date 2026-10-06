@@ -1,0 +1,20 @@
+Verifies
+Verified using v1 scheme (JAR signing): true
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=Redmi Game Toolbox Huawei Port
+Signer #1 certificate SHA-256 digest: bd545b05ffcd611c978c35b1de82bb9013cf44ec2233e1b7d21b8a7f46333432
+Signer #1 certificate SHA-1 digest: 0bf2d40399411f00095a24073867cd0e5c18df6f
+Signer #1 certificate MD5 digest: 2c88b844a6b7ae60cf16256ddf874ede
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 2048
+Signer #1 public key SHA-256 digest: 3d60ec29be85f0157b8c9562d6ea5f6a163b736da3048f2ca2d556b55c75c0ea
+Signer #1 public key SHA-1 digest: 4ce39d5196126b7f660049681a19200fa79182d5
+Signer #1 public key MD5 digest: d4b673ad9c13c649d76721a5332fdccf
+WARNING: META-INF/com/android/build/gradle/app-metadata.properties not protected by signature. Unauthorized modifications to this JAR entry will not be detected. Delete or move the entry outside of META-INF/.
+WARNING: META-INF/services/kotlinx.coroutines.internal.r not protected by signature. Unauthorized modifications to this JAR entry will not be detected. Delete or move the entry outside of META-INF/.
+WARNING: META-INF/services/lk.e0 not protected by signature. Unauthorized modifications to this JAR entry will not be detected. Delete or move the entry outside of META-INF/.

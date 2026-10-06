@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <ImageView android:layout_gravity="center_horizontal" android:layout_width="@dimen/dp_32" android:layout_height="@dimen/dp_32" android:src="@drawable/simlock_privacy_icon" />
+        <TextView android:textSize="@dimen/sp_px_50" android:layout_gravity="center_horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/view_dimen_45" android:text="@string/sim_lock_dialog_title" android:fontFamily="mipro-medium" android:paddingStart="@dimen/miuix_appcompat_dialog_panel_horizontal_padding" android:paddingEnd="@dimen/miuix_appcompat_dialog_panel_horizontal_padding" />
+        <TextView android:textSize="@dimen/sp_px_48" android:layout_gravity="center_horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/view_dimen_45" android:text="@string/sim_lock_dialog_message" android:fontFamily="mipro-regular" android:layout_marginStart="@dimen/view_dimen_120" android:layout_marginEnd="@dimen/view_dimen_120" />
+    </LinearLayout>
+</ScrollView>

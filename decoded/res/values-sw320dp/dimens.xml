@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="diagnosis_icon_height">214.0dip</dimen>
+    <dimen name="diagnosis_icon_width">255.0dip</dimen>
+    <dimen name="diagnosising_begin_size">15.299988sp</dimen>
+    <dimen name="diagnosising_magrin_top">78.099976dip</dimen>
+    <dimen name="diagnosising_size">11.599976dip</dimen>
+    <dimen name="diagnosising_speed_size">54.5dip</dimen>
+    <dimen name="firewall_item_height">76.359985dip</dimen>
+    <dimen name="na_package_info_text_size">19.0dip</dimen>
+    <dimen name="no_card_margin_bottom">46.599976dip</dimen>
+    <dimen name="no_card_text_margin_bottom">25.799988dip</dimen>
+    <dimen name="package_guide_card_margin">70.0dip</dimen>
+    <dimen name="search_stub_margin_top">1.5dip</dimen>
+    <dimen name="text_preference_padding">70.0dip</dimen>
+    <dimen name="viewpager_margin_top">14.699982dip</dimen>
+</resources>

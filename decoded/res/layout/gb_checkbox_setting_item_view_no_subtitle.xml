@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:gravity="center_vertical" android:orientation="vertical" android:id="@id/rootView" android:layout_width="fill_parent" android:layout_height="wrap_content"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <LinearLayout android:orientation="horizontal" android:id="@id/second_root" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <LinearLayout android:gravity="center_vertical" android:orientation="vertical" android:layout_width="@dimen/gb_wonderful_video_zero_size" android:layout_height="fill_parent" android:layout_weight="1.0" android:layout_marginEnd="@dimen/dp_22">
+            <TextView android:textSize="@dimen/gb_wonderful_dialog_title_textsize" android:textColor="@color/gb_record_dialog_title_color" android:id="@id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="3" android:textDirection="locale" />
+            <TextView android:id="@id/subtitle" android:layout_width="wrap_content" android:layout_height="0.0dip" />
+        </LinearLayout>
+        <miuix.slidingwidget.widget.SlidingButton android:layout_gravity="center_vertical" android:id="@id/switchBtn" android:layout_width="wrap_content" android:layout_height="wrap_content" style="@style/Widget.SlidingButton.Dark" />
+    </LinearLayout>
+</LinearLayout>

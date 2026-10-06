@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_centerInParent="true" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.35">
+        <ImageView android:layout_gravity="center" android:id="@id/iv_imsage_result" android:layout_width="54.549988dip" android:layout_height="54.549988dip" android:src="@drawable/bh_icon_success" android:contentDescription="@null" />
+        <TextView android:textSize="20.359985dip" android:layout_gravity="center" android:id="@id/tv_result" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10.909973dip" />
+    </LinearLayout>
+    <Button android:textSize="18.179993dip" android:textColor="@color/bh_white_daynight" android:id="@id/btn_finish" android:background="@drawable/bh_blue_button" android:layout_width="fill_parent" android:layout_height="50.909973dip" android:layout_marginLeft="43.639984dip" android:layout_marginRight="43.639984dip" android:layout_marginBottom="21.819977dip" android:text="我知道了" android:layout_alignParentBottom="true" android:layout_marginHorizontal="43.639984dip" app:layout_constraintBottom_toBottomOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

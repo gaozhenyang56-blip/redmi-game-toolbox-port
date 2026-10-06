@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.miui.networkassistant.ui.widget.expose.ExposeLinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textSize="14.549988dip" android:id="@id/tv_name" android:paddingBottom="14.549988dip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginLeft="16.0dip" android:layout_marginRight="16.0dip" android:layout_marginHorizontal="16.0dip" />
+    <com.miui.networkassistant.ui.widget.RecyclerViewCompat android:id="@id/rv_grid" android:layout_width="fill_parent" android:layout_height="wrap_content" />
+    <TextView android:textSize="13.0dip" android:textColor="@color/card_view_more_packages_text_color" android:layout_gravity="center_horizontal" android:id="@id/tv_more" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginLeft="13.089996dip" android:layout_marginTop="13.0dip" android:layout_marginRight="13.089996dip" android:drawablePadding="7.1999817dip" android:layout_marginHorizontal="13.089996dip" />
+</com.miui.networkassistant.ui.widget.expose.ExposeLinearLayout>

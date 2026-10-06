@@ -1,0 +1,10 @@
+[
+  {
+    "pkgName": "com.android.incallui",
+    "activityName": "com.android.incallui.InCallActivity"
+  },
+  {
+    "pkgName": "com.google.android.dialer",
+    "activityName": "com.android.dialer.incall.activity.ui.InCallActivity"
+  }
+]

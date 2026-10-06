@@ -1,0 +1,18 @@
+repair14 — 原版 10.4.5 华为适配，优先完成 FPS 红色曲线
+
+安装包：Redmi-Original-10.4.5-Huawei-repair14-Shizuku-FPS.apk
+沿用 repair12/13 签名，版本号 40001053；可覆盖相同签名的旧版。
+
+使用：启动 Shizuku，在游戏空间设置的 Shizuku 页面授权，并允许悬浮窗。添加游戏后进入游戏，滑出原版侧栏，在性能面板查看 FPS 曲线。
+
+本版：保留原版 FrameRateView、性能面板、游戏空间图标与海报加载流程；曲线及 FPS 数字为 #FF001F 红色。通过 Shizuku 的 shell 权限读取前台游戏多个 SurfaceFlinger 图层的 actualPresentTime，优先有效 SurfaceView，然后 BLAST。刷新周期表头不作为游戏 FPS。无效、缺失、过期或异常帧数据不写入历史，显示“暂无 FPS 数据”和 --。重新启动监测清空旧历史，旧异步结果丢弃；重复且不前进的有效帧时间可记录 0 FPS，过期后显示不可用。
+
+同时包含 repair14 已完成的原版应用列表保存、公开应用启动、Shizuku 设置、前台监测与悬浮窗类型适配，以及启动路径中已识别的小米私有能力调用禁用。隐藏不支持的工具/调度入口。无障碍连招暂停，没有集成 Macro 服务。
+
+验证：12 项纯 Java FPS 解析测试；实际 Java shell 命令的模拟 dumpsys 测试；原始数据库结构的 SQLite 保存/删除测试；所有七个 DEX 校验及解析、调用参数数检查、签名验证、内部新增调用与 FPS 接线检查。
+限制：没有连接华为手机或 Android 模拟器，尚未实机安装或验证游戏中曲线。模拟测试不能证明 HarmonyOS 的 SurfaceFlinger 一定开放实际帧时间，Shizuku 授权也不能绕过系统不提供数据的情况。不能保证所有未触达的原版代码路径都没有私有依赖。
+
+此归档保留 repair12/13 累积源代码与补丁，repair14/modified-files 是本版修改后的解码文件，repair14/java 是当前 Java 源码。补丁脚本按编号先后施加在各对应旧版基础上，非重复执行脚本；直接使用 modified-files 覆盖对应解码基础进行重建。保留原版其余资源/代码，不包含完整原版 APK。
+原版参考：AOSP FrameTracker.cpp 和 SurfaceFlinger.cpp，实际呈现时间为三列帧数据的第二列。
+https://android.googlesource.com/platform/frameworks/native/+/cdb6b16dec3a541b455be99d075004cb2f0a0cd7/services/surfaceflinger/FrameTracker.cpp
+https://android.googlesource.com/platform/frameworks/native/+/refs/heads/android12L-release/services/surfaceflinger/SurfaceFlinger.cpp

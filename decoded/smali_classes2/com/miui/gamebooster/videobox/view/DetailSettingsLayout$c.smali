@@ -1,0 +1,64 @@
+.class Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout$c;
+.super Ljava/lang/Object;
+.source "SourceFile"
+
+# interfaces
+.implements Landroid/view/View$OnClickListener;
+
+
+# annotations
+.annotation system Ldalvik/annotation/EnclosingMethod;
+    value = Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout;->onFinishInflate()V
+.end annotation
+
+.annotation system Ldalvik/annotation/InnerClass;
+    accessFlags = 0x0
+    name = null
+.end annotation
+
+
+# instance fields
+.field final synthetic a:Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout;
+
+
+# direct methods
+.method constructor <init>(Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout;)V
+    .locals 0
+
+    iput-object p1, p0, Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout$c;->a:Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout;
+
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    return-void
+.end method
+
+
+# virtual methods
+.method public onClick(Landroid/view/View;)V
+    .locals 1
+
+    iget-object p1, p0, Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout$c;->a:Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout;
+
+    invoke-static {p1}, Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout;->d(Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout;)Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout$f;
+
+    move-result-object p1
+
+    if-eqz p1, :cond_0
+
+    iget-object p1, p0, Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout$c;->a:Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout;
+
+    invoke-static {p1}, Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout;->d(Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout;)Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout$f;
+
+    move-result-object p1
+
+    iget-object v0, p0, Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout$c;->a:Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout;
+
+    invoke-static {v0}, Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout;->e(Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout;)Lg8/a;
+
+    move-result-object v0
+
+    invoke-interface {p1, v0}, Lcom/miui/gamebooster/videobox/view/DetailSettingsLayout$f;->a(Lg8/a;)V
+
+    :cond_0
+    return-void
+.end method

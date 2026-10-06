@@ -1,0 +1,18 @@
+{
+  "packaged_original_fps_graph": true,
+  "red_curve": true,
+  "sampling_callback_missing_data_chain": true,
+  "new_internal_calls_checked": 182,
+  "unresolved_internal_calls": 0,
+  "app_icon_loading_preserved": true,
+  "shizuku_settings_activity": true,
+  "paused_macro_excluded": true,
+  "parser_cases_passed": 12,
+  "shell_fixture_passed": {
+    "exact_java_shell_command_tested": true,
+    "foreground_package_selected": true,
+    "multiple_game_layers": true,
+    "other_game_excluded": true
+  },
+  "device_tested": false
+}

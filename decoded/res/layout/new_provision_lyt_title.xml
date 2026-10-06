@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:id="@id/provision_lyt_title" android:paddingLeft="@dimen/provision_title_padding" android:paddingTop="@dimen/new_provision_padding_top" android:paddingRight="@dimen/provision_title_padding" android:paddingBottom="@dimen/new_provision_title_padding_bottom" android:layout_width="fill_parent" android:layout_height="wrap_content"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <ImageView android:layout_gravity="center_horizontal" android:id="@id/new_preview_image" android:layout_width="@dimen/new_preview_image_width" android:layout_height="@dimen/new_preview_image_height" />
+    <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:id="@id/new_provision_real_title" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/new_provision_real_title">
+        <include layout="@layout/provision_big_title" />
+        <Space android:id="@id/provision_title_space" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="@dimen/provision_text_size_title_margin" />
+        <TextView android:id="@id/provision_sub_title" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" style="@style/ProvisionPageSubTitleTextStyle" />
+    </LinearLayout>
+</LinearLayout>

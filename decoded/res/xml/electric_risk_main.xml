@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <com.miui.permcenter.settings.model.OneImagePreference app:layout="@layout/electric_risk_logo_layout" />
+    <com.miui.electricrisk.ElectricProtectionFunctionPreference android:key="protect_phone" app:iconResource="@drawable/protect_phone_icon" app:itemType="1" app:layout="@layout/electric_protection_item_icon_title_summary" app:summaryResource="@string/eletric_card_summary_1" app:titleResource="@string/eletric_card_key_1" />
+    <com.miui.electricrisk.ElectricProtectionFunctionPreference android:key="protect_mms" app:iconResource="@drawable/protect_mms_icon" app:itemType="2" app:layout="@layout/electric_protection_item_icon_title_summary" app:summaryResource="@string/eletric_card_summary_2" app:titleResource="@string/eletric_card_key_2" />
+    <com.miui.electricrisk.ElectricProtectionFunctionPreference android:key="protect_app" app:iconResource="@drawable/protect_app_icon" app:itemType="3" app:layout="@layout/electric_protection_item_icon_title_summary" app:summaryResource="@string/eletric_card_summary_3" app:titleResource="@string/eletric_card_key_3" />
+    <com.miui.electricrisk.ElectricProtectionFunctionPreference android:key="protect_web" app:iconResource="@drawable/protect_web_icon" app:itemType="4" app:layout="@layout/electric_protection_item_icon_title_summary" app:summaryResource="@string/eletric_card_summary_4" app:titleResource="@string/eletric_card_key_4" />
+    <com.miui.electricrisk.ElectricProtectionFunctionPreference android:key="protect_screen_share" app:iconResource="@drawable/protect_screen_icon" app:itemType="5" app:layout="@layout/electric_protection_item_icon_title_summary" app:summaryResource="@string/eletric_card_summary_5" app:titleResource="@string/eletric_card_key_5" />
+</PreferenceScreen>

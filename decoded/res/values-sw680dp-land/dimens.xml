@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="new_provision_padding_top">0.0dip</dimen>
+    <dimen name="new_provision_real_title">0.0dip</dimen>
+    <dimen name="new_provision_title_padding_bottom">0.0dip</dimen>
+    <dimen name="provision_anim_margin_end_land">344.0dip</dimen>
+    <dimen name="provision_anim_margin_start_land">344.0dip</dimen>
+    <dimen name="provision_margin_bottom">32.0dip</dimen>
+    <dimen name="provision_navigation_height">75.0dip</dimen>
+    <dimen name="provision_padding_top">39.0dip</dimen>
+    <dimen name="provision_text_padding_bottom">30.0dip</dimen>
+    <dimen name="provision_text_padding_top">15.0dip</dimen>
+    <dimen name="provision_text_size_title_margin">14.0px</dimen>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item type="integer" name="svg_fill_alpha_w006_d01">0.1</item>
+    <item type="integer" name="svg_fill_alpha_w006_d02">0.2</item>
+    <item type="integer" name="svg_fill_alpha_w01_d02">0.2</item>
+    <item type="integer" name="svg_fill_alpha_w03_d04">0.4</item>
+    <item type="integer" name="svg_fill_alpha_w03_d05">0.5</item>
+    <item type="integer" name="svg_fill_alpha_w06_d02">0.2</item>
+    <item type="integer" name="svg_fill_alpha_w06_d07">0.7</item>
+    <item type="integer" name="svg_fill_alpha_w1_d04">0.4</item>
+</resources>

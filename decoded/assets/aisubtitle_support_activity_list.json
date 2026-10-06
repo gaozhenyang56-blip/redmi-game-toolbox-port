@@ -1,0 +1,82 @@
+[
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.voip.ui.VideoActivity"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.multitalk.ui.MultiTalkMainUI"
+  },
+  {
+    "pkgName": "com.tencent.mobileqq",
+    "activityName": "com.tencent.av.ui.AVActivity"
+  },
+  {
+    "pkgName": "com.alibaba.android.rimet",
+    "activityName": "com.alibaba.android.teleconf.mozi.activity.TeleVideoConfActivity"
+  },
+  {
+    "pkgName": "com.ss.android.lark",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivityInstance"
+  },
+  {
+    "pkgName": "com.tencent.wework",
+    "activityName": "com.tencent.wemeet.sdk.meeting.inmeeting.InMeetingActivity"
+  },
+  {
+    "pkgName": "com.tencent.wework",
+    "activityName": "com.tencent.wework.multitalk.controller.VoipCallActivity"
+  },
+  {
+    "pkgName": "com.tencent.wemeet.app",
+    "activityName": "com.tencent.wemeet.sdk.meeting.inmeeting.InMeetingActivity"
+  },
+  {
+    "pkgName": "us.zoom.videomeetings",
+    "activityName": "com.zipow.videobox.conference.ui.ZmFoldableConfActivity"
+  },
+  {
+    "pkgName": "com.microsoft.teams",
+    "activityName": "com.microsoft.skype.teams.views.activities.InCallActivity"
+  },
+  {
+    "pkgName": "com.skype.raider",
+    "activityName": "com.skype.rover/com.skype.m2.views.CallScreen"
+  },
+  {
+    "pkgName": "com.google.android.apps.meetings",
+    "activityName": "com.google.android.libraries.communications.conference.ui.callui.SingleCallActivity"
+  },
+  {
+    "pkgName": "com.ss.android.lark.kami",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivity"
+  },
+  {
+    "pkgName": "com.ss.android.lark.kami",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivityInstance"
+  },
+  {
+    "pkgName": "com.whatsapp",
+    "activityName": "com.whatsapp.voipcalling.VoipActivityV2"
+  },
+  {
+    "pkgName": "com.facebook.orca",
+    "activityName": "com.facebook.rtc.activities.InCallActivity"
+  },
+  {
+    "pkgName": "cn.eeo.classin",
+    "activityName": "cn.eeo.liveroom.ClassRoomActivity"
+  },
+  {
+    "pkgName": "jp.naver.line.android",
+    "activityName": "com.linecorp.voip2.service.VoIPServiceActivity"
+  },
+  {
+    "pkgName": "com.cisco.webex.meetings",
+    "activityName": "com.cisco.wx2.android/com.webex.teams.ui.calls.incall.InCallActivity"
+  },
+  {
+    "pkgName": "com.cisco.wx2.android",
+    "activityName": "com.webex.teams.ui.calls.incall.InCallActivity"
+  }
+]

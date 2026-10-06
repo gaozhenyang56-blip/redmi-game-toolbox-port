@@ -1,0 +1,6 @@
+[
+    "com.tencent.mm.plugin.base.stub.WXPayEntryActivity",
+    "com.tencent.mm.plugin.base.stub.WXCustomSchemeEntryActivity",
+    "com.alipay.android.app.TransProcessPayActivity",
+    "com.alipay.mobile.quinox.SchemeLauncherActivity"
+]

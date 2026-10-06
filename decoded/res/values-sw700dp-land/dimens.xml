@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="new_provision_padding_top">0.0dip</dimen>
+    <dimen name="new_provision_real_title">0.0dip</dimen>
+    <dimen name="provision_margin_bottom">32.0dip</dimen>
+    <dimen name="provision_navigation_height">75.0dip</dimen>
+    <dimen name="provision_padding_top">39.0dip</dimen>
+    <dimen name="provision_padding_top_miui14">178.0px</dimen>
+    <dimen name="provision_text_padding_bottom">30.0dip</dimen>
+    <dimen name="provision_text_padding_top">15.0dip</dimen>
+</resources>

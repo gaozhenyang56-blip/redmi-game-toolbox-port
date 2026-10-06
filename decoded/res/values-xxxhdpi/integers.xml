@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="pc_charging_icon_bottom">161</integer>
+    <integer name="pc_charging_icon_height">85</integer>
+    <integer name="pc_charging_icon_width">56</integer>
+    <integer name="pc_charging_icon_x">84</integer>
+</resources>

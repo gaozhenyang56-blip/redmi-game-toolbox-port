@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.miui.antivirus.ui.WifiResultView android:id="@id/wifi_status_view" android:paddingBottom="@dimen/card_layout_line_height_half" android:layout_width="fill_parent" android:layout_height="wrap_content"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <LinearLayout android:orientation="vertical" android:background="@drawable/shape_result_card_border_down" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingStart="@dimen/antivirus_header_padding_top" android:paddingEnd="@dimen/antivirus_header_padding_top">
+            <RelativeLayout android:id="@id/wifi_item_connection" android:layout_width="fill_parent" android:layout_height="@dimen/dp_56">
+                <TextView android:gravity="center_vertical" android:id="@id/wifi_item_connection_text" android:text="@string/wifi_item_title_connection" android:layout_centerVertical="true" android:layout_alignParentStart="true" style="@style/ListItemTitle" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@id/wifi_item_encryption" android:layout_width="fill_parent" android:layout_height="@dimen/dp_56">
+                <TextView android:gravity="center_vertical" android:id="@id/wifi_item_encryption_text" android:text="@string/wifi_item_title_encryption" android:layout_centerVertical="true" android:layout_alignParentStart="true" style="@style/ListItemTitle" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@id/wifi_item_fake" android:layout_width="fill_parent" android:layout_height="@dimen/dp_56">
+                <TextView android:gravity="center_vertical" android:id="@id/wifi_item_fake_text" android:text="@string/wifi_item_title_fake" android:layout_centerVertical="true" android:layout_alignParentStart="true" style="@style/ListItemTitle" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@id/wifi_item_dns" android:layout_width="fill_parent" android:layout_height="@dimen/dp_56">
+                <TextView android:gravity="center_vertical" android:text="@string/wifi_item_title_dns" android:layout_centerVertical="true" android:layout_alignParentStart="true" style="@style/ListItemTitle" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@id/wifi_item_arp_attack" android:layout_width="fill_parent" android:layout_height="@dimen/dp_56">
+                <TextView android:gravity="center_vertical" android:text="@string/wifi_item_title_arp_attack" android:layout_centerVertical="true" android:layout_alignParentStart="true" style="@style/ListItemTitle" />
+            </RelativeLayout>
+        </LinearLayout>
+        <RelativeLayout android:id="@id/button_layout" android:layout_width="fill_parent" android:layout_height="wrap_content">
+            <Button android:id="@id/btn_optimize" android:layout_marginTop="@dimen/dp_2" android:layout_marginBottom="@dimen/dp_18" android:text="@string/button_text_disconnect_now" android:layout_marginEnd="@dimen/phone_manage_list_title_pad_lr" android:layout_alignParentEnd="true" style="@style/ResultBlueButtonStyle" />
+        </RelativeLayout>
+    </LinearLayout>
+</com.miui.antivirus.ui.WifiResultView>

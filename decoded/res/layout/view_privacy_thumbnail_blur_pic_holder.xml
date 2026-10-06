@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:paddingLeft="@dimen/miuix_theme_padding_horizontal_common" android:paddingRight="@dimen/miuix_theme_padding_horizontal_common" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingHorizontal="@dimen/miuix_theme_padding_horizontal_common"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <ImageView android:layout_gravity="center_horizontal" android:id="@id/top_pic" android:layout_width="@dimen/privacy_thumbnail_blur_top_pic_width" android:layout_height="@dimen/privacy_thumbnail_blur_top_pic_height" android:layout_marginTop="@dimen/dp_24" android:layout_marginBottom="@dimen/dp_16" android:src="@drawable/privacy_thumbnail_blur_top_pic" />
+    <TextView android:textSize="@dimen/sp_15" android:textColor="@color/tip_subtitle" android:layout_gravity="center_horizontal" android:id="@id/top_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/dp_16" android:layout_marginBottom="@dimen/dp_16" android:text="@string/privacy_thumbnail_blur_top_tip" />
+    <View android:background="@color/na_nd_line" android:layout_width="fill_parent" android:layout_height="@dimen/view_dimen_2" android:layout_marginTop="@dimen/dp_23_64" android:layout_marginBottom="@dimen/dp_23_64" />
+</LinearLayout>

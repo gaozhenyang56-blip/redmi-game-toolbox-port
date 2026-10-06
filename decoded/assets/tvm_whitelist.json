@@ -1,0 +1,97 @@
+{
+  "tvm_whitelist": [
+    {
+      "package_name": "com.xiaomi.mitrustedui.sample",
+      "signature": "15370537615011a7381f07cb8dfc2050ed283272f31641da1aca62517b3dae44",
+      "tui_apps": [
+        {
+          "sha256": "50590adf919b5d36afb1398214e1f043de08fafdfda32864b76ccd3a64a82b47"
+        },
+        {
+          "sha256": "ca1b69b950f31672703d1727a3fd301549a0f84bf44eca7b4c92224d1f9d4ba0"
+        },
+        {
+          "sha256": "382d69c48093df4f0d4b32b97cd1c75afc46f75e0aab6e6578a00970cd164e9f"
+        },
+        {
+          "sha256": "f60355cb4af6be263005a604f407701b4576f5c6130dcf7614ba5009b56cf119"
+        },
+        {
+          "sha256": "4ba68265b972523e84124f81714c481322cd92b3614a140e995b61891a02b42b"
+        },
+        {
+          "sha256": "8e3b924dd45854e456a84a2e53cbdc4ff63b501ee2185ca55228190f8eefbedc"
+        },
+        {
+          "sha256": "40d0999f281a9d8d3c1ea01e497a7baf78d2753a7bdbe4308cf3592208f5d022"
+        },
+        {
+          "sha256": "938d37a84feed5198351b9f45086a7387ae969ab8336ae84e1903cf9a7a8a669"
+        }
+      ]
+    },
+    {
+      "package_name": "cn.com.cmbc.newmbank.micro",
+      "signature": "ad4b8b547b69265fbc10da3c6d03d596920cdb21f5f3181229b6258f46bb2259",
+      "tui_apps": [
+        {
+          "sha256": "e568b7ff465de1ee8bd5989388f544f36bb4554c2f0939bcfa50e9f2d9062918"
+        },
+        {
+          "sha256": "b4cb6254f83987ab6a8b4e9c261e43fc4f28918581c1d6487feaffd1887bdc9b"
+        },
+        {
+          "sha256": "efba845c2587b8ca4ca926345ee8a03ec9c2ef49abf20f3bc0c498c6625a437e"
+        },
+        {
+          "sha256": "0d56d0f2d3a6b20956a16e08562f6ebbfd14847e763dc357927c9f87784638aa"
+        },
+        {
+          "sha256": "642efdb8252207e075a1aa98b10b8ac8b0244b221ec7e992737a8b0029204e5f"
+        }
+      ]
+    },
+    {
+      "package_name": "cn.com.cmbc.newmbank",
+      "signature": "ad4b8b547b69265fbc10da3c6d03d596920cdb21f5f3181229b6258f46bb2259",
+      "tui_apps": [
+        {
+          "sha256": "e568b7ff465de1ee8bd5989388f544f36bb4554c2f0939bcfa50e9f2d9062918"
+        },
+        {
+          "sha256": "b4cb6254f83987ab6a8b4e9c261e43fc4f28918581c1d6487feaffd1887bdc9b"
+        },
+        {
+          "sha256": "efba845c2587b8ca4ca926345ee8a03ec9c2ef49abf20f3bc0c498c6625a437e"
+        },
+        {
+          "sha256": "0d56d0f2d3a6b20956a16e08562f6ebbfd14847e763dc357927c9f87784638aa"
+        },
+        {
+          "sha256": "642efdb8252207e075a1aa98b10b8ac8b0244b221ec7e992737a8b0029204e5f"
+        }
+      ]
+    },
+    {
+      "package_name": "cn.com.cmbc.newmbank.ep",
+      "signature": "ad4b8b547b69265fbc10da3c6d03d596920cdb21f5f3181229b6258f46bb2259",
+      "tui_apps": [
+        {
+          "sha256": "e568b7ff465de1ee8bd5989388f544f36bb4554c2f0939bcfa50e9f2d9062918"
+        },
+        {
+          "sha256": "b4cb6254f83987ab6a8b4e9c261e43fc4f28918581c1d6487feaffd1887bdc9b"
+        },
+        {
+          "sha256": "efba845c2587b8ca4ca926345ee8a03ec9c2ef49abf20f3bc0c498c6625a437e"
+        },
+        {
+          "sha256": "0d56d0f2d3a6b20956a16e08562f6ebbfd14847e763dc357927c9f87784638aa"
+        },
+        {
+          "sha256": "642efdb8252207e075a1aa98b10b8ac8b0244b221ec7e992737a8b0029204e5f"
+        }
+      ]
+    }
+  ]
+}

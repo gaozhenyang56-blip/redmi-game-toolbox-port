@@ -1,0 +1,38 @@
+[
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.voip.ui.VideoActivity"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.multitalk.ui.MultiTalkMainUI"
+  },
+  {
+    "pkgName": "com.tencent.mobileqq",
+    "activityName": "com.tencent.av.ui.AVActivity"
+  },
+  {
+    "pkgName": "com.ss.android.lark",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivityInstance"
+  },
+  {
+    "pkgName": "com.tencent.wework",
+    "activityName": "com.tencent.wework.multitalk.controller.VoipCallActivity"
+  },
+  {
+    "pkgName": "com.tencent.tim",
+    "activityName": "com.tencent.av.ui.AVActivity"
+  },
+  {
+    "pkgName": "com.tencent.wework",
+    "activityName": "com.tencent.wework.meeting.ilink.flutter.ILinkMeetingActivity"
+  },
+  {
+    "pkgName": "com.tencent.wework",
+    "activityName": "com.tencent.wemeet.sdk.meeting.inmeeting.InMeetingActivity"
+  },
+  {
+    "pkgName": "com.ss.android.lark.kami",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivityInstance"
+  }
+]

@@ -1,0 +1,46 @@
+[
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.voip.ui.VideoActivity"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.multitalk.ui.MultiTalkMainUI"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.flash.FaceFlashUI"
+  },
+  {
+    "pkgName": "com.tencent.mobileqq",
+    "activityName": "com.tencent.av.ui.AVActivity"
+  },
+  {
+    "pkgName": "com.ss.android.ugc.aweme",
+    "activityName": "com.ss.android.ugc.aweme.shortvideo.ui.VideoRecordNewActivity"
+  },
+  {
+    "pkgName": "com.smile.gifmaker",
+    "activityName": "com.yxcorp.gifshow.camera.record.CameraActivity"
+  },
+  {
+    "pkgName": "com.kuaishou.nebula",
+    "activityName": "com.yxcorp.gifshow.camera.record.CameraActivity"
+  },
+  {
+    "pkgName": "com.ss.android.ugc.aweme.lite",
+    "activityName": "com.bytedance.mira.stub.p0.StubSingleTaskActivity1"
+  },
+  {
+    "pkgName": "com.alibaba.android.rimet",
+    "activityName": "com.alibaba.android.teleconf.mozi.activity.TeleVideoConfActivity"
+  },
+  {
+    "pkgName": "com.netease.cloudmusic",
+    "activityName": "com.netease.cloudmusic.music.biz.mlogpublish.launcher.PublishVideoMLogLaunchActivity"
+  },
+  {
+    "pkgName": "com.xingin.xhs",
+    "activityName": "com.xingin.capa.lib.entrance.CapaEntranceActivity"
+  }
+]

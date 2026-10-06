@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="57.0dip"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textSize="16.269989sp" android:textStyle="bold" android:textColor="@color/record_list_detail_text_title_color" android:id="@id/tv_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="title" android:layout_centerVertical="true" android:alpha="0.9" android:layout_alignParentStart="true" />
+    <TextView android:textSize="13.909973sp" android:textColor="@color/record_list_detail_text_content_color" android:gravity="end" android:id="@id/tv_value" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="value" android:maxLines="2" android:layout_centerVertical="true" android:layout_marginStart="10.0dip" android:layout_marginEnd="7.269989dip" android:layout_toStartOf="@id/copy_btn" android:layout_toEndOf="@id/tv_title" />
+    <ImageView android:textSize="11.639984dip" android:id="@id/copy_btn" android:layout_width="26.899994dip" android:layout_height="26.899994dip" android:src="@drawable/click_to_copy" android:text="@string/copy" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+</RelativeLayout>

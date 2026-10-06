@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item type="dimen" name="app_lock_top_line_percent">0.32</item>
+    <dimen name="miuix_appcompat_window_extra_padding_horizontal_huge">128.0dip</dimen>
+    <dimen name="miuix_appcompat_window_extra_padding_horizontal_large">72.0dip</dimen>
+    <dimen name="miuix_appcompat_window_extra_padding_horizontal_small">44.0dip</dimen>
+</resources>

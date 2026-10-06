@@ -1,0 +1,47 @@
+{
+  "sha256": "b86253ed6424d538ba200ccab4877510b5a5ad52c98c6e708d06b44242189518",
+  "device_tested": false,
+  "dex": [
+    {
+      "name": "classes.dex",
+      "complete_parse": true,
+      "classes": 8189
+    },
+    {
+      "name": "classes2.dex",
+      "complete_parse": true,
+      "classes": 8936
+    },
+    {
+      "name": "classes3.dex",
+      "complete_parse": true,
+      "classes": 7891
+    },
+    {
+      "name": "classes4.dex",
+      "complete_parse": true,
+      "classes": 2
+    },
+    {
+      "name": "classes5.dex",
+      "complete_parse": true,
+      "classes": 4
+    },
+    {
+      "name": "classes6.dex",
+      "complete_parse": true,
+      "classes": 1
+    },
+    {
+      "name": "classes7.dex",
+      "complete_parse": true,
+      "classes": 87
+    }
+  ],
+  "invalid_invoke_argument_counts": 0,
+  "same_signer_as_repair12": true,
+  "version_name": "10.4.5-huawei-repair14-shizuku",
+  "version_code": "40001053",
+  "preference_and_shizuku_routes_separate": true,
+  "original_red_curve_retained": true
+}

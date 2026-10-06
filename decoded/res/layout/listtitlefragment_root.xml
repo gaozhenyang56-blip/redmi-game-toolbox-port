@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:id="@id/rl_root_view" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <FrameLayout android:id="@id/footer_layout" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_alignParentBottom="true" />
+    <miuix.nestedheader.widget.NestedHeaderLayout android:orientation="vertical" android:id="@id/container" android:clipChildren="false" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_above="@id/footer_layout" app:headerView="@id/search_view" app:rangeOffset="0.0px" app:scrollableView="@id/scroll_view">
+        <miuix.springback.view.SpringBackLayout android:id="@id/scroll_view" android:layout_width="fill_parent" android:layout_height="fill_parent" app:scrollableView="@id/list_view">
+            <miuix.recyclerview.widget.RecyclerView android:id="@id/list_view" android:paddingBottom="@dimen/dp_16" android:clipToPadding="false" android:layout_width="fill_parent" android:layout_height="fill_parent" />
+        </miuix.springback.view.SpringBackLayout>
+        <include android:id="@id/search_view" layout="@layout/miuix_appcompat_search_stub" />
+    </miuix.nestedheader.widget.NestedHeaderLayout>
+    <TextView android:textAppearance="@style/Miuix.AppCompat.TextAppearance.BlankPage" android:id="@android:id/empty" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/list_empty_text" android:drawableTop="@drawable/icon_list_empty" android:layout_centerInParent="true" />
+</RelativeLayout>

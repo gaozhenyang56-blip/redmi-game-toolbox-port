@@ -1,0 +1,45 @@
+.class Lcom/miui/applicationlock/ConfirmAccountActivity$a;
+.super Ljava/lang/Object;
+.source "SourceFile"
+
+# interfaces
+.implements Landroid/content/DialogInterface$OnClickListener;
+
+
+# annotations
+.annotation system Ldalvik/annotation/EnclosingMethod;
+    value = Lcom/miui/applicationlock/ConfirmAccountActivity;->p0(Landroid/content/Context;)V
+.end annotation
+
+.annotation system Ldalvik/annotation/InnerClass;
+    accessFlags = 0x0
+    name = null
+.end annotation
+
+
+# instance fields
+.field final synthetic a:Lcom/miui/applicationlock/ConfirmAccountActivity;
+
+
+# direct methods
+.method constructor <init>(Lcom/miui/applicationlock/ConfirmAccountActivity;)V
+    .locals 0
+
+    iput-object p1, p0, Lcom/miui/applicationlock/ConfirmAccountActivity$a;->a:Lcom/miui/applicationlock/ConfirmAccountActivity;
+
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    return-void
+.end method
+
+
+# virtual methods
+.method public onClick(Landroid/content/DialogInterface;I)V
+    .locals 0
+
+    iget-object p1, p0, Lcom/miui/applicationlock/ConfirmAccountActivity$a;->a:Lcom/miui/applicationlock/ConfirmAccountActivity;
+
+    invoke-static {p1}, Lcom/miui/applicationlock/ConfirmAccountActivity;->e0(Lcom/miui/applicationlock/ConfirmAccountActivity;)V
+
+    return-void
+.end method

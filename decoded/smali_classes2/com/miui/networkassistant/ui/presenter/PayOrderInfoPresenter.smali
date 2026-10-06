@@ -1,0 +1,475 @@
+.class public final Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;
+.super Ljava/lang/Object;
+.source "SourceFile"
+
+# interfaces
+.implements Lcom/miui/networkassistant/ui/presenter/IpayOrderPresenter;
+
+
+# instance fields
+.field private context:Landroid/content/Context;
+    .annotation build Lorg/jetbrains/annotations/NotNull;
+    .end annotation
+.end field
+
+.field private iOrderView:Lcom/miui/networkassistant/ui/presenter/IpayOrderView;
+    .annotation build Lorg/jetbrains/annotations/Nullable;
+    .end annotation
+.end field
+
+.field private mCarrier:Ljava/lang/String;
+    .annotation build Lorg/jetbrains/annotations/NotNull;
+    .end annotation
+.end field
+
+.field private mDataSize:Ljava/lang/String;
+    .annotation build Lorg/jetbrains/annotations/NotNull;
+    .end annotation
+.end field
+
+.field private mFee:Ljava/lang/String;
+    .annotation build Lorg/jetbrains/annotations/NotNull;
+    .end annotation
+.end field
+
+.field private mPhoneNum:Ljava/lang/String;
+    .annotation build Lorg/jetbrains/annotations/NotNull;
+    .end annotation
+.end field
+
+.field private mProductId:Ljava/lang/String;
+    .annotation build Lorg/jetbrains/annotations/NotNull;
+    .end annotation
+.end field
+
+.field private mValidityPeriod:Ljava/lang/String;
+    .annotation build Lorg/jetbrains/annotations/NotNull;
+    .end annotation
+.end field
+
+
+# direct methods
+.method public constructor <init>(Lcom/miui/networkassistant/ui/presenter/IpayOrderView;Landroid/content/Context;)V
+    .locals 1
+    .param p1    # Lcom/miui/networkassistant/ui/presenter/IpayOrderView;
+        .annotation build Lorg/jetbrains/annotations/Nullable;
+        .end annotation
+    .end param
+    .param p2    # Landroid/content/Context;
+        .annotation build Lorg/jetbrains/annotations/NotNull;
+        .end annotation
+    .end param
+
+    const-string v0, "context"
+
+    invoke-static {p2, v0}, Lbk/m;->e(Ljava/lang/Object;Ljava/lang/String;)V
+
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    iput-object p1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->iOrderView:Lcom/miui/networkassistant/ui/presenter/IpayOrderView;
+
+    iput-object p2, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->context:Landroid/content/Context;
+
+    const-string p1, ""
+
+    iput-object p1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mCarrier:Ljava/lang/String;
+
+    iput-object p1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mPhoneNum:Ljava/lang/String;
+
+    iput-object p1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mProductId:Ljava/lang/String;
+
+    iput-object p1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mDataSize:Ljava/lang/String;
+
+    iput-object p1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mValidityPeriod:Ljava/lang/String;
+
+    iput-object p1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mFee:Ljava/lang/String;
+
+    return-void
+.end method
+
+.method public static final synthetic access$getIOrderView$p(Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;)Lcom/miui/networkassistant/ui/presenter/IpayOrderView;
+    .locals 0
+
+    iget-object p0, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->iOrderView:Lcom/miui/networkassistant/ui/presenter/IpayOrderView;
+
+    return-object p0
+.end method
+
+.method private final saveInfoToPre(Ljava/lang/String;Ljava/lang/String;)V
+    .locals 1
+
+    iget-object v0, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->context:Landroid/content/Context;
+
+    invoke-static {v0}, Landroidx/preference/f;->c(Landroid/content/Context;)Landroid/content/SharedPreferences;
+
+    move-result-object v0
+
+    invoke-interface {v0}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+
+    move-result-object v0
+
+    invoke-interface {v0, p1, p2}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+
+    move-result-object p1
+
+    invoke-interface {p1}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    return-void
+.end method
+
+
+# virtual methods
+.method public fetchPayInfo()V
+    .locals 8
+
+    new-instance v4, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter$fetchPayInfo$callback$1;
+
+    invoke-direct {v4, p0}, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter$fetchPayInfo$callback$1;-><init>(Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;)V
+
+    new-instance v2, Ljava/util/HashMap;
+
+    invoke-direct {v2}, Ljava/util/HashMap;-><init>()V
+
+    const-string v0, "productType"
+
+    const-string v1, "trafficProduct"
+
+    invoke-interface {v2, v0, v1}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+
+    iget-object v0, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mPhoneNum:Ljava/lang/String;
+
+    const-string v1, "+620"
+
+    const/4 v3, 0x0
+
+    const/4 v5, 0x2
+
+    const/4 v6, 0x0
+
+    invoke-static {v0, v1, v3, v5, v6}, Ljk/f;->u(Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Z
+
+    move-result v0
+
+    if-eqz v0, :cond_0
+
+    new-instance v0, Ljava/lang/StringBuilder;
+
+    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+
+    iget-object v1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mPhoneNum:Ljava/lang/String;
+
+    const/4 v5, 0x3
+
+    invoke-virtual {v1, v3, v5}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+
+    move-result-object v1
+
+    const-string v3, "this as java.lang.String\u2026ing(startIndex, endIndex)"
+
+    invoke-static {v1, v3}, Lbk/m;->d(Ljava/lang/Object;Ljava/lang/String;)V
+
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    iget-object v1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mPhoneNum:Ljava/lang/String;
+
+    const/4 v5, 0x4
+
+    invoke-virtual {v1}, Ljava/lang/String;->length()I
+
+    move-result v6
+
+    invoke-virtual {v1, v5, v6}, Ljava/lang/String;->substring(II)Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-static {v1, v3}, Lbk/m;->d(Ljava/lang/Object;Ljava/lang/String;)V
+
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    iput-object v0, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mPhoneNum:Ljava/lang/String;
+
+    :cond_0
+    iget-object v0, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mPhoneNum:Ljava/lang/String;
+
+    const-string v1, "phoneNumber"
+
+    invoke-interface {v2, v1, v0}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+
+    iget-object v0, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mProductId:Ljava/lang/String;
+
+    const-string v1, "productId"
+
+    invoke-interface {v2, v1, v0}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+
+    iget-object v0, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mDataSize:Ljava/lang/String;
+
+    const-string v1, "dataSize"
+
+    invoke-interface {v2, v1, v0}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+
+    iget-object v0, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mValidityPeriod:Ljava/lang/String;
+
+    const-string v1, "validityPeriod"
+
+    invoke-interface {v2, v1, v0}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+
+    iget-object v0, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mFee:Ljava/lang/String;
+
+    const-string v1, "salePrice"
+
+    invoke-interface {v2, v1, v0}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+
+    new-instance v0, Lorg/json/JSONObject;
+
+    invoke-direct {v0}, Lorg/json/JSONObject;-><init>()V
+
+    iget-object v1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->context:Landroid/content/Context;
+
+    invoke-virtual {v1}, Landroid/content/Context;->getResources()Landroid/content/res/Resources;
+
+    move-result-object v1
+
+    invoke-virtual {v1}, Landroid/content/res/Resources;->getConfiguration()Landroid/content/res/Configuration;
+
+    move-result-object v1
+
+    iget-object v1, v1, Landroid/content/res/Configuration;->locale:Ljava/util/Locale;
+
+    invoke-virtual {v1}, Ljava/util/Locale;->getDisplayLanguage()Ljava/lang/String;
+
+    move-result-object v1
+
+    const-string v3, "language"
+
+    invoke-virtual {v0, v3, v1}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+
+    iget-object v1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->context:Landroid/content/Context;
+
+    invoke-static {v1}, Ly4/a;->a(Landroid/content/Context;)Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-static {v1}, Landroid/text/TextUtils;->isEmpty(Ljava/lang/CharSequence;)Z
+
+    move-result v3
+
+    if-nez v3, :cond_1
+
+    const-string v3, "oaid"
+
+    goto :goto_0
+
+    :cond_1
+    sget-object v1, Lcom/miui/networkassistant/utils/SettingsUtils;->INSTANCE:Lcom/miui/networkassistant/utils/SettingsUtils;
+
+    invoke-virtual {v1}, Lcom/miui/networkassistant/utils/SettingsUtils;->getUUID()Ljava/lang/String;
+
+    move-result-object v1
+
+    const-string v3, "uuid"
+
+    :goto_0
+    invoke-virtual {v0, v3, v1}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+
+    const-string v1, "country"
+
+    const-string v3, "Indonesia"
+
+    invoke-virtual {v0, v1, v3}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+
+    const-string v1, "pageIndex"
+
+    const-string v3, "home"
+
+    invoke-virtual {v0, v1, v3}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+
+    invoke-virtual {v0}, Lorg/json/JSONObject;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    const-string v1, "jsonObject.toString()"
+
+    invoke-static {v0, v1}, Lbk/m;->d(Ljava/lang/Object;Ljava/lang/String;)V
+
+    const-string v1, "commonParameters"
+
+    invoke-interface {v2, v1, v0}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+
+    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+
+    move-result-wide v0
+
+    invoke-static {v0, v1}, Ljava/lang/String;->valueOf(J)Ljava/lang/String;
+
+    move-result-object v0
+
+    const-string v1, "timestamp"
+
+    invoke-interface {v2, v1, v0}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+
+    invoke-static {v2}, Lcom/miui/networkassistant/utils/IDPhoneNumberUtil;->createLinkString(Ljava/util/HashMap;)Ljava/lang/String;
+
+    move-result-object v0
+
+    iget-object v1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->context:Landroid/content/Context;
+
+    invoke-static {v1, v0}, Lcom/miui/networkassistant/utils/SignatureUtils;->getSignatureResults(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v0
+
+    const-string v1, "signParams"
+
+    invoke-static {v0, v1}, Lbk/m;->d(Ljava/lang/Object;Ljava/lang/String;)V
+
+    const-string v1, "sign"
+
+    invoke-interface {v2, v1, v0}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+
+    invoke-static {}, Lcom/miui/networkassistant/ui/bean/ParamsUtils;->isPreviewEnv()Z
+
+    move-result v0
+
+    if-eqz v0, :cond_2
+
+    sget-object v0, Lcom/miui/networkassistant/ui/network/NetRequest;->INSTANCE:Lcom/miui/networkassistant/ui/network/NetRequest;
+
+    const-class v3, Lcom/miui/networkassistant/ui/bean/PayData;
+
+    const/4 v5, 0x0
+
+    const/16 v6, 0x10
+
+    const/4 v7, 0x0
+
+    const-string v1, "https://preview-api-flow-intl.10046.xiaomimobile.com/product/product_pay_info"
+
+    goto :goto_1
+
+    :cond_2
+    sget-object v0, Lcom/miui/networkassistant/ui/network/NetRequest;->INSTANCE:Lcom/miui/networkassistant/ui/network/NetRequest;
+
+    const-class v3, Lcom/miui/networkassistant/ui/bean/PayData;
+
+    const/4 v5, 0x0
+
+    const/16 v6, 0x10
+
+    const/4 v7, 0x0
+
+    const-string v1, "https://api-flow-intl.10046.xiaomimobile.com/product/product_pay_info"
+
+    :goto_1
+    invoke-static/range {v0 .. v7}, Lcom/miui/networkassistant/ui/network/NetRequest;->post$default(Lcom/miui/networkassistant/ui/network/NetRequest;Ljava/lang/String;Ljava/util/HashMap;Ljava/lang/Class;Lcom/miui/networkassistant/ui/network/BaseNetRequest$Callback;Ljava/lang/Boolean;ILjava/lang/Object;)V
+
+    return-void
+.end method
+
+.method public onDestroy()V
+    .locals 1
+
+    const/4 v0, 0x0
+
+    iput-object v0, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->iOrderView:Lcom/miui/networkassistant/ui/presenter/IpayOrderView;
+
+    return-void
+.end method
+
+.method public final setCarrier(Ljava/lang/String;)V
+    .locals 1
+    .param p1    # Ljava/lang/String;
+        .annotation build Lorg/jetbrains/annotations/NotNull;
+        .end annotation
+    .end param
+
+    const-string v0, "carrier"
+
+    invoke-static {p1, v0}, Lbk/m;->e(Ljava/lang/Object;Ljava/lang/String;)V
+
+    iput-object p1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mCarrier:Ljava/lang/String;
+
+    return-void
+.end method
+
+.method public final setDataSize(Ljava/lang/String;)V
+    .locals 1
+    .param p1    # Ljava/lang/String;
+        .annotation build Lorg/jetbrains/annotations/NotNull;
+        .end annotation
+    .end param
+
+    const-string v0, "num"
+
+    invoke-static {p1, v0}, Lbk/m;->e(Ljava/lang/Object;Ljava/lang/String;)V
+
+    iput-object p1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mDataSize:Ljava/lang/String;
+
+    return-void
+.end method
+
+.method public final setFee(Ljava/lang/String;)V
+    .locals 1
+    .param p1    # Ljava/lang/String;
+        .annotation build Lorg/jetbrains/annotations/NotNull;
+        .end annotation
+    .end param
+
+    const-string v0, "num"
+
+    invoke-static {p1, v0}, Lbk/m;->e(Ljava/lang/Object;Ljava/lang/String;)V
+
+    iput-object p1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mFee:Ljava/lang/String;
+
+    return-void
+.end method
+
+.method public final setPeriod(Ljava/lang/String;)V
+    .locals 1
+    .param p1    # Ljava/lang/String;
+        .annotation build Lorg/jetbrains/annotations/NotNull;
+        .end annotation
+    .end param
+
+    const-string v0, "num"
+
+    invoke-static {p1, v0}, Lbk/m;->e(Ljava/lang/Object;Ljava/lang/String;)V
+
+    iput-object p1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mValidityPeriod:Ljava/lang/String;
+
+    return-void
+.end method
+
+.method public final setPhoneNum(Ljava/lang/String;)V
+    .locals 1
+    .param p1    # Ljava/lang/String;
+        .annotation build Lorg/jetbrains/annotations/NotNull;
+        .end annotation
+    .end param
+
+    const-string v0, "num"
+
+    invoke-static {p1, v0}, Lbk/m;->e(Ljava/lang/Object;Ljava/lang/String;)V
+
+    iput-object p1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mPhoneNum:Ljava/lang/String;
+
+    return-void
+.end method
+
+.method public final setProductID(Ljava/lang/String;)V
+    .locals 1
+    .param p1    # Ljava/lang/String;
+        .annotation build Lorg/jetbrains/annotations/NotNull;
+        .end annotation
+    .end param
+
+    const-string v0, "num"
+
+    invoke-static {p1, v0}, Lbk/m;->e(Ljava/lang/Object;Ljava/lang/String;)V
+
+    iput-object p1, p0, Lcom/miui/networkassistant/ui/presenter/PayOrderInfoPresenter;->mProductId:Ljava/lang/String;
+
+    return-void
+.end method

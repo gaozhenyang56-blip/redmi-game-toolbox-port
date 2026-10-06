@@ -1,0 +1,23 @@
+[
+  {
+    "package": "com.tencent.mm",
+    "activity": [
+      "com.tencent.mm.plugin.remittance.ui.RemittanceUI"
+    ]
+  },
+  {
+    "package": "com.eg.android.AlipayGphone",
+    "activity": [
+      "com.alipay.mobile.transferapp.ui.TFToAccountConfirmMainActivity",
+      "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_",
+      "com.alipay.mobile.transferapp.ui.TFToAccountConfirmMainActivityNew",
+      "com.alipay.mobile.transferapp.ui.TFToAccountInputActivity_"
+    ]
+  },
+  {
+    "package": "com.tencent.mobileqq",
+    "activity": [
+      "com.tencent.mobileqq.qwallet.transaction.impl.TransactionActivity"
+    ]
+  }
+]

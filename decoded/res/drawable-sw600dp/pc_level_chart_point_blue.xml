@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape android:shape="oval"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@color/pc_battery_statics_chart_color_normal_new" />
+    <size android:height="6.2199707dip" android:width="6.2199707dip" />
+</shape>

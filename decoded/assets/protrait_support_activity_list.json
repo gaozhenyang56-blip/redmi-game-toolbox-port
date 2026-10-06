@@ -1,0 +1,140 @@
+[
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.voip.ui.VideoActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.multitalk.ui.MultiTalkMainUI",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.flutter.ui.CachedFlutterActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.tencent.mm",
+    "activityName": "com.tencent.mm.plugin.flash.FaceFlashUI",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.tencent.mobileqq",
+    "activityName": "com.tencent.av.ui.VideoInviteFull",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.tencent.mobileqq",
+    "activityName": "com.tencent.av.ui.VideoInviteLock",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.tencent.mobileqq",
+    "activityName": "com.tencent.av.ui.AVActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.alibaba.android.rimet",
+    "activityName": "com.alibaba.android.teleconf.mozi.activity.TeleVideoConfActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.ss.android.lark",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivityInstance",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.ss.android.lark",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.ss.android.lark",
+    "activityName": "com.ss.android.vc.meeting.module.preview.facade.MeetingPreviewActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.tencent.wework",
+    "activityName": "com.tencent.wemeet.sdk.meeting.inmeeting.InMeetingActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.tencent.wemeet.app",
+    "activityName": "com.tencent.wemeet.sdk.meeting.inmeeting.InMeetingActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.ss.android.lark.kami",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.ss.android.lark.kami",
+    "activityName": "com.ss.android.vc.meeting.module.multi.ByteRTCMeetingActivityInstance",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.whatsapp",
+    "activityName": "com.whatsapp.voipcalling.VoipActivityV2",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.facebook.orca",
+    "activityName": "com.facebook.rtc.activities.InCallActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "us.zoom.videomeetings",
+    "activityName": "com.zipow.videobox.conference.ui.ZmFoldableConfActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.microsoft.teams",
+    "activityName": "com.microsoft.skype.teams.views.activities.InCallActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.google.android.apps.tachyon",
+    "activityName": "com.google.android.libraries.communications.conference.ui.callui.SingleCallActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.google.android.apps.tachyon",
+    "activityName": "com.google.android.apps.tachyon.call.oneonone.ui.OneOnOneCallActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.whatsapp.w4b",
+    "activityName": "com.whatsapp.voipcalling.VoipActivityV2",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  },
+  {
+    "pkgName": "com.google.android.apps.meetings",
+    "activityName": "com.google.android.libraries.communications.conference.ui.callui.SingleCallActivity",
+    "size": "2560x1920",
+    "size_small": "1280x960"
+  }
+]

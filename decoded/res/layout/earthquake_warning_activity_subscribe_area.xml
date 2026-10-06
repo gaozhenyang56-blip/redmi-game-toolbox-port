@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <include android:id="@id/search_view" layout="@layout/miuix_appcompat_search_stub" />
+    <RelativeLayout android:id="@id/search_result_container" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_marginStart="@dimen/ew_custom_margin_x" android:layout_marginEnd="@dimen/ew_custom_margin_x">
+        <miuix.recyclerview.widget.RecyclerView android:id="@id/search_result_list" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_marginStart="@dimen/wc_disaster_level_height" android:layout_marginEnd="@dimen/wc_disaster_level_height" />
+        <TextView android:textSize="@dimen/wc_text_summary_text_size" android:textColor="@color/ew_text_summary_color" android:gravity="center" android:id="@id/search_result_tips" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/view_dimen_75" android:layout_marginBottom="@dimen/view_dimen_68" android:text="@string/ew_not_support_area" android:layout_marginStart="@dimen/wc_disaster_level_height" android:layout_marginEnd="@dimen/wc_disaster_level_height" />
+    </RelativeLayout>
+    <miuix.springback.view.SpringBackLayout android:layout_width="fill_parent" android:layout_height="fill_parent" app:scrollOrientation="vertical|angle" app:scrollableView="@id/scrollview">
+        <androidx.core.widget.NestedScrollView android:id="@id/scrollview" android:layout_width="fill_parent" android:layout_height="fill_parent" android:overScrollMode="ifContentScrolls">
+            <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_marginStart="@dimen/miuix_theme_margin_horizontal_common" android:layout_marginEnd="@dimen/miuix_theme_margin_horizontal_common">
+                <TextView android:textSize="@dimen/sp_14" android:textColor="@color/ew_main_detail_title_color" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/view_dimen_75" android:layout_marginBottom="@dimen/view_dimen_68" android:text="@string/ew_action_subscribed_area" android:textDirection="locale" />
+                <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                    <TextView android:id="@id/local_area" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" style="@style/ListItemTitle" />
+                    <ImageView android:id="@id/img_location" android:visibility="gone" android:layout_width="@dimen/view_dimen_44" android:layout_height="@dimen/view_dimen_52" android:src="@drawable/ew_subscribe_local_icon" android:layout_marginStart="@dimen/view_dimen_32" />
+                    <TextView android:textSize="@dimen/text_font_size_42" android:textColor="@color/ew_list_empty_text_color" android:id="@id/not_support" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ew_not_support_area" />
+                    <TextView android:textSize="@dimen/wc_text_summary_text_size" android:textColor="@color/color_blue_primary_default" android:id="@id/get_location" android:background="@drawable/ew_getlocation_bg" android:paddingTop="@dimen/view_dimen_15" android:paddingBottom="@dimen/view_dimen_15" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ew_get_location" android:paddingStart="@dimen/view_dimen_44" android:paddingEnd="@dimen/view_dimen_44" />
+                </LinearLayout>
+                <miuix.recyclerview.widget.RecyclerView android:id="@id/focus_area_list" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/view_dimen_24" app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </miuix.springback.view.SpringBackLayout>
+</LinearLayout>

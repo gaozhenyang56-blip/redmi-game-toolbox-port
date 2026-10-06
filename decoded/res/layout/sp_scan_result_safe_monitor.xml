@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.miui.antivirus.ui.MonitorSafeResultView android:orientation="vertical" android:paddingBottom="@dimen/card_layout_line_height_half" android:layout_width="fill_parent" android:layout_height="wrap_content"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <LinearLayout android:orientation="vertical" android:background="@drawable/shape_result_card_border_down" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <LinearLayout android:gravity="center_vertical" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/dp_24" android:layout_marginBottom="@dimen/dp_24" android:layout_marginStart="@dimen/antivirus_result_safe_monitor_item_se" android:layout_marginEnd="@dimen/antivirus_result_safe_monitor_item_se">
+            <ImageView android:id="@id/icon1" android:layout_width="@dimen/antivirus_pay_protection_icon_size" android:layout_height="@dimen/antivirus_pay_protection_icon_size" />
+            <View android:layout_width="0.0dip" android:layout_height="fill_parent" android:layout_weight="1.0" />
+            <ImageView android:id="@id/icon2" android:layout_width="@dimen/antivirus_pay_protection_icon_size" android:layout_height="@dimen/antivirus_pay_protection_icon_size" />
+            <View android:layout_width="0.0dip" android:layout_height="fill_parent" android:layout_weight="1.0" />
+            <ImageView android:id="@id/icon3" android:layout_width="@dimen/antivirus_pay_protection_icon_size" android:layout_height="@dimen/antivirus_pay_protection_icon_size" />
+            <View android:layout_width="0.0dip" android:layout_height="fill_parent" android:layout_weight="1.0" />
+            <ImageView android:id="@id/icon4" android:layout_width="@dimen/antivirus_pay_protection_icon_size" android:layout_height="@dimen/antivirus_pay_protection_icon_size" />
+            <View android:layout_width="0.0dip" android:layout_height="fill_parent" android:layout_weight="1.0" />
+            <ImageView android:id="@id/icon5" android:layout_width="@dimen/antivirus_pay_protection_icon_size" android:layout_height="@dimen/antivirus_pay_protection_icon_size" />
+            <View android:id="@id/blank6" android:visibility="gone" android:layout_width="0.0dip" android:layout_height="fill_parent" android:layout_weight="1.0" />
+            <ImageView android:id="@id/icon6" android:visibility="gone" android:layout_width="@dimen/antivirus_pay_protection_icon_size" android:layout_height="@dimen/antivirus_pay_protection_icon_size" />
+            <View android:id="@id/blank7" android:visibility="gone" android:layout_width="0.0dip" android:layout_height="fill_parent" android:layout_weight="1.0" />
+            <ImageView android:id="@id/icon7" android:visibility="gone" android:layout_width="@dimen/antivirus_pay_protection_icon_size" android:layout_height="@dimen/antivirus_pay_protection_icon_size" />
+        </LinearLayout>
+        <RelativeLayout android:layout_width="fill_parent" android:layout_height="wrap_content">
+            <Button android:id="@id/btn_optimize" android:layout_marginBottom="@dimen/dp_18" android:text="@string/safe_result_item_button_monitor" android:layout_marginEnd="@dimen/antivirus_result_card_padding_se" android:layout_alignParentEnd="true" style="@style/ResultBlueButtonStyle" />
+        </RelativeLayout>
+    </LinearLayout>
+</com.miui.antivirus.ui.MonitorSafeResultView>
