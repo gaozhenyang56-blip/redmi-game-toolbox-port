@@ -721,7 +721,7 @@
                 <action android:name="com.miui.gamebooster.service.GameBoosterServices"/>
             </intent-filter>
         </service>
-        <service android:exported="false" android:name="com.miui.gamebooster.gbservices.FrameRateDataService" android:process="com.miui.securitycenter"/>
+        <service android:exported="false" android:name="com.miui.gamebooster.gbservices.FrameRateDataService" android:process=":ui"/>
         <service android:exported="false" android:name="com.miui.gamebooster.mutiwindow.FreeformWindowService" android:process="com.miui.securitycenter.remote">
             <intent-filter>
                 <action android:name="com.miui.gamebooster.mutiwindow.FreeformWindowService"/>

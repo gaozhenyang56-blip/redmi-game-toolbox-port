@@ -24,7 +24,12 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
     private final Handler main=new Handler(Looper.getMainLooper());
     private final Runnable watchdog=new Runnable(){public void run(){
         if(closed)return;
-        try { if(lastGood!=0&&SystemClock.elapsedRealtime()-lastGood>5000) hide("前台监测已过期，白条已隐藏"); }
+        try { if(lastGood!=0&&SystemClock.elapsedRealtime()-lastGood>12000) hide("前台监测已过期，白条已隐藏");
+            else if(!shown.isEmpty()){
+                KeyguardManager keyguard=(KeyguardManager)service.getSystemService(Context.KEYGUARD_SERVICE);
+                if(keyguard.isKeyguardLocked()||!enabled()||!Settings.canDrawOverlays(service))hide("锁屏或入口权限已关闭");
+                else {keepVisible(get(controller,"d"));PortRuntime.sampleFps();}
+            } }
         catch(Throwable failure){failure("Sidebar watchdog",failure);}
         main.postDelayed(this,1000);
     }};
@@ -108,7 +113,7 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
             if(!Boolean.TRUE.equals(get(controller,"o")))throw new IllegalStateException("Original sidebar declined window creation");
             Object wrapper=get(controller,"d");
             View white=(View)call(wrapper,"w",new Class<?>[0]);
-            white.setVisibility(View.VISIBLE);white.setAlpha(1f);
+            keepVisible(wrapper);
             shown=pkg;layout=nextLayout;
             PortPreferences.put("port_active_game",pkg);
             status("白条常驻："+pkg+"；轻点或向内滑动展开");
@@ -119,7 +124,11 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
     }
     public void onUnavailable(String reason){
         if(closed)return;
-        try { hide(reason);lastGood=0; }catch(Throwable failure){failure("Hide unavailable sidebar",failure);}
+        try {
+            if(!shown.isEmpty()&&lastGood!=0&&SystemClock.elapsedRealtime()-lastGood<=12000
+                &&!reason.contains("未连接")){status(reason+"；短暂失败，保留当前白条");return;}
+            hide(reason);lastGood=0;
+        }catch(Throwable failure){failure("Hide unavailable sidebar",failure);}
     }
     private void hide(String reason)throws Exception{
         if(controller!=null){
@@ -151,7 +160,7 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
         }
         if(mode!=null)call(mode,"a",new Class<?>[]{int.class},0);
         set(service,"c",false);
-        if(!shown.isEmpty())PortPreferences.put("port_active_game","");
+        if(!shown.isEmpty()){PortPreferences.put("port_active_game","");PortRuntime.resetFps();}
         shown="";layout="";
         if(!reason.isEmpty())status(reason);
     }
@@ -236,7 +245,7 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
             cleanup(controller,"O0");cleanup(controller,"M0");cleanup(controller,"I");
             Object popup=get(controller,"f");if(popup!=null)cleanup(popup,"dismiss");
             View white=(View)call(wrapper,"w",new Class<?>[0]);white.setVisibility(View.VISIBLE);
-            cleanup(wrapper,"O");cleanup(wrapper,"C");
+            cleanup(wrapper,"O");cleanup(wrapper,"C");keepVisible(wrapper);
         }catch(Exception failure){CrashReporter.record("Close original game panel",failure);}
     }
     public static boolean handleTouch(Object wrapper,MotionEvent event){
@@ -268,8 +277,30 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
         if(wrapper==null||Boolean.TRUE.equals(call(wrapper,"F",new Class<?>[0])))return;
         cleanup(wrapper,"S");
         View white=(View)call(wrapper,"w",new Class<?>[0]);
-        white.setVisibility(View.VISIBLE);white.setAlpha(1f);
+        View cover=(View)call(wrapper,"u",new Class<?>[0]);
+        View frame=(View)call(wrapper,"z",new Class<?>[0]);
+        // Original d0(false) hides/disables the cover too. Restoring only the ImageView is insufficient.
+        restoreView(white);restoreView(cover);restoreView(frame);
+        WindowManager windows=(WindowManager)call(call(wrapper,"o",new Class<?>[0]),"Z",new Class<?>[0]);
+        if(cover.isAttachedToWindow()){
+            WindowManager.LayoutParams params=(WindowManager.LayoutParams)cover.getLayoutParams();
+            handleLayout(cover.getContext(),params);params.windowAnimations=0;
+            windows.updateViewLayout(cover,params);
+        }
+        if(frame.isAttachedToWindow()){
+            WindowManager.LayoutParams params=(WindowManager.LayoutParams)frame.getLayoutParams();
+            params.width=WindowManager.LayoutParams.WRAP_CONTENT;params.height=WindowManager.LayoutParams.WRAP_CONTENT;
+            params.flags|=WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE|WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+            panelLayout(frame.getContext(),params);params.windowAnimations=0;
+            windows.updateViewLayout(frame,params);
+        }
     }
+    private static void restoreView(View view){
+        if(view.getAlpha()!=1f||view.getTranslationX()!=0||view.getTranslationY()!=0)cancelViewAnimation(view);
+        view.setVisibility(View.VISIBLE);view.setEnabled(true);view.setAlpha(1f);
+        view.setTranslationX(0);view.setTranslationY(0);
+    }
+
     private static int inset(Context context){return SidebarGeometry.inset(PortPreferences.number("port_sidebar_inset",0),context.getResources().getDisplayMetrics().density);}
     private static Object get(Object object,String name)throws Exception{Field f=object.getClass().getDeclaredField(name);f.setAccessible(true);return f.get(object);}
     private static void set(Object object,String name,Object value)throws Exception{Field f=object.getClass().getDeclaredField(name);f.setAccessible(true);f.set(object,value);}

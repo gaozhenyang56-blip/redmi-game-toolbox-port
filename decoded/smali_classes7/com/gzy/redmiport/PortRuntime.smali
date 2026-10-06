@@ -24,7 +24,7 @@
 
 .field private static previousLayer:Ljava/lang/String;
 
-.field private static previousTimestamp:J
+.field private static volatile previousTimestamp:J
 
 .field private static volatile sampledAt:J
 
@@ -168,25 +168,7 @@
     return-void
 .end method
 
-.method static synthetic access$15()Ljava/lang/String;
-    .registers 1
-
-    .line 28
-    sget-object v0, Lcom/gzy/redmiport/PortRuntime;->previousLayer:Ljava/lang/String;
-
-    return-object v0
-.end method
-
-.method static synthetic access$16()J
-    .registers 2
-
-    .line 29
-    sget-wide v0, Lcom/gzy/redmiport/PortRuntime;->previousTimestamp:J
-
-    return-wide v0
-.end method
-
-.method static synthetic access$17()J
+.method static synthetic access$15()J
     .registers 2
 
     .line 25
@@ -335,10 +317,19 @@
     return-void
 .end method
 
-.method public static fpsStatus()Ljava/lang/String;
+.method public static fpsEpoch()I
     .registers 1
 
     .line 123
+    sget v0, Lcom/gzy/redmiport/PortRuntime;->epoch:I
+
+    return v0
+.end method
+
+.method public static fpsStatus()Ljava/lang/String;
+    .registers 1
+
+    .line 124
     sget-object v0, Lcom/gzy/redmiport/PortRuntime;->fpsState:Ljava/lang/String;
 
     return-object v0
@@ -693,14 +684,14 @@
 .end method
 
 .method public static sampleFps()J
-    .registers 10
+    .registers 12
 
-    .line 125
+    .line 126
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->activeGame()Ljava/lang/String;
 
     move-result-object v0
 
-    .line 126
+    .line 127
     sget-object v1, Lcom/gzy/redmiport/PortRuntime;->samplingGame:Ljava/lang/String;
 
     invoke-virtual {v0, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
@@ -713,13 +704,11 @@
 
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->resetFps()V
 
-    .line 127
+    .line 128
     :cond_11
     invoke-virtual {v0}, Ljava/lang/String;->isEmpty()Z
 
     move-result v1
-
-    const-wide/16 v2, -0x1
 
     if-eqz v1, :cond_1f
 
@@ -727,82 +716,75 @@
 
     invoke-static {v0}, Lcom/gzy/redmiport/PortRuntime;->state(Ljava/lang/String;)V
 
-    return-wide v2
+    const-wide/16 v0, -0x1
 
-    .line 128
+    return-wide v0
+
+    .line 129
     :cond_1f
     invoke-static {}, Landroid/os/SystemClock;->elapsedRealtime()J
 
-    move-result-wide v4
-
-    .line 129
-    sget-wide v6, Lcom/gzy/redmiport/PortRuntime;->attemptedAt:J
-
-    sub-long v6, v4, v6
-
-    const-wide/16 v8, 0x320
-
-    cmp-long v1, v6, v8
-
-    if-ltz v1, :cond_49
-
-    sget-object v1, Lcom/gzy/redmiport/PortRuntime;->sampling:Ljava/util/concurrent/atomic/AtomicBoolean;
-
-    const/4 v6, 0x0
-
-    const/4 v7, 0x1
-
-    invoke-virtual {v1, v6, v7}, Ljava/util/concurrent/atomic/AtomicBoolean;->compareAndSet(ZZ)Z
-
-    move-result v1
-
-    if-eqz v1, :cond_49
+    move-result-wide v1
 
     .line 130
-    sput-wide v4, Lcom/gzy/redmiport/PortRuntime;->attemptedAt:J
+    sget-wide v3, Lcom/gzy/redmiport/PortRuntime;->attemptedAt:J
+
+    sub-long v3, v1, v3
+
+    const-wide/16 v5, 0x320
+
+    cmp-long v3, v3, v5
+
+    if-ltz v3, :cond_49
+
+    sget-object v3, Lcom/gzy/redmiport/PortRuntime;->sampling:Ljava/util/concurrent/atomic/AtomicBoolean;
+
+    const/4 v4, 0x0
+
+    const/4 v5, 0x1
+
+    invoke-virtual {v3, v4, v5}, Ljava/util/concurrent/atomic/AtomicBoolean;->compareAndSet(ZZ)Z
+
+    move-result v3
+
+    if-eqz v3, :cond_49
 
     .line 131
-    sget v1, Lcom/gzy/redmiport/PortRuntime;->epoch:I
+    sput-wide v1, Lcom/gzy/redmiport/PortRuntime;->attemptedAt:J
 
     .line 132
-    sget-object v6, Lcom/gzy/redmiport/PortRuntime;->previousLayer:Ljava/lang/String;
+    sget v1, Lcom/gzy/redmiport/PortRuntime;->epoch:I
 
     .line 133
-    sget v7, Lcom/gzy/redmiport/PortRuntime;->scanOffset:I
+    sget-object v2, Lcom/gzy/redmiport/PortRuntime;->previousLayer:Ljava/lang/String;
 
     .line 134
-    sget-object v8, Lcom/gzy/redmiport/PortRuntime;->worker:Ljava/util/concurrent/ExecutorService;
+    sget v3, Lcom/gzy/redmiport/PortRuntime;->scanOffset:I
 
-    new-instance v9, Lcom/gzy/redmiport/PortRuntime$9;
+    .line 135
+    sget-object v4, Lcom/gzy/redmiport/PortRuntime;->worker:Ljava/util/concurrent/ExecutorService;
 
-    invoke-direct {v9, v0, v6, v7, v1}, Lcom/gzy/redmiport/PortRuntime$9;-><init>(Ljava/lang/String;Ljava/lang/String;II)V
+    new-instance v5, Lcom/gzy/redmiport/PortRuntime$9;
 
-    invoke-interface {v8, v9}, Ljava/util/concurrent/ExecutorService;->execute(Ljava/lang/Runnable;)V
+    invoke-direct {v5, v0, v2, v3, v1}, Lcom/gzy/redmiport/PortRuntime$9;-><init>(Ljava/lang/String;Ljava/lang/String;II)V
 
-    .line 165
+    invoke-interface {v4, v5}, Ljava/util/concurrent/ExecutorService;->execute(Ljava/lang/Runnable;)V
+
+    .line 166
     :cond_49
-    sget-wide v0, Lcom/gzy/redmiport/PortRuntime;->sampledAt:J
+    sget-wide v6, Lcom/gzy/redmiport/PortRuntime;->fps:J
 
-    const-wide/16 v6, 0x0
+    sget-wide v8, Lcom/gzy/redmiport/PortRuntime;->previousTimestamp:J
 
-    cmp-long v0, v0, v6
+    invoke-static {}, Ljava/lang/System;->nanoTime()J
 
-    if-eqz v0, :cond_5c
+    move-result-wide v10
 
-    sget-wide v0, Lcom/gzy/redmiport/PortRuntime;->sampledAt:J
+    invoke-static/range {v6 .. v11}, Lcom/gzy/redmiport/FpsFreshness;->value(JJJ)J
 
-    sub-long/2addr v4, v0
+    move-result-wide v0
 
-    const-wide/16 v0, 0xdac
-
-    cmp-long v0, v4, v0
-
-    if-gez v0, :cond_5c
-
-    sget-wide v2, Lcom/gzy/redmiport/PortRuntime;->fps:J
-
-    :cond_5c
-    return-wide v2
+    return-wide v0
 .end method
 
 .method private static state(Ljava/lang/String;)V

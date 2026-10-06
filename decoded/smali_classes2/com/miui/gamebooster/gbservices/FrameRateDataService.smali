@@ -21,6 +21,7 @@
 
 
 # instance fields
+.field private portEpoch:I
 .field private final a:Ljava/util/concurrent/CopyOnWriteArrayList;
     .annotation system Ldalvik/annotation/Signature;
         value = {
@@ -167,6 +168,15 @@
 .method public final e()V
     .locals 5
 
+    invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->fpsEpoch()I
+    move-result v0
+    iget v1, p0, Lcom/miui/gamebooster/gbservices/FrameRateDataService;->portEpoch:I
+    if-eq v0, v1, :port_same_session
+    iput v0, p0, Lcom/miui/gamebooster/gbservices/FrameRateDataService;->portEpoch:I
+    iget-object v1, p0, Lcom/miui/gamebooster/gbservices/FrameRateDataService;->a:Ljava/util/concurrent/CopyOnWriteArrayList;
+    invoke-virtual {v1}, Ljava/util/concurrent/CopyOnWriteArrayList;->clear()V
+    :port_same_session
+
     invoke-static {}, La8/w;->a()F
 
     move-result v0
@@ -304,7 +314,6 @@
 .method public onCreate()V
     .locals 1
 
-    invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->resetFps()V
     iget-object v0, p0, Lcom/miui/gamebooster/gbservices/FrameRateDataService;->a:Ljava/util/concurrent/CopyOnWriteArrayList;
     invoke-virtual {v0}, Ljava/util/concurrent/CopyOnWriteArrayList;->clear()V
 
@@ -336,9 +345,6 @@
 .method public onStartCommand(Landroid/content/Intent;II)I
     .locals 2
 
-    invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->resetFps()V
-    iget-object v0, p0, Lcom/miui/gamebooster/gbservices/FrameRateDataService;->a:Ljava/util/concurrent/CopyOnWriteArrayList;
-    invoke-virtual {v0}, Ljava/util/concurrent/CopyOnWriteArrayList;->clear()V
     .param p1    # Landroid/content/Intent;
         .annotation build Lorg/jetbrains/annotations/Nullable;
         .end annotation

@@ -9,8 +9,8 @@ sdkInfo:
 packageInfo:
   forcedPackageId: 127
 versionInfo:
-  versionCode: 40001058
-  versionName: 10.4.5-huawei-repair19-handle-fps
+  versionCode: 40001059
+  versionName: 10.4.5-huawei-repair20-window-fps
 doNotCompress:
 - arsc
 - gif

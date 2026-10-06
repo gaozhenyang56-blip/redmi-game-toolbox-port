@@ -64,7 +64,7 @@
 
     cmp-long v0, v0, v2
 
-    if-eqz v0, :cond_36
+    if-eqz v0, :cond_2e
 
     invoke-static {}, Landroid/os/SystemClock;->elapsedRealtime()J
 
@@ -79,11 +79,11 @@
 
     sub-long/2addr v0, v2
 
-    const-wide/16 v2, 0x1388
+    const-wide/16 v2, 0x2ee0
 
     cmp-long v0, v0, v2
 
-    if-lez v0, :cond_36
+    if-lez v0, :cond_2e
 
     iget-object v0, p0, Lcom/gzy/redmiport/SidebarRuntime$1;->this$0:Lcom/gzy/redmiport/SidebarRuntime;
 
@@ -91,13 +91,108 @@
 
     # invokes: Lcom/gzy/redmiport/SidebarRuntime;->hide(Ljava/lang/String;)V
     invoke-static {v0, v1}, Lcom/gzy/redmiport/SidebarRuntime;->access$2(Lcom/gzy/redmiport/SidebarRuntime;Ljava/lang/String;)V
-    :try_end_2d
-    .catchall {:try_start_9 .. :try_end_2d} :catchall_2e
 
-    goto :goto_36
+    goto :goto_84
 
     .line 28
-    :catchall_2e
+    :cond_2e
+    iget-object v0, p0, Lcom/gzy/redmiport/SidebarRuntime$1;->this$0:Lcom/gzy/redmiport/SidebarRuntime;
+
+    # getter for: Lcom/gzy/redmiport/SidebarRuntime;->shown:Ljava/lang/String;
+    invoke-static {v0}, Lcom/gzy/redmiport/SidebarRuntime;->access$3(Lcom/gzy/redmiport/SidebarRuntime;)Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Ljava/lang/String;->isEmpty()Z
+
+    move-result v0
+
+    if-nez v0, :cond_84
+
+    .line 29
+    iget-object v0, p0, Lcom/gzy/redmiport/SidebarRuntime$1;->this$0:Lcom/gzy/redmiport/SidebarRuntime;
+
+    # getter for: Lcom/gzy/redmiport/SidebarRuntime;->service:Landroid/app/Service;
+    invoke-static {v0}, Lcom/gzy/redmiport/SidebarRuntime;->access$4(Lcom/gzy/redmiport/SidebarRuntime;)Landroid/app/Service;
+
+    move-result-object v0
+
+    const-string v1, "keyguard"
+
+    invoke-virtual {v0, v1}, Landroid/app/Service;->getSystemService(Ljava/lang/String;)Ljava/lang/Object;
+
+    move-result-object v0
+
+    check-cast v0, Landroid/app/KeyguardManager;
+
+    .line 30
+    invoke-virtual {v0}, Landroid/app/KeyguardManager;->isKeyguardLocked()Z
+
+    move-result v0
+
+    if-nez v0, :cond_74
+
+    invoke-static {}, Lcom/gzy/redmiport/SidebarRuntime;->enabled()Z
+
+    move-result v0
+
+    if-eqz v0, :cond_74
+
+    iget-object v0, p0, Lcom/gzy/redmiport/SidebarRuntime$1;->this$0:Lcom/gzy/redmiport/SidebarRuntime;
+
+    # getter for: Lcom/gzy/redmiport/SidebarRuntime;->service:Landroid/app/Service;
+    invoke-static {v0}, Lcom/gzy/redmiport/SidebarRuntime;->access$4(Lcom/gzy/redmiport/SidebarRuntime;)Landroid/app/Service;
+
+    move-result-object v0
+
+    invoke-static {v0}, Landroid/provider/Settings;->canDrawOverlays(Landroid/content/Context;)Z
+
+    move-result v0
+
+    if-nez v0, :cond_61
+
+    goto :goto_74
+
+    .line 31
+    :cond_61
+    iget-object v0, p0, Lcom/gzy/redmiport/SidebarRuntime$1;->this$0:Lcom/gzy/redmiport/SidebarRuntime;
+
+    # getter for: Lcom/gzy/redmiport/SidebarRuntime;->controller:Ljava/lang/Object;
+    invoke-static {v0}, Lcom/gzy/redmiport/SidebarRuntime;->access$5(Lcom/gzy/redmiport/SidebarRuntime;)Ljava/lang/Object;
+
+    move-result-object v0
+
+    const-string v1, "d"
+
+    # invokes: Lcom/gzy/redmiport/SidebarRuntime;->get(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
+    invoke-static {v0, v1}, Lcom/gzy/redmiport/SidebarRuntime;->access$6(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
+
+    move-result-object v0
+
+    # invokes: Lcom/gzy/redmiport/SidebarRuntime;->keepVisible(Ljava/lang/Object;)V
+    invoke-static {v0}, Lcom/gzy/redmiport/SidebarRuntime;->access$7(Ljava/lang/Object;)V
+
+    invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->sampleFps()J
+
+    .line 32
+    goto :goto_84
+
+    .line 30
+    :cond_74
+    :goto_74
+    iget-object v0, p0, Lcom/gzy/redmiport/SidebarRuntime$1;->this$0:Lcom/gzy/redmiport/SidebarRuntime;
+
+    const-string v1, "\u9501\u5c4f\u6216\u5165\u53e3\u6743\u9650\u5df2\u5173\u95ed"
+
+    # invokes: Lcom/gzy/redmiport/SidebarRuntime;->hide(Ljava/lang/String;)V
+    invoke-static {v0, v1}, Lcom/gzy/redmiport/SidebarRuntime;->access$2(Lcom/gzy/redmiport/SidebarRuntime;Ljava/lang/String;)V
+    :try_end_7b
+    .catchall {:try_start_9 .. :try_end_7b} :catchall_7c
+
+    goto :goto_84
+
+    .line 33
+    :catchall_7c
     move-exception v0
 
     iget-object v1, p0, Lcom/gzy/redmiport/SidebarRuntime$1;->this$0:Lcom/gzy/redmiport/SidebarRuntime;
@@ -105,15 +200,15 @@
     const-string v2, "Sidebar watchdog"
 
     # invokes: Lcom/gzy/redmiport/SidebarRuntime;->failure(Ljava/lang/String;Ljava/lang/Throwable;)V
-    invoke-static {v1, v2, v0}, Lcom/gzy/redmiport/SidebarRuntime;->access$3(Lcom/gzy/redmiport/SidebarRuntime;Ljava/lang/String;Ljava/lang/Throwable;)V
+    invoke-static {v1, v2, v0}, Lcom/gzy/redmiport/SidebarRuntime;->access$8(Lcom/gzy/redmiport/SidebarRuntime;Ljava/lang/String;Ljava/lang/Throwable;)V
 
-    .line 29
-    :cond_36
-    :goto_36
+    .line 34
+    :cond_84
+    :goto_84
     iget-object v0, p0, Lcom/gzy/redmiport/SidebarRuntime$1;->this$0:Lcom/gzy/redmiport/SidebarRuntime;
 
     # getter for: Lcom/gzy/redmiport/SidebarRuntime;->main:Landroid/os/Handler;
-    invoke-static {v0}, Lcom/gzy/redmiport/SidebarRuntime;->access$4(Lcom/gzy/redmiport/SidebarRuntime;)Landroid/os/Handler;
+    invoke-static {v0}, Lcom/gzy/redmiport/SidebarRuntime;->access$9(Lcom/gzy/redmiport/SidebarRuntime;)Landroid/os/Handler;
 
     move-result-object v0
 
@@ -121,6 +216,6 @@
 
     invoke-virtual {v0, p0, v1, v2}, Landroid/os/Handler;->postDelayed(Ljava/lang/Runnable;J)Z
 
-    .line 30
+    .line 35
     return-void
 .end method

@@ -26,7 +26,7 @@ public final class PortRuntime {
     private static volatile int epoch;
     private static volatile String fpsState = "等待游戏帧数据";
     private static String previousLayer;
-    private static long previousTimestamp;
+    private static volatile long previousTimestamp;
     private static String samplingGame="";
     private static int scanOffset;
 
@@ -120,6 +120,7 @@ public final class PortRuntime {
         try{PortPreferences.put("port_fps_status",message);}catch(Exception ignored){}
     }
     private static String activeGame(){try{return PortPreferences.text("port_active_game","");}catch(Exception ignored){return "";}}
+    public static int fpsEpoch(){return epoch;}
     public static String fpsStatus() { return fpsState; }
     public static long sampleFps() {
         final String game=activeGame();
@@ -149,12 +150,12 @@ public final class PortRuntime {
                             previousLayer=null;previousTimestamp=0;
                             int count=FpsShellCommand.layerCount(raw.toString());
                             scanOffset=candidate==null&&offset+2<count?offset+2:0;
-                            fps=-1;sampledAt=0;state(result.reason+"；正在重新查找游戏图层");return;
+                            fps=-1;sampledAt=0;state(result.reason+"；扫描图层 "+(offset+1)+"–"+(offset+2)+" / "+count+"；正在重新查找");return;
                         }
-                        fps=result.layer.equals(previousLayer)&&result.last==previousTimestamp?0:result.fps;
+                        fps=result.fps;
                         previousLayer=result.layer;previousTimestamp=result.last;
                         sampledAt=SystemClock.elapsedRealtime();
-                        state("FPS："+fps+"\n图层："+result.layer);
+                        state("FPS："+fps+"；有效帧："+result.count+"；最近帧："+Math.max(0,(System.nanoTime()-result.last)/1000000L)+"ms\n图层："+result.layer);
                     } catch (Throwable failure) {
                         if(session==epoch){fps=-1;sampledAt=0;state("帧率读取失败");}
                         CrashReporter.record("SurfaceFlinger FPS sample",failure);
@@ -162,6 +163,6 @@ public final class PortRuntime {
                 }
             });
         }
-        return sampledAt != 0 && now - sampledAt < 3500 ? fps : -1;
+        return FpsFreshness.value(fps,previousTimestamp,System.nanoTime());
     }
 }

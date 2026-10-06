@@ -1,3 +1,11 @@
+repair20 — 白条父窗口/触摸窗口恢复，FPS 连续采样
+
+版本：10.4.5-huawei-repair20-window-fps / 40001059
+安装包：releases/Redmi-GameToolbox-new-signed.apk，沿用新签名，可覆盖 repair19。
+统一恢复收起白条图片、父窗口、触摸窗口；前台维护避免瞬时查询失败移除。FPS 服务与侧栏共用 :ui 进程和持续采样；重复帧不再错误归零；重复服务启动不清空历史，按实际帧时间拒绝过期数据。
+验证：84 项主机检查及静态接线、完整构建/签名/ZIP CRC/七 DEX/zipalign 通过。没有华为设备回归，不能保证实机问题已全部解决。
+详见 verification/repair20-window-fps.md。
+
 repair19 — 常驻贴边白条、轻点展开和 FPS 图层遍历
 
 版本：10.4.5-huawei-repair19-handle-fps / 40001058

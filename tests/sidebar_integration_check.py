@@ -119,3 +119,19 @@ idle=original("com/miui/dock/sidebar/j").split(".method public M()V",1)[1].split
 assert "->N(J)V" not in idle and "->C()V" in idle and "->S()V" in idle
 assert 'PortPreferences.number("port_sidebar_inset",0)' in Path("java/com/gzy/redmiport/SidebarRuntime.java").read_text()
 print("Persistent handle, edge default and original tap-to-panel opening contracts checked (static)")
+
+runtime=Path("java/com/gzy/redmiport/SidebarRuntime.java").read_text()
+# Regression paths reported after repair19: the image alone cannot revive hidden windows.
+assert 'restoreView(white);restoreView(cover);restoreView(frame);' in runtime
+assert 'view.setEnabled(true)' in runtime and 'view.setTranslationX(0)' in runtime
+assert 'keepVisible(wrapper);' in runtime[runtime.index('public static void closePanel'):runtime.index('public static boolean handleTouch')]
+manifest=Path('decoded/AndroidManifest.xml').read_text()
+assert 'android:name="com.miui.gamebooster.gbservices.FrameRateDataService" android:process=":ui"' in manifest
+fps_service=Path('decoded/smali_classes2/com/miui/gamebooster/gbservices/FrameRateDataService.smali').read_text()
+for method in ['onCreate()V','onStartCommand(Landroid/content/Intent;II)I']:
+    block=fps_service.split('.method public '+method)[1].split('.end method')[0]
+    assert 'PortRuntime;->resetFps' not in block
+port=Path('java/com/gzy/redmiport/PortRuntime.java').read_text()
+assert 'FpsFreshness.value(fps,previousTimestamp,System.nanoTime())' in port
+assert 'result.last==previousTimestamp?0' not in port
+print('Collapsed parent/cover restoration, co-located FPS and lifecycle checks passed (static)')
