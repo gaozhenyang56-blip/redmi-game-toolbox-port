@@ -16,7 +16,7 @@
 .method public static launchPackage(Landroid/content/Context;Ljava/lang/String;)V
     .registers 3
 
-    .line 17
+    .line 18
     invoke-virtual {p0}, Landroid/content/Context;->getPackageManager()Landroid/content/pm/PackageManager;
 
     move-result-object v0
@@ -36,32 +36,35 @@
     .registers 4
 
     .line 10
-    if-eqz p1, :cond_11
+    if-eqz p1, :cond_14
 
     .line 11
     :try_start_2
+    invoke-static {p0}, Lcom/gzy/redmiport/SidebarRuntime;->start(Landroid/content/Context;)V
+
+    .line 12
     instance-of v0, p0, Landroid/app/Activity;
 
-    if-nez v0, :cond_b
+    if-nez v0, :cond_e
 
     const/high16 v0, 0x10000000
 
     invoke-virtual {p1, v0}, Landroid/content/Intent;->addFlags(I)Landroid/content/Intent;
 
-    .line 12
-    :cond_b
+    .line 13
+    :cond_e
     invoke-virtual {p0, p1, p2}, Landroid/content/Context;->startActivity(Landroid/content/Intent;Landroid/os/Bundle;)V
 
-    .line 13
-    goto :goto_2f
+    .line 14
+    goto :goto_32
 
-    :catchall_f
+    :catchall_12
     move-exception p1
 
-    goto :goto_19
+    goto :goto_1c
 
     .line 10
-    :cond_11
+    :cond_14
     new-instance p1, Ljava/lang/IllegalArgumentException;
 
     const-string p2, "No launch activity"
@@ -69,16 +72,16 @@
     invoke-direct {p1, p2}, Ljava/lang/IllegalArgumentException;-><init>(Ljava/lang/String;)V
 
     throw p1
-    :try_end_19
-    .catchall {:try_start_2 .. :try_end_19} :catchall_f
+    :try_end_1c
+    .catchall {:try_start_2 .. :try_end_1c} :catchall_12
 
-    .line 13
-    :goto_19
+    .line 14
+    :goto_1c
     const-string p2, "Public game launch"
 
     invoke-static {p2, p1}, Lcom/gzy/redmidiag/CrashReporter;->record(Ljava/lang/String;Ljava/lang/Throwable;)V
 
-    .line 14
+    .line 15
     new-instance p1, Landroid/os/Handler;
 
     invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
@@ -93,7 +96,7 @@
 
     invoke-virtual {p1, p2}, Landroid/os/Handler;->post(Ljava/lang/Runnable;)Z
 
-    .line 16
-    :goto_2f
+    .line 17
+    :goto_32
     return-void
 .end method

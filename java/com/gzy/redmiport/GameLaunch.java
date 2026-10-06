@@ -8,6 +8,7 @@ public final class GameLaunch {
  public static void start(final Context context, Intent intent, Bundle options){
   try{
    if(intent==null)throw new IllegalArgumentException("No launch activity");
+   SidebarRuntime.start(context);
    if(!(context instanceof Activity))intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
    context.startActivity(intent,options);
   }catch(final Throwable failure){CrashReporter.record("Public game launch",failure);

@@ -185,6 +185,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
     <uses-permission android:name="com.miui.securityadd.permission.KID_MODE_ACCESS"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
     <uses-permission android:name="com.xiaomi.xmsf.permission.USE_XMSF_TRAFFIC"/>
     <uses-permission android:name="com.miui.gameturbo.permission.ACTIVE_MANAGER"/>
     <uses-permission android:name="com.miui.calendar.permission.READ_CALENDAR"/>
@@ -731,7 +732,8 @@
                 <action android:name="com.miui.gamebooster.videobox.services.VideoToolBoxService"/>
             </intent-filter>
         </service>
-        <service android:exported="false" android:name="com.miui.gamebooster.service.DockWindowManagerService" android:process=":ui">
+        <service android:exported="false" android:foregroundServiceType="specialUse" android:name="com.miui.gamebooster.service.DockWindowManagerService" android:process=":ui">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Monitor user-selected foreground games and host the game toolbox overlay"/>
             <intent-filter>
                 <action android:name="com.miui.gamebooster.service.GameBoxService"/>
             </intent-filter>

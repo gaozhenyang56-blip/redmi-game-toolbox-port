@@ -38,6 +38,7 @@ public final class ShizukuSettingsActivity extends Activity {
             launch(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:"+getPackageName())));
         }});
         button(content,"检测 FPS 数据通道",new View.OnClickListener(){public void onClick(View view){testChannel();}});
+        button(content,"启动侧栏监测",new View.OnClickListener(){public void onClick(View view){SidebarRuntime.start(ShizukuSettingsActivity.this);refresh();}});
         probe=new TextView(this);probe.setPadding(0,padding,0,padding);content.addView(probe);
         button(content,"刷新状态",new View.OnClickListener(){public void onClick(View view){refresh();}});
         button(content,"崩溃日志",new View.OnClickListener(){public void onClick(View view){
@@ -61,7 +62,8 @@ public final class ShizukuSettingsActivity extends Activity {
             }
         } catch (Throwable ignored) {service="连接失败";}
         status.setText("Shizuku 服务："+service+"\n应用授权："+grant
-            +"\n悬浮窗权限："+(Settings.canDrawOverlays(this)?"已允许":"未允许")+"\n\n"+GameStore.status(this));
+            +"\n悬浮窗权限："+(Settings.canDrawOverlays(this)?"已允许":"未允许")+"\n\n"+GameStore.status(this)
+            +"\n\n"+SidebarRuntime.status()+"\n\n白条与系统侧边小窗重叠时，可在原设置中调整白条左右位置、高度与边缘内缩。");
     }
     private void authorize(){
         try {

@@ -1148,9 +1148,7 @@
 .method public x()Z
     .locals 3
 
-    invoke-static {}, Lk6/b;->a()Z
-
-    move-result v0
+    const/4 v0, 0x1
 
     sget-object v1, Lm6/a;->c:Luf/b;
 

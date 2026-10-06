@@ -88,7 +88,7 @@
 .method static synthetic access$0()V
     .registers 0
 
-    .line 66
+    .line 67
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->requestPermission()V
 
     return-void
@@ -223,7 +223,7 @@
 .method public static connect(Landroid/app/Application;)V
     .registers 3
 
-    .line 77
+    .line 78
     invoke-static {}, Lcom/gzy/redmidiag/CrashReporter;->diagnosticProcess()Z
 
     move-result v0
@@ -246,7 +246,7 @@
 
     goto :goto_20
 
-    .line 78
+    .line 79
     :cond_15
     sget-object v0, Lcom/gzy/redmiport/PortRuntime;->worker:Ljava/util/concurrent/ExecutorService;
 
@@ -256,10 +256,10 @@
 
     invoke-interface {v0, v1}, Ljava/util/concurrent/ExecutorService;->execute(Ljava/lang/Runnable;)V
 
-    .line 84
+    .line 85
     return-void
 
-    .line 77
+    .line 78
     :cond_20
     :goto_20
     return-void
@@ -268,7 +268,7 @@
 .method public static fpsStatus()Ljava/lang/String;
     .registers 1
 
-    .line 113
+    .line 114
     sget-object v0, Lcom/gzy/redmiport/PortRuntime;->fpsState:Ljava/lang/String;
 
     return-object v0
@@ -342,7 +342,7 @@
     :try_end_3d
     .catchall {:try_start_e .. :try_end_3d} :catchall_3e
 
-    .line 64
+    .line 65
     goto :goto_44
 
     :catchall_3e
@@ -352,7 +352,7 @@
 
     invoke-static {v0, p0}, Lcom/gzy/redmidiag/CrashReporter;->record(Ljava/lang/String;Ljava/lang/Throwable;)V
 
-    .line 65
+    .line 66
     :goto_44
     return-void
 
@@ -365,7 +365,7 @@
 .method public static open(Ljava/lang/String;)Ljava/io/InputStream;
     .registers 7
 
-    .line 87
+    .line 88
     const/4 v0, 0x0
 
     :try_start_1
@@ -383,7 +383,7 @@
 
     goto :goto_59
 
-    .line 88
+    .line 89
     :cond_e
     const-class v1, Lrikka/shizuku/Shizuku;
 
@@ -403,12 +403,12 @@
 
     move-result-object v1
 
-    .line 89
+    .line 90
     const/4 v2, 0x1
 
     invoke-virtual {v1, v2}, Ljava/lang/reflect/Method;->setAccessible(Z)V
 
-    .line 90
+    .line 91
     const-string v2, "sh"
 
     const-string v3, "-c"
@@ -427,24 +427,24 @@
 
     check-cast p0, Ljava/lang/Process;
 
-    .line 91
+    .line 92
     sget-object v1, Lcom/gzy/redmiport/PortRuntime;->timer:Ljava/util/concurrent/ScheduledExecutorService;
 
     new-instance v2, Lcom/gzy/redmiport/PortRuntime$6;
 
     invoke-direct {v2, p0}, Lcom/gzy/redmiport/PortRuntime$6;-><init>(Ljava/lang/Process;)V
 
-    .line 93
+    .line 94
     sget-object v3, Ljava/util/concurrent/TimeUnit;->SECONDS:Ljava/util/concurrent/TimeUnit;
 
-    .line 91
+    .line 92
     const-wide/16 v4, 0x3
 
     invoke-interface {v1, v2, v4, v5, v3}, Ljava/util/concurrent/ScheduledExecutorService;->schedule(Ljava/lang/Runnable;JLjava/util/concurrent/TimeUnit;)Ljava/util/concurrent/ScheduledFuture;
 
     move-result-object v1
 
-    .line 95
+    .line 96
     sget-object v2, Lcom/gzy/redmiport/PortRuntime;->worker:Ljava/util/concurrent/ExecutorService;
 
     new-instance v3, Lcom/gzy/redmiport/PortRuntime$7;
@@ -453,7 +453,7 @@
 
     invoke-interface {v2, v3}, Ljava/util/concurrent/ExecutorService;->execute(Ljava/lang/Runnable;)V
 
-    .line 102
+    .line 103
     new-instance v2, Lcom/gzy/redmiport/PortRuntime$8;
 
     invoke-virtual {p0}, Ljava/lang/Process;->getInputStream()Ljava/io/InputStream;
@@ -466,12 +466,12 @@
 
     return-object v2
 
-    .line 87
+    .line 88
     :cond_59
     :goto_59
     return-object v0
 
-    .line 110
+    .line 111
     :catchall_5a
     move-exception p0
 
@@ -485,7 +485,7 @@
 .method private static requestPermission()V
     .registers 2
 
-    .line 67
+    .line 68
     sget-object v0, Lcom/gzy/redmiport/PortRuntime;->foreground:Landroid/app/Activity;
 
     if-eqz v0, :cond_35
@@ -496,7 +496,7 @@
 
     goto :goto_35
 
-    .line 69
+    .line 70
     :cond_9
     :try_start_9
     invoke-static {}, Lrikka/shizuku/Shizuku;->pingBinder()Z
@@ -513,7 +513,7 @@
 
     goto :goto_2d
 
-    .line 70
+    .line 71
     :cond_16
     invoke-static {}, Lrikka/shizuku/Shizuku;->checkSelfPermission()I
 
@@ -523,7 +523,7 @@
 
     return-void
 
-    .line 71
+    .line 72
     :cond_1d
     invoke-static {}, Lrikka/shizuku/Shizuku;->shouldShowRequestPermissionRationale()Z
 
@@ -533,28 +533,28 @@
 
     return-void
 
-    .line 72
+    .line 73
     :cond_24
     const/4 v0, 0x1
 
     sput-boolean v0, Lcom/gzy/redmiport/PortRuntime;->permissionRequested:Z
 
-    .line 73
+    .line 74
     const/16 v0, 0x4b1
 
     invoke-static {v0}, Lrikka/shizuku/Shizuku;->requestPermission(I)V
     :try_end_2c
     .catchall {:try_start_9 .. :try_end_2c} :catchall_2e
 
-    .line 74
+    .line 75
     goto :goto_34
 
-    .line 69
+    .line 70
     :cond_2d
     :goto_2d
     return-void
 
-    .line 74
+    .line 75
     :catchall_2e
     move-exception v0
 
@@ -562,11 +562,11 @@
 
     invoke-static {v1, v0}, Lcom/gzy/redmidiag/CrashReporter;->record(Ljava/lang/String;Ljava/lang/Throwable;)V
 
-    .line 75
+    .line 76
     :goto_34
     return-void
 
-    .line 67
+    .line 68
     :cond_35
     :goto_35
     return-void
@@ -575,7 +575,7 @@
 .method public static resetFps()V
     .registers 3
 
-    .line 112
+    .line 113
     sget v0, Lcom/gzy/redmiport/PortRuntime;->epoch:I
 
     add-int/lit8 v0, v0, 0x1
@@ -608,12 +608,12 @@
 .method public static sampleFps()J
     .registers 6
 
-    .line 115
+    .line 116
     invoke-static {}, Landroid/os/SystemClock;->elapsedRealtime()J
 
     move-result-wide v0
 
-    .line 116
+    .line 117
     sget-wide v2, Lcom/gzy/redmiport/PortRuntime;->attemptedAt:J
 
     sub-long v2, v0, v2
@@ -636,13 +636,13 @@
 
     if-eqz v2, :cond_26
 
-    .line 117
+    .line 118
     sput-wide v0, Lcom/gzy/redmiport/PortRuntime;->attemptedAt:J
 
-    .line 118
+    .line 119
     sget v2, Lcom/gzy/redmiport/PortRuntime;->epoch:I
 
-    .line 119
+    .line 120
     sget-object v3, Lcom/gzy/redmiport/PortRuntime;->worker:Ljava/util/concurrent/ExecutorService;
 
     new-instance v4, Lcom/gzy/redmiport/PortRuntime$9;
@@ -651,7 +651,7 @@
 
     invoke-interface {v3, v4}, Ljava/util/concurrent/ExecutorService;->execute(Ljava/lang/Runnable;)V
 
-    .line 145
+    .line 146
     :cond_26
     sget-wide v2, Lcom/gzy/redmiport/PortRuntime;->sampledAt:J
 

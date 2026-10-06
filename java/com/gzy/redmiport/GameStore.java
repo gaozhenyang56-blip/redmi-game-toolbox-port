@@ -53,4 +53,16 @@ public final class GameStore {
             return "已保存游戏："+c.getCount()+"\n"+context.getSharedPreferences("redmi-port-status",0).getString("last_save","");
         } catch (Throwable failure) { return "游戏数据库读取失败："+failure.getClass().getSimpleName(); }
     }
+    public static boolean selected(Context context,String pkg,int uid) {
+        try(Cursor c=context.getContentResolver().query(TABLE,new String[]{"_id"},SELECTION+" AND is_del=0",
+                new String[]{pkg,String.valueOf(uid/100000),"0"},null)) {
+            if(c==null)throw new IllegalStateException("Game provider returned no cursor");
+            return c.moveToFirst();
+        }
+    }
+    public static boolean hasGames(Context context) {
+        try(Cursor c=context.getContentResolver().query(TABLE,new String[]{"_id"},"flag_white=0 AND pop_game IS NULL AND is_del=0",null,null)) {
+            return c!=null&&c.moveToFirst();
+        }
+    }
 }

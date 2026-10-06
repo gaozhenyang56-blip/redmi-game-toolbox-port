@@ -269,13 +269,8 @@
 
     iput-boolean p2, p0, Ls8/h;->y:Z
 
-    invoke-virtual {p1}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
-
-    move-result-object p1
-
-    iget-object p2, p0, Ls8/h;->v:Ljava/lang/String;
-
-    invoke-static {p1, p2, v0}, Landroid/provider/Settings$Global;->getInt(Landroid/content/ContentResolver;Ljava/lang/String;I)I
+    const-string p2, "port_toolbox_show_flag"
+    invoke-static {p2, v0}, Lr4/a;->h(Ljava/lang/String;I)I
 
     move-result p1
 
@@ -364,48 +359,10 @@
 .end method
 
 .method private C()V
-    .locals 3
-
-    new-instance v0, Ljava/lang/StringBuilder;
-
-    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
-
-    const-string v1, "clearSidebarBounds: "
-
-    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    iget-object v1, p0, Ls8/h;->c:Landroid/content/Context;
-
-    invoke-virtual {v1}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
-
-    move-result-object v1
-
-    const-string v2, "sidebar_bounds"
-
-    invoke-static {v1, v2}, Landroid/provider/Settings$Secure;->getString(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;
-
-    move-result-object v1
-
-    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-
-    move-result-object v0
-
-    const-string v1, "DockWindowManager"
-
-    invoke-static {v1, v0}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
-
-    iget-object v0, p0, Ls8/h;->c:Landroid/content/Context;
-
-    invoke-virtual {v0}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
-
-    move-result-object v0
-
+    .locals 2
+    const-string v0, "port_sidebar_bounds"
     const-string v1, ""
-
-    invoke-static {v0, v2, v1}, Landroid/provider/Settings$Secure;->putString(Landroid/content/ContentResolver;Ljava/lang/String;Ljava/lang/String;)Z
-
+    invoke-static {v0, v1}, Lr4/a;->r(Ljava/lang/String;Ljava/lang/String;)V
     return-void
 .end method
 
@@ -1287,6 +1244,9 @@
     invoke-static {p2}, La8/i1;->d(Landroid/view/WindowManager$LayoutParams;)V
 
     :cond_2
+    iget-object v0, p0, Ls8/h;->c:Landroid/content/Context;
+    invoke-static {v0, p2}, Lcom/gzy/redmiport/SidebarRuntime;->handleLayout(Landroid/content/Context;Landroid/view/WindowManager$LayoutParams;)V
+
     return-object p2
 .end method
 
@@ -1604,6 +1564,9 @@
     const-string p2, "DockWindowManager"
 
     invoke-static {p2, p1}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+
+    iget-object v1, p0, Ls8/h;->c:Landroid/content/Context;
+    invoke-static {v1, v0}, Lcom/gzy/redmiport/SidebarRuntime;->panelLayout(Landroid/content/Context;Landroid/view/WindowManager$LayoutParams;)V
 
     return-object v0
 .end method
@@ -4032,15 +3995,9 @@
 
     invoke-virtual {v0, p1}, Lorg/json/JSONArray;->put(Ljava/lang/Object;)Lorg/json/JSONArray;
 
-    iget-object p1, p0, Ls8/h;->c:Landroid/content/Context;
-
-    invoke-virtual {p1}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
-
-    move-result-object p1
-
-    const-string v1, "sidebar_bounds"
-
-    invoke-static {p1, v1}, Landroid/provider/Settings$Secure;->getString(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;
+    const-string v1, "port_sidebar_bounds"
+    const-string v2, ""
+    invoke-static {v1, v2}, Lr4/a;->l(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object p1
 
@@ -4088,17 +4045,9 @@
 
     invoke-static {v3, p1}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
 
-    iget-object p1, p0, Ls8/h;->c:Landroid/content/Context;
-
-    invoke-virtual {p1}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
-
-    move-result-object p1
-
     invoke-static {v0}, Ljava/lang/String;->valueOf(Ljava/lang/Object;)Ljava/lang/String;
-
     move-result-object v0
-
-    invoke-static {p1, v1, v0}, Landroid/provider/Settings$Secure;->putString(Landroid/content/ContentResolver;Ljava/lang/String;Ljava/lang/String;)Z
+    invoke-static {v1, v0}, Lr4/a;->r(Ljava/lang/String;Ljava/lang/String;)V
 
     iget-object p1, p0, Ls8/h;->c:Landroid/content/Context;
 
@@ -4152,17 +4101,8 @@
     return-void
 
     :cond_0
-    iget-object v0, p0, Ls8/h;->c:Landroid/content/Context;
-
-    if-eqz v0, :cond_1
-
-    invoke-virtual {v0}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
-
-    move-result-object v0
-
-    iget-object v1, p0, Ls8/h;->v:Ljava/lang/String;
-
-    invoke-static {v0, v1, p1}, Landroid/provider/Settings$Global;->putInt(Landroid/content/ContentResolver;Ljava/lang/String;I)Z
+    const-string v1, "port_toolbox_show_flag"
+    invoke-static {v1, p1}, Lr4/a;->p(Ljava/lang/String;I)V
 
     iput p1, p0, Ls8/h;->t:I
 
@@ -4637,13 +4577,9 @@
 
 .method public Y()I
     .locals 1
-
     iget-object v0, p0, Ls8/h;->c:Landroid/content/Context;
-
-    invoke-static {v0}, Lm5/g;->h(Landroid/content/Context;)I
-
+    invoke-static {v0}, Lcom/gzy/redmiport/SidebarRuntime;->y(Landroid/content/Context;)I
     move-result v0
-
     return v0
 .end method
 

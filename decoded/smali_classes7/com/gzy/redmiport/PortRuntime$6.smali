@@ -25,7 +25,7 @@
 .method constructor <init>(Ljava/lang/Process;)V
     .registers 2
 
-    .line 91
+    .line 92
     iput-object p1, p0, Lcom/gzy/redmiport/PortRuntime$6;->val$process:Ljava/lang/Process;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -38,7 +38,7 @@
 .method public run()V
     .registers 2
 
-    .line 92
+    .line 93
     :try_start_0
     iget-object v0, p0, Lcom/gzy/redmiport/PortRuntime$6;->val$process:Ljava/lang/Process;
 

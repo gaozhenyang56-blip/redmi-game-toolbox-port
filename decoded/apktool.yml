@@ -9,8 +9,8 @@ sdkInfo:
 packageInfo:
   forcedPackageId: 127
 versionInfo:
-  versionCode: 40001053
-  versionName: 10.4.5-huawei-repair14-shizuku
+  versionCode: 40001054
+  versionName: 10.4.5-huawei-repair15-sidebar
 doNotCompress:
 - arsc
 - gif

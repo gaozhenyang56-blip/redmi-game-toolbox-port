@@ -3,6 +3,14 @@
 .source "ForegroundMonitor.java"
 
 
+# annotations
+.annotation system Ldalvik/annotation/MemberClasses;
+    value = {
+        Lcom/gzy/redmiport/ForegroundMonitor$Listener;
+    }
+.end annotation
+
+
 # static fields
 .field private static volatile current:Ljava/lang/Object;
 
@@ -26,14 +34,14 @@
 .method static constructor <clinit>()V
     .registers 2
 
-    .line 10
+    .line 14
     invoke-static {}, Ljava/util/concurrent/Executors;->newSingleThreadScheduledExecutor()Ljava/util/concurrent/ScheduledExecutorService;
 
     move-result-object v0
 
     sput-object v0, Lcom/gzy/redmiport/ForegroundMonitor;->worker:Ljava/util/concurrent/ScheduledExecutorService;
 
-    .line 11
+    .line 15
     new-instance v0, Landroid/os/Handler;
 
     invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
@@ -44,14 +52,14 @@
 
     sput-object v0, Lcom/gzy/redmiport/ForegroundMonitor;->main:Landroid/os/Handler;
 
-    .line 12
+    .line 16
     new-instance v0, Ljava/util/concurrent/ConcurrentHashMap;
 
     invoke-direct {v0}, Ljava/util/concurrent/ConcurrentHashMap;-><init>()V
 
     sput-object v0, Lcom/gzy/redmiport/ForegroundMonitor;->subscriptions:Ljava/util/concurrent/ConcurrentHashMap;
 
-    .line 13
+    .line 17
     return-void
 .end method
 
@@ -64,11 +72,11 @@
     return-void
 .end method
 
-.method static synthetic access$0(Ljava/lang/Object;)V
-    .registers 1
+.method static synthetic access$0(Ljava/lang/Object;Ljava/lang/String;)V
+    .registers 2
 
-    .line 13
-    sput-object p0, Lcom/gzy/redmiport/ForegroundMonitor;->current:Ljava/lang/Object;
+    .line 41
+    invoke-static {p0, p1}, Lcom/gzy/redmiport/ForegroundMonitor;->unavailable(Ljava/lang/Object;Ljava/lang/String;)V
 
     return-void
 .end method
@@ -76,7 +84,7 @@
 .method static synthetic access$1()Landroid/os/Handler;
     .registers 1
 
-    .line 11
+    .line 15
     sget-object v0, Lcom/gzy/redmiport/ForegroundMonitor;->main:Landroid/os/Handler;
 
     return-object v0
@@ -85,16 +93,25 @@
 .method static synthetic access$2()Ljava/util/concurrent/ConcurrentHashMap;
     .registers 1
 
-    .line 12
+    .line 16
     sget-object v0, Lcom/gzy/redmiport/ForegroundMonitor;->subscriptions:Ljava/util/concurrent/ConcurrentHashMap;
 
     return-object v0
 .end method
 
+.method static synthetic access$3(Ljava/lang/Object;)V
+    .registers 1
+
+    .line 17
+    sput-object p0, Lcom/gzy/redmiport/ForegroundMonitor;->current:Ljava/lang/Object;
+
+    return-void
+.end method
+
 .method public static current()Ljava/lang/Object;
     .registers 1
 
-    .line 14
+    .line 18
     sget-object v0, Lcom/gzy/redmiport/ForegroundMonitor;->current:Ljava/lang/Object;
 
     return-object v0
@@ -107,7 +124,7 @@
 
     monitor-enter v0
 
-    .line 16
+    .line 20
     if-eqz p0, :cond_29
 
     :try_start_5
@@ -121,7 +138,7 @@
 
     goto :goto_29
 
-    .line 17
+    .line 21
     :cond_e
     sget-object v1, Lcom/gzy/redmiport/ForegroundMonitor;->subscriptions:Ljava/util/concurrent/ConcurrentHashMap;
 
@@ -131,10 +148,10 @@
 
     invoke-direct {v3, p0}, Lcom/gzy/redmiport/ForegroundMonitor$1;-><init>(Ljava/lang/Object;)V
 
-    .line 32
+    .line 38
     sget-object v8, Ljava/util/concurrent/TimeUnit;->MILLISECONDS:Ljava/util/concurrent/TimeUnit;
 
-    .line 17
+    .line 21
     const-wide/16 v4, 0x1f4
 
     const-wide/16 v6, 0x3e8
@@ -147,12 +164,12 @@
     :try_end_24
     .catchall {:try_start_5 .. :try_end_24} :catchall_26
 
-    .line 33
+    .line 39
     monitor-exit v0
 
     return-void
 
-    .line 15
+    .line 19
     :catchall_26
     move-exception p0
 
@@ -160,7 +177,7 @@
 
     throw p0
 
-    .line 16
+    .line 20
     :cond_29
     :goto_29
     monitor-exit v0
@@ -175,7 +192,7 @@
 
     monitor-enter v0
 
-    .line 34
+    .line 40
     :try_start_3
     sget-object v1, Lcom/gzy/redmiport/ForegroundMonitor;->subscriptions:Ljava/util/concurrent/ConcurrentHashMap;
 
@@ -198,11 +215,31 @@
 
     return-void
 
-    .line 34
+    .line 40
     :catchall_13
     move-exception p0
 
     monitor-exit v0
 
     throw p0
+.end method
+
+.method private static unavailable(Ljava/lang/Object;Ljava/lang/String;)V
+    .registers 4
+
+    .line 41
+    instance-of v0, p0, Lcom/gzy/redmiport/ForegroundMonitor$Listener;
+
+    if-eqz v0, :cond_e
+
+    sget-object v0, Lcom/gzy/redmiport/ForegroundMonitor;->main:Landroid/os/Handler;
+
+    new-instance v1, Lcom/gzy/redmiport/ForegroundMonitor$2;
+
+    invoke-direct {v1, p0, p1}, Lcom/gzy/redmiport/ForegroundMonitor$2;-><init>(Ljava/lang/Object;Ljava/lang/String;)V
+
+    invoke-virtual {v0, v1}, Landroid/os/Handler;->post(Ljava/lang/Runnable;)Z
+
+    :cond_e
+    return-void
 .end method

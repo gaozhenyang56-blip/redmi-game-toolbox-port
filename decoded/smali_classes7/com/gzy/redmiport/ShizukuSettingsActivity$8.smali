@@ -25,7 +25,7 @@
 .method constructor <init>(Lcom/gzy/redmiport/ShizukuSettingsActivity;)V
     .registers 2
 
-    .line 42
+    .line 41
     iput-object p1, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity$8;->this$0:Lcom/gzy/redmiport/ShizukuSettingsActivity;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -38,7 +38,11 @@
 .method public onClick(Landroid/view/View;)V
     .registers 2
 
-    .line 42
+    .line 41
+    iget-object p1, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity$8;->this$0:Lcom/gzy/redmiport/ShizukuSettingsActivity;
+
+    invoke-static {p1}, Lcom/gzy/redmiport/SidebarRuntime;->start(Landroid/content/Context;)V
+
     iget-object p1, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity$8;->this$0:Lcom/gzy/redmiport/ShizukuSettingsActivity;
 
     # invokes: Lcom/gzy/redmiport/ShizukuSettingsActivity;->refresh()V

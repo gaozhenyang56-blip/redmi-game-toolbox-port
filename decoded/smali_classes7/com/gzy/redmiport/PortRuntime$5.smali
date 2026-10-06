@@ -25,7 +25,7 @@
 .method constructor <init>(Landroid/app/Application;)V
     .registers 2
 
-    .line 78
+    .line 79
     iput-object p1, p0, Lcom/gzy/redmiport/PortRuntime$5;->val$app:Landroid/app/Application;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -38,7 +38,7 @@
 .method public run()V
     .registers 3
 
-    .line 80
+    .line 81
     :try_start_0
     iget-object v0, p0, Lcom/gzy/redmiport/PortRuntime$5;->val$app:Landroid/app/Application;
 
@@ -48,7 +48,7 @@
 
     goto :goto_c
 
-    .line 81
+    .line 82
     :catchall_6
     move-exception v0
 
@@ -56,7 +56,7 @@
 
     invoke-static {v1, v0}, Lcom/gzy/redmidiag/CrashReporter;->record(Ljava/lang/String;Ljava/lang/Throwable;)V
 
-    .line 82
+    .line 83
     :goto_c
     return-void
 .end method

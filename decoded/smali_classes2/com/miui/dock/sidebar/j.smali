@@ -864,84 +864,12 @@
 .end method
 
 .method public H()Z
-    .locals 3
-
-    invoke-static {}, Lc5/a;->a()Z
-
+    .locals 2
+    iget-object v0, p0, Lcom/miui/dock/sidebar/j;->b:Landroid/content/Context;
+    iget-boolean v1, p0, Lcom/miui/dock/sidebar/j;->a:Z
+    invoke-static {v0, v1}, Lcom/gzy/redmiport/SidebarRuntime;->isLeft(Landroid/content/Context;Z)Z
     move-result v0
-
-    const/4 v1, 0x1
-
-    const/4 v2, 0x0
-
-    if-eqz v0, :cond_3
-
-    iget-boolean v0, p0, Lcom/miui/dock/sidebar/j;->a:Z
-
-    if-eqz v0, :cond_1
-
-    invoke-static {}, Lk5/a;->b()I
-
-    move-result v0
-
-    if-nez v0, :cond_0
-
-    goto :goto_0
-
-    :cond_0
-    move v1, v2
-
-    :goto_0
-    return v1
-
-    :cond_1
-    invoke-static {}, Lk5/a;->b()I
-
-    move-result v0
-
-    if-eqz v0, :cond_2
-
-    goto :goto_1
-
-    :cond_2
-    move v1, v2
-
-    :goto_1
-    return v1
-
-    :cond_3
-    iget-boolean v0, p0, Lcom/miui/dock/sidebar/j;->a:Z
-
-    if-eqz v0, :cond_5
-
-    invoke-static {}, Li8/c;->C()I
-
-    move-result v0
-
-    if-nez v0, :cond_4
-
-    goto :goto_2
-
-    :cond_4
-    move v1, v2
-
-    :goto_2
-    return v1
-
-    :cond_5
-    invoke-static {}, Li8/c;->C()I
-
-    move-result v0
-
-    if-eqz v0, :cond_6
-
-    goto :goto_3
-
-    :cond_6
-    move v1, v2
-
-    :goto_3
-    return v1
+    return v0
 .end method
 
 .method public I()Z

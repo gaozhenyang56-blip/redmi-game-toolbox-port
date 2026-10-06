@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="port_sidebar_sides"><item>左侧</item><item>右侧</item></string-array>
+    <string-array name="port_sidebar_side_values"><item>0</item><item>1</item></string-array>
+    <string-array name="port_sidebar_insets"><item>贴近边缘</item><item>内缩 16 dp</item><item>内缩 24 dp（默认）</item><item>内缩 40 dp</item></string-array>
+    <string-array name="port_sidebar_inset_values"><item>0</item><item>16</item><item>24</item><item>40</item></string-array>
+    <string-array name="port_sidebar_heights"><item>靠上（25%）</item><item>居中（50%）</item><item>靠下（75%）</item></string-array>
+    <string-array name="port_sidebar_height_values"><item>25</item><item>50</item><item>75</item></string-array>
+</resources>

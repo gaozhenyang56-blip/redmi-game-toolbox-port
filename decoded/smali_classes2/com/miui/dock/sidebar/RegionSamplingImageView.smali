@@ -25,26 +25,8 @@
 
     iput-object p1, p0, Lcom/miui/dock/sidebar/RegionSamplingImageView;->b:Landroid/graphics/Rect;
 
-    sget p1, Landroid/os/Build$VERSION;->SDK_INT:I
-
-    const/16 p2, 0x1e
-
-    if-lt p1, p2, :cond_0
-
-    new-instance p1, Lcom/android/systemui/navigationbar/gestural/RegionSamplingHelper;
-
-    new-instance p2, Lcom/miui/dock/sidebar/RegionSamplingImageView$a;
-
-    invoke-direct {p2, p0}, Lcom/miui/dock/sidebar/RegionSamplingImageView$a;-><init>(Lcom/miui/dock/sidebar/RegionSamplingImageView;)V
-
-    invoke-direct {p1, p0, p2}, Lcom/android/systemui/navigationbar/gestural/RegionSamplingHelper;-><init>(Landroid/view/View;Lcom/android/systemui/navigationbar/gestural/RegionSamplingHelper$c;)V
-
-    goto :goto_0
-
-    :cond_0
     const/4 p1, 0x0
 
-    :goto_0
     iput-object p1, p0, Lcom/miui/dock/sidebar/RegionSamplingImageView;->a:Lcom/android/systemui/navigationbar/gestural/RegionSamplingHelper;
 
     return-void

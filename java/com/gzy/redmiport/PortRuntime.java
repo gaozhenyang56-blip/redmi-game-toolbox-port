@@ -53,6 +53,7 @@ public final class PortRuntime {
                 public void onActivityResumed(Activity activity) {
                     foreground = activity;
                     requestPermission();
+                    if (activity.getClass().getName().startsWith("com.miui.gamebooster.")) SidebarRuntime.start(activity);
                 }
                 public void onActivityPaused(Activity activity) { if (foreground == activity) foreground = null; }
                 public void onActivityCreated(Activity a, Bundle b) {}

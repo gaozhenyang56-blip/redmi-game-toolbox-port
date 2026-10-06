@@ -25,7 +25,7 @@
 .method constructor <init>(Landroid/content/Context;)V
     .registers 2
 
-    .line 14
+    .line 15
     iput-object p1, p0, Lcom/gzy/redmiport/GameLaunch$1;->val$context:Landroid/content/Context;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -38,7 +38,7 @@
 .method public run()V
     .registers 4
 
-    .line 14
+    .line 15
     iget-object v0, p0, Lcom/gzy/redmiport/GameLaunch$1;->val$context:Landroid/content/Context;
 
     const-string v1, "\u65e0\u6cd5\u542f\u52a8\u6b64\u5e94\u7528\uff0c\u8bf7\u67e5\u770b\u65e5\u5fd7"

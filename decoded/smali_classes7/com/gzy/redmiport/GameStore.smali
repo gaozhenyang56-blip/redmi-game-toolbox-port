@@ -135,6 +135,98 @@
     throw p0
 .end method
 
+.method public static hasGames(Landroid/content/Context;)Z
+    .registers 8
+
+    .line 64
+    const/4 v0, 0x0
+
+    :try_start_1
+    invoke-virtual {p0}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
+
+    move-result-object v1
+
+    sget-object v2, Lcom/gzy/redmiport/GameStore;->TABLE:Landroid/net/Uri;
+
+    const-string p0, "_id"
+
+    filled-new-array {p0}, [Ljava/lang/String;
+
+    move-result-object v3
+
+    const-string v4, "flag_white=0 AND pop_game IS NULL AND is_del=0"
+
+    const/4 v5, 0x0
+
+    const/4 v6, 0x0
+
+    invoke-virtual/range {v1 .. v6}, Landroid/content/ContentResolver;->query(Landroid/net/Uri;[Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor;
+
+    move-result-object p0
+    :try_end_15
+    .catchall {:try_start_1 .. :try_end_15} :catchall_2d
+
+    .line 65
+    if-eqz p0, :cond_26
+
+    :try_start_17
+    invoke-interface {p0}, Landroid/database/Cursor;->moveToFirst()Z
+
+    move-result v1
+    :try_end_1b
+    .catchall {:try_start_17 .. :try_end_1b} :catchall_1f
+
+    if-eqz v1, :cond_26
+
+    const/4 v1, 0x1
+
+    goto :goto_27
+
+    :catchall_1f
+    move-exception v0
+
+    .line 66
+    if-eqz p0, :cond_25
+
+    :try_start_22
+    invoke-interface {p0}, Landroid/database/Cursor;->close()V
+
+    :cond_25
+    throw v0
+
+    .line 65
+    :cond_26
+    const/4 v1, 0x0
+
+    .line 66
+    :goto_27
+    if-eqz p0, :cond_2c
+
+    invoke-interface {p0}, Landroid/database/Cursor;->close()V
+    :try_end_2c
+    .catchall {:try_start_22 .. :try_end_2c} :catchall_2d
+
+    .line 65
+    :cond_2c
+    return v1
+
+    .line 66
+    :catchall_2d
+    move-exception p0
+
+    if-eqz v0, :cond_36
+
+    if-eq v0, p0, :cond_35
+
+    invoke-virtual {v0, p0}, Ljava/lang/Throwable;->addSuppressed(Ljava/lang/Throwable;)V
+
+    :cond_35
+    move-object p0, v0
+
+    :cond_36
+    throw p0
+.end method
+
 .method public static declared-synchronized save(Landroid/content/Context;Landroid/content/pm/ApplicationInfo;Z)Z
     .registers 25
 
@@ -480,6 +572,122 @@
     monitor-exit v3
 
     throw v0
+.end method
+
+.method public static selected(Landroid/content/Context;Ljava/lang/String;I)Z
+    .registers 10
+
+    .line 57
+    const/4 v0, 0x0
+
+    :try_start_1
+    invoke-virtual {p0}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
+
+    move-result-object v1
+
+    sget-object v2, Lcom/gzy/redmiport/GameStore;->TABLE:Landroid/net/Uri;
+
+    const-string p0, "_id"
+
+    filled-new-array {p0}, [Ljava/lang/String;
+
+    move-result-object v3
+
+    const-string v4, "package_name=? AND package_uid=? AND flag_white=? AND pop_game IS NULL AND is_del=0"
+
+    .line 58
+    const p0, 0x186a0
+
+    div-int/2addr p2, p0
+
+    invoke-static {p2}, Ljava/lang/String;->valueOf(I)Ljava/lang/String;
+
+    move-result-object p0
+
+    const-string p2, "0"
+
+    filled-new-array {p1, p0, p2}, [Ljava/lang/String;
+
+    move-result-object v5
+
+    .line 57
+    const/4 v6, 0x0
+
+    invoke-virtual/range {v1 .. v6}, Landroid/content/ContentResolver;->query(Landroid/net/Uri;[Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor;
+
+    move-result-object p0
+    :try_end_22
+    .catchall {:try_start_1 .. :try_end_22} :catchall_3f
+
+    .line 59
+    if-eqz p0, :cond_31
+
+    .line 60
+    :try_start_24
+    invoke-interface {p0}, Landroid/database/Cursor;->moveToFirst()Z
+
+    move-result p1
+    :try_end_28
+    .catchall {:try_start_24 .. :try_end_28} :catchall_2e
+
+    .line 61
+    if-eqz p0, :cond_2d
+
+    :try_start_2a
+    invoke-interface {p0}, Landroid/database/Cursor;->close()V
+    :try_end_2d
+    .catchall {:try_start_2a .. :try_end_2d} :catchall_3f
+
+    .line 60
+    :cond_2d
+    return p1
+
+    :catchall_2e
+    move-exception p1
+
+    move-object v0, p1
+
+    goto :goto_39
+
+    .line 59
+    :cond_31
+    :try_start_31
+    new-instance p1, Ljava/lang/IllegalStateException;
+
+    const-string p2, "Game provider returned no cursor"
+
+    invoke-direct {p1, p2}, Ljava/lang/IllegalStateException;-><init>(Ljava/lang/String;)V
+
+    throw p1
+    :try_end_39
+    .catchall {:try_start_31 .. :try_end_39} :catchall_2e
+
+    .line 61
+    :goto_39
+    if-eqz p0, :cond_3e
+
+    :try_start_3b
+    invoke-interface {p0}, Landroid/database/Cursor;->close()V
+
+    :cond_3e
+    throw v0
+    :try_end_3f
+    .catchall {:try_start_3b .. :try_end_3f} :catchall_3f
+
+    :catchall_3f
+    move-exception p0
+
+    if-eqz v0, :cond_48
+
+    if-eq v0, p0, :cond_47
+
+    invoke-virtual {v0, p0}, Ljava/lang/Throwable;->addSuppressed(Ljava/lang/Throwable;)V
+
+    :cond_47
+    move-object p0, v0
+
+    :cond_48
+    throw p0
 .end method
 
 .method public static status(Landroid/content/Context;)Ljava/lang/String;

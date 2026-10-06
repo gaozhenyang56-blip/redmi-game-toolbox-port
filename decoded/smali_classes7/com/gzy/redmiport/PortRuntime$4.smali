@@ -32,14 +32,14 @@
 .method public onActivityCreated(Landroid/app/Activity;Landroid/os/Bundle;)V
     .registers 3
 
-    .line 58
+    .line 59
     return-void
 .end method
 
 .method public onActivityDestroyed(Landroid/app/Activity;)V
     .registers 3
 
-    .line 62
+    .line 63
     # getter for: Lcom/gzy/redmiport/PortRuntime;->foreground:Landroid/app/Activity;
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->access$7()Landroid/app/Activity;
 
@@ -58,7 +58,7 @@
 .method public onActivityPaused(Landroid/app/Activity;)V
     .registers 3
 
-    .line 57
+    .line 58
     # getter for: Lcom/gzy/redmiport/PortRuntime;->foreground:Landroid/app/Activity;
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->access$7()Landroid/app/Activity;
 
@@ -75,7 +75,7 @@
 .end method
 
 .method public onActivityResumed(Landroid/app/Activity;)V
-    .registers 2
+    .registers 4
 
     .line 54
     invoke-static {p1}, Lcom/gzy/redmiport/PortRuntime;->access$8(Landroid/app/Activity;)V
@@ -85,26 +85,46 @@
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->access$0()V
 
     .line 56
+    invoke-virtual {p1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Ljava/lang/Class;->getName()Ljava/lang/String;
+
+    move-result-object v0
+
+    const-string v1, "com.miui.gamebooster."
+
+    invoke-virtual {v0, v1}, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
+
+    move-result v0
+
+    if-eqz v0, :cond_19
+
+    invoke-static {p1}, Lcom/gzy/redmiport/SidebarRuntime;->start(Landroid/content/Context;)V
+
+    .line 57
+    :cond_19
     return-void
 .end method
 
 .method public onActivitySaveInstanceState(Landroid/app/Activity;Landroid/os/Bundle;)V
     .registers 3
 
-    .line 61
+    .line 62
     return-void
 .end method
 
 .method public onActivityStarted(Landroid/app/Activity;)V
     .registers 2
 
-    .line 59
+    .line 60
     return-void
 .end method
 
 .method public onActivityStopped(Landroid/app/Activity;)V
     .registers 2
 
-    .line 60
+    .line 61
     return-void
 .end method
