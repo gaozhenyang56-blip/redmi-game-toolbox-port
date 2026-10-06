@@ -59,7 +59,7 @@ public final class OriginalSettings {
             type.getMethod("setSummary",CharSequence.class).invoke(preference,"开启时由桌面确认添加；关闭时停用，图标可手动移除");
         }
         if(position){
-            int fallback="port_sidebar_side".equals(key)?0:"port_sidebar_inset".equals(key)?24:25;
+            int fallback="port_sidebar_height".equals(key)?25:0;
             type.getMethod("w",String.class).invoke(preference,String.valueOf(PortPreferences.number(key,fallback)));
             // The bundled ListPreference formats literal summaries; use its entry provider
             // so height labels containing '%' render without String.format exceptions.

@@ -97,9 +97,9 @@
     # invokes: Lcom/gzy/redmiport/PortRuntime;->state(Ljava/lang/String;)V
     invoke-static {v5}, Lcom/gzy/redmiport/PortRuntime;->access$5(Ljava/lang/String;)V
     :try_end_29
-    .catchall {:try_start_5 .. :try_end_29} :catchall_12c
+    .catchall {:try_start_5 .. :try_end_29} :catchall_138
 
-    .line 160
+    .line 161
     :cond_29
     # getter for: Lcom/gzy/redmiport/PortRuntime;->sampling:Ljava/util/concurrent/atomic/AtomicBoolean;
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->access$9()Ljava/util/concurrent/atomic/AtomicBoolean;
@@ -118,7 +118,7 @@
 
     invoke-direct {v6}, Ljava/lang/StringBuilder;-><init>()V
     :try_end_36
-    .catchall {:try_start_31 .. :try_end_36} :catchall_12c
+    .catchall {:try_start_31 .. :try_end_36} :catchall_138
 
     .line 143
     const/4 v7, 0x0
@@ -134,7 +134,7 @@
 
     invoke-direct {v8, v9}, Ljava/io/BufferedReader;-><init>(Ljava/io/Reader;)V
     :try_end_43
-    .catchall {:try_start_37 .. :try_end_43} :catchall_122
+    .catchall {:try_start_37 .. :try_end_43} :catchall_12e
 
     .line 144
     :cond_43
@@ -161,7 +161,7 @@
 
     move-result v5
     :try_end_57
-    .catchall {:try_start_43 .. :try_end_57} :catchall_11c
+    .catchall {:try_start_43 .. :try_end_57} :catchall_128
 
     const v9, 0x7d000
 
@@ -174,7 +174,7 @@
     :try_start_5d
     invoke-virtual {v8}, Ljava/io/BufferedReader;->close()V
     :try_end_60
-    .catchall {:try_start_5d .. :try_end_60} :catchall_122
+    .catchall {:try_start_5d .. :try_end_60} :catchall_12e
 
     .line 146
     :try_start_60
@@ -191,37 +191,37 @@
     move-result-object v5
 
     .line 147
-    iget v6, p0, Lcom/gzy/redmiport/PortRuntime$9;->val$session:I
+    iget v8, p0, Lcom/gzy/redmiport/PortRuntime$9;->val$session:I
 
     # getter for: Lcom/gzy/redmiport/PortRuntime;->epoch:I
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->access$3()I
 
-    move-result v8
+    move-result v9
 
-    if-ne v6, v8, :cond_114
+    if-ne v8, v9, :cond_120
 
-    iget-object v6, p0, Lcom/gzy/redmiport/PortRuntime$9;->val$game:Ljava/lang/String;
+    iget-object v8, p0, Lcom/gzy/redmiport/PortRuntime$9;->val$game:Ljava/lang/String;
 
     # invokes: Lcom/gzy/redmiport/PortRuntime;->activeGame()Ljava/lang/String;
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->access$11()Ljava/lang/String;
 
-    move-result-object v8
+    move-result-object v9
 
-    invoke-virtual {v6, v8}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+    invoke-virtual {v8, v9}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 
-    move-result v6
+    move-result v8
 
-    if-nez v6, :cond_82
+    if-nez v8, :cond_82
 
-    goto/16 :goto_114
+    goto/16 :goto_120
 
     .line 148
     :cond_82
     invoke-virtual {v5}, Lcom/gzy/redmiport/FrameSampleParser$Result;->available()Z
 
-    move-result v6
+    move-result v8
 
-    if-nez v6, :cond_c3
+    if-nez v8, :cond_cf
 
     .line 149
     invoke-static {v7}, Lcom/gzy/redmiport/PortRuntime;->access$12(Ljava/lang/String;)V
@@ -229,25 +229,38 @@
     invoke-static {v2, v3}, Lcom/gzy/redmiport/PortRuntime;->access$13(J)V
 
     .line 150
-    iget-object v6, p0, Lcom/gzy/redmiport/PortRuntime$9;->val$candidate:Ljava/lang/String;
+    invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
 
-    if-nez v6, :cond_99
+    move-result-object v6
+
+    invoke-static {v6}, Lcom/gzy/redmiport/FpsShellCommand;->layerCount(Ljava/lang/String;)I
+
+    move-result v6
+
+    .line 151
+    iget-object v7, p0, Lcom/gzy/redmiport/PortRuntime$9;->val$candidate:Ljava/lang/String;
+
+    if-nez v7, :cond_a5
+
+    iget v7, p0, Lcom/gzy/redmiport/PortRuntime$9;->val$offset:I
+
+    add-int/lit8 v7, v7, 0x2
+
+    if-ge v7, v6, :cond_a5
 
     iget v6, p0, Lcom/gzy/redmiport/PortRuntime$9;->val$offset:I
 
     add-int/lit8 v6, v6, 0x2
 
-    rem-int/lit8 v6, v6, 0x8
+    goto :goto_a6
 
-    goto :goto_9a
-
-    :cond_99
+    :cond_a5
     move v6, v4
 
-    :goto_9a
+    :goto_a6
     invoke-static {v6}, Lcom/gzy/redmiport/PortRuntime;->access$14(I)V
 
-    .line 151
+    .line 152
     invoke-static {v0, v1}, Lcom/gzy/redmiport/PortRuntime;->access$1(J)V
 
     invoke-static {v2, v3}, Lcom/gzy/redmiport/PortRuntime;->access$2(J)V
@@ -274,10 +287,10 @@
 
     # invokes: Lcom/gzy/redmiport/PortRuntime;->state(Ljava/lang/String;)V
     invoke-static {v5}, Lcom/gzy/redmiport/PortRuntime;->access$5(Ljava/lang/String;)V
-    :try_end_bb
-    .catchall {:try_start_60 .. :try_end_bb} :catchall_12c
+    :try_end_c7
+    .catchall {:try_start_60 .. :try_end_c7} :catchall_138
 
-    .line 160
+    .line 161
     # getter for: Lcom/gzy/redmiport/PortRuntime;->sampling:Ljava/util/concurrent/atomic/AtomicBoolean;
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->access$9()Ljava/util/concurrent/atomic/AtomicBoolean;
 
@@ -285,12 +298,12 @@
 
     invoke-virtual {v0, v4}, Ljava/util/concurrent/atomic/AtomicBoolean;->set(Z)V
 
-    .line 151
+    .line 152
     return-void
 
-    .line 153
-    :cond_c3
-    :try_start_c3
+    .line 154
+    :cond_cf
+    :try_start_cf
     iget-object v6, v5, Lcom/gzy/redmiport/FrameSampleParser$Result;->layer:Ljava/lang/String;
 
     # getter for: Lcom/gzy/redmiport/PortRuntime;->previousLayer:Ljava/lang/String;
@@ -302,7 +315,7 @@
 
     move-result v6
 
-    if-eqz v6, :cond_db
+    if-eqz v6, :cond_e7
 
     iget-wide v6, v5, Lcom/gzy/redmiport/FrameSampleParser$Result;->last:J
 
@@ -313,19 +326,19 @@
 
     cmp-long v6, v6, v8
 
-    if-nez v6, :cond_db
+    if-nez v6, :cond_e7
 
     move-wide v6, v2
 
-    goto :goto_dd
+    goto :goto_e9
 
-    :cond_db
+    :cond_e7
     iget-wide v6, v5, Lcom/gzy/redmiport/FrameSampleParser$Result;->fps:J
 
-    :goto_dd
+    :goto_e9
     invoke-static {v6, v7}, Lcom/gzy/redmiport/PortRuntime;->access$1(J)V
 
-    .line 154
+    .line 155
     iget-object v6, v5, Lcom/gzy/redmiport/FrameSampleParser$Result;->layer:Ljava/lang/String;
 
     invoke-static {v6}, Lcom/gzy/redmiport/PortRuntime;->access$12(Ljava/lang/String;)V
@@ -334,14 +347,14 @@
 
     invoke-static {v6, v7}, Lcom/gzy/redmiport/PortRuntime;->access$13(J)V
 
-    .line 155
+    .line 156
     invoke-static {}, Landroid/os/SystemClock;->elapsedRealtime()J
 
     move-result-wide v6
 
     invoke-static {v6, v7}, Lcom/gzy/redmiport/PortRuntime;->access$2(J)V
 
-    .line 156
+    .line 157
     new-instance v6, Ljava/lang/StringBuilder;
 
     const-string v7, "FPS\uff1a"
@@ -375,15 +388,15 @@
 
     # invokes: Lcom/gzy/redmiport/PortRuntime;->state(Ljava/lang/String;)V
     invoke-static {v5}, Lcom/gzy/redmiport/PortRuntime;->access$5(Ljava/lang/String;)V
-    :try_end_113
-    .catchall {:try_start_c3 .. :try_end_113} :catchall_12c
+    :try_end_11f
+    .catchall {:try_start_cf .. :try_end_11f} :catchall_138
 
-    .line 157
-    goto :goto_145
+    .line 158
+    goto :goto_151
 
-    .line 160
-    :cond_114
-    :goto_114
+    .line 161
+    :cond_120
+    :goto_120
     # getter for: Lcom/gzy/redmiport/PortRuntime;->sampling:Ljava/util/concurrent/atomic/AtomicBoolean;
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->access$9()Ljava/util/concurrent/atomic/AtomicBoolean;
 
@@ -395,42 +408,42 @@
     return-void
 
     .line 145
-    :catchall_11c
+    :catchall_128
     move-exception v5
 
     move-object v7, v5
 
-    :try_start_11e
+    :try_start_12a
     invoke-virtual {v8}, Ljava/io/BufferedReader;->close()V
 
     throw v7
-    :try_end_122
-    .catchall {:try_start_11e .. :try_end_122} :catchall_122
+    :try_end_12e
+    .catchall {:try_start_12a .. :try_end_12e} :catchall_12e
 
-    :catchall_122
+    :catchall_12e
     move-exception v5
 
-    if-eqz v7, :cond_12b
+    if-eqz v7, :cond_137
 
-    if-eq v7, v5, :cond_12a
+    if-eq v7, v5, :cond_136
 
-    :try_start_127
+    :try_start_133
     invoke-virtual {v7, v5}, Ljava/lang/Throwable;->addSuppressed(Ljava/lang/Throwable;)V
 
-    :cond_12a
+    :cond_136
     move-object v5, v7
 
-    :cond_12b
+    :cond_137
     throw v5
-    :try_end_12c
-    .catchall {:try_start_127 .. :try_end_12c} :catchall_12c
-
-    .line 157
-    :catchall_12c
-    move-exception v5
+    :try_end_138
+    .catchall {:try_start_133 .. :try_end_138} :catchall_138
 
     .line 158
-    :try_start_12d
+    :catchall_138
+    move-exception v5
+
+    .line 159
+    :try_start_139
     iget v6, p0, Lcom/gzy/redmiport/PortRuntime$9;->val$session:I
 
     # getter for: Lcom/gzy/redmiport/PortRuntime;->epoch:I
@@ -438,7 +451,7 @@
 
     move-result v7
 
-    if-ne v6, v7, :cond_140
+    if-ne v6, v7, :cond_14c
 
     invoke-static {v0, v1}, Lcom/gzy/redmiport/PortRuntime;->access$1(J)V
 
@@ -449,16 +462,16 @@
     # invokes: Lcom/gzy/redmiport/PortRuntime;->state(Ljava/lang/String;)V
     invoke-static {v0}, Lcom/gzy/redmiport/PortRuntime;->access$5(Ljava/lang/String;)V
 
-    .line 159
-    :cond_140
+    .line 160
+    :cond_14c
     const-string v0, "SurfaceFlinger FPS sample"
 
     invoke-static {v0, v5}, Lcom/gzy/redmidiag/CrashReporter;->record(Ljava/lang/String;Ljava/lang/Throwable;)V
-    :try_end_145
-    .catchall {:try_start_12d .. :try_end_145} :catchall_14d
+    :try_end_151
+    .catchall {:try_start_139 .. :try_end_151} :catchall_159
 
-    .line 160
-    :goto_145
+    .line 161
+    :goto_151
     # getter for: Lcom/gzy/redmiport/PortRuntime;->sampling:Ljava/util/concurrent/atomic/AtomicBoolean;
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->access$9()Ljava/util/concurrent/atomic/AtomicBoolean;
 
@@ -466,11 +479,11 @@
 
     invoke-virtual {v0, v4}, Ljava/util/concurrent/atomic/AtomicBoolean;->set(Z)V
 
-    .line 161
+    .line 162
     return-void
 
-    .line 160
-    :catchall_14d
+    .line 161
+    :catchall_159
     move-exception v0
 
     # getter for: Lcom/gzy/redmiport/PortRuntime;->sampling:Ljava/util/concurrent/atomic/AtomicBoolean;

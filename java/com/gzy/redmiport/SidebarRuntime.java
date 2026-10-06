@@ -8,12 +8,14 @@ import android.provider.Settings;
 import android.view.*;
 import com.gzy.redmidiag.CrashReporter;
 import java.lang.reflect.*;
+import java.util.WeakHashMap;
 
 /** Public service lifecycle and foreground backend for the unchanged original sidebar. */
 public final class SidebarRuntime implements ForegroundMonitor.Listener {
     private static final String SERVICE="com.miui.gamebooster.service.DockWindowManagerService";
     private static final String STATUS="port_sidebar_status";
     private static SidebarRuntime active;
+    private static final WeakHashMap<Object,HandleTap> taps=new WeakHashMap<Object,HandleTap>();
     private final Service service;
     private Object controller,mode;
     private String shown="",layout="",lastStatus="";
@@ -89,8 +91,11 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
                 hide(!enabled()?"原设置已关闭游戏工具箱或滑动入口":!Settings.canDrawOverlays(service)?"悬浮窗权限未允许":keyguard.isKeyguardLocked()?"锁屏时隐藏白条":"前台应用未添加到游戏空间："+pkg);
                 return;
             }
-            String nextLayout=PortPreferences.number("port_sidebar_side",0)+":"+PortPreferences.number("port_sidebar_inset",24)+":"+PortPreferences.number("port_sidebar_height",25);
-            if(pkg.equals(shown)&&layout.equals(nextLayout)&&Boolean.TRUE.equals(get(controller,"o"))){status("白条已创建："+pkg+"；可从白条向屏幕内滑动");return;}
+            String nextLayout=PortPreferences.number("port_sidebar_side",0)+":"+PortPreferences.number("port_sidebar_inset",0)+":"+PortPreferences.number("port_sidebar_height",25);
+            if(pkg.equals(shown)&&layout.equals(nextLayout)&&Boolean.TRUE.equals(get(controller,"o"))){
+                keepVisible(get(controller,"d"));
+                status("白条常驻："+pkg+"；轻点或向内滑动展开");return;
+            }
             hide("");
             set(service,"h",pkg);set(service,"i",uid);set(service,"c",true);set(service,"d",true);
             call(mode,"a",new Class<?>[]{int.class},1);
@@ -106,7 +111,7 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
             white.setVisibility(View.VISIBLE);white.setAlpha(1f);
             shown=pkg;layout=nextLayout;
             PortPreferences.put("port_active_game",pkg);
-            status("白条已创建："+pkg+"；可从白条向屏幕内滑动");
+            status("白条常驻："+pkg+"；轻点或向内滑动展开");
         }catch(Throwable failure){
             try{hide("");}catch(Throwable cleanup){CrashReporter.record("Sidebar partial-window cleanup",cleanup);}
             failure("Show original sidebar",failure);
@@ -126,6 +131,7 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
             WindowManager windows=(WindowManager)call(controller,"Z",new Class<?>[0]);
             for(String field:new String[]{"d","e"}){
                 Object wrapper=get(controller,field);if(wrapper==null)continue;
+                taps.remove(wrapper);
                 cancelLineAnimation(wrapper);
                 try {
                     call(wrapper,"S",new Class<?>[0]);
@@ -236,15 +242,35 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
     public static boolean handleTouch(Object wrapper,MotionEvent event){
         try{
             View white=(View)call(wrapper,"w",new Class<?>[0]);
+            HandleTap tap=taps.get(wrapper);
+            if(tap==null){tap=new HandleTap();taps.put(wrapper,tap);}
+            boolean clicked=tap.update(event.getActionMasked(),event.getEventTime(),event.getRawX(),event.getRawY(),
+                ViewConfiguration.get(white.getContext()).getScaledTouchSlop(),event.getPointerCount());
             if(event.getActionMasked()==MotionEvent.ACTION_DOWN){
                 white.setVisibility(View.VISIBLE);
                 call(wrapper,"C",new Class<?>[0]);
             }
             // The transparent cover owns the hit region even when the visible line is hidden.
-            return ((View.OnTouchListener)get(wrapper,"s")).onTouch(white,event);
+            boolean handled=((View.OnTouchListener)get(wrapper,"s")).onTouch(white,event);
+            if(clicked){
+                Object controller=call(wrapper,"o",new Class<?>[0]);
+                cleanup(wrapper,"Q");cancelLineAnimation(wrapper);
+                call(controller,"U0",new Class<?>[]{int.class},1);
+                call(wrapper,"P",new Class<?>[0]);
+                call(controller,"Y0",new Class<?>[]{wrapper.getClass(),Runnable.class},wrapper,null);
+                cleanup(wrapper,"S");
+                return true;
+            }
+            return handled;
         }catch(Exception failure){CrashReporter.record("Original sidebar touch rearm",failure);return false;}
     }
-    private static int inset(Context context){return SidebarGeometry.inset(PortPreferences.number("port_sidebar_inset",24),context.getResources().getDisplayMetrics().density);}
+    private static void keepVisible(Object wrapper)throws Exception{
+        if(wrapper==null||Boolean.TRUE.equals(call(wrapper,"F",new Class<?>[0])))return;
+        cleanup(wrapper,"S");
+        View white=(View)call(wrapper,"w",new Class<?>[0]);
+        white.setVisibility(View.VISIBLE);white.setAlpha(1f);
+    }
+    private static int inset(Context context){return SidebarGeometry.inset(PortPreferences.number("port_sidebar_inset",0),context.getResources().getDisplayMetrics().density);}
     private static Object get(Object object,String name)throws Exception{Field f=object.getClass().getDeclaredField(name);f.setAccessible(true);return f.get(object);}
     private static void set(Object object,String name,Object value)throws Exception{Field f=object.getClass().getDeclaredField(name);f.setAccessible(true);f.set(object,value);}
     private static Object call(Object object,String name,Class<?>[] types,Object... args)throws Exception{return object.getClass().getMethod(name,types).invoke(object,args);}

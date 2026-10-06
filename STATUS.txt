@@ -1,3 +1,11 @@
+repair19 — 常驻贴边白条、轻点展开和 FPS 图层遍历
+
+版本：10.4.5-huawei-repair19-handle-fps / 40001058
+安装包：releases/Redmi-GameToolbox-new-signed.apk，沿用新签名，可覆盖 repair18。
+白条在已添加应用前台时常驻，默认内缩 0，保留手动位置和原滑动。FPS 分批遍历全部匹配图层，避免前八个容器占满查找范围；权限拒绝单独提示。
+验证：77 项自动化检查及静态接线检查、完整构建/签名/ZIP CRC/七 DEX/zipalign 通过。无实机回归，华为小窗和真实 FPS 数据可用性仍需设备验证。
+详见 verification/repair19-handle-fps.md。
+
 repair18 — 白条位置设置刷新修复
 
 版本：10.4.5-huawei-repair18-position / 40001057

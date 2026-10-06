@@ -25,7 +25,7 @@
 .method constructor <init>(Lcom/gzy/redmiport/SidebarRuntime;)V
     .registers 2
 
-    .line 23
+    .line 25
     iput-object p1, p0, Lcom/gzy/redmiport/SidebarRuntime$1;->this$0:Lcom/gzy/redmiport/SidebarRuntime;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -38,7 +38,7 @@
 .method public run()V
     .registers 5
 
-    .line 24
+    .line 26
     iget-object v0, p0, Lcom/gzy/redmiport/SidebarRuntime$1;->this$0:Lcom/gzy/redmiport/SidebarRuntime;
 
     # getter for: Lcom/gzy/redmiport/SidebarRuntime;->closed:Z
@@ -50,7 +50,7 @@
 
     return-void
 
-    .line 25
+    .line 27
     :cond_9
     :try_start_9
     iget-object v0, p0, Lcom/gzy/redmiport/SidebarRuntime$1;->this$0:Lcom/gzy/redmiport/SidebarRuntime;
@@ -96,7 +96,7 @@
 
     goto :goto_36
 
-    .line 26
+    .line 28
     :catchall_2e
     move-exception v0
 
@@ -107,7 +107,7 @@
     # invokes: Lcom/gzy/redmiport/SidebarRuntime;->failure(Ljava/lang/String;Ljava/lang/Throwable;)V
     invoke-static {v1, v2, v0}, Lcom/gzy/redmiport/SidebarRuntime;->access$3(Lcom/gzy/redmiport/SidebarRuntime;Ljava/lang/String;Ljava/lang/Throwable;)V
 
-    .line 27
+    .line 29
     :cond_36
     :goto_36
     iget-object v0, p0, Lcom/gzy/redmiport/SidebarRuntime$1;->this$0:Lcom/gzy/redmiport/SidebarRuntime;
@@ -121,6 +121,6 @@
 
     invoke-virtual {v0, p0, v1, v2}, Landroid/os/Handler;->postDelayed(Ljava/lang/Runnable;J)Z
 
-    .line 28
+    .line 30
     return-void
 .end method

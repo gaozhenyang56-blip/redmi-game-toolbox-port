@@ -112,3 +112,10 @@ assert ".method public static b()Landroidx/preference/ListPreference$a;" in Path
 assert ".method public final setSummaryProvider(Landroidx/preference/Preference$f;)V" in Path("decoded/smali/androidx/preference/Preference.smali").read_text()
 assert 'getMethod("setValue"' not in settings_source and 'getMethod("getEntry"' not in settings_source
 print("Bundled ListPreference value/entry reflection contracts passed")
+
+for signature in ["P()V", "F()Z"]: method("com/miui/dock/sidebar/j",signature)
+method("s8/h","Y0(Lcom/miui/dock/sidebar/j;Ljava/lang/Runnable;)V")
+idle=original("com/miui/dock/sidebar/j").split(".method public M()V",1)[1].split(".end method",1)[0]
+assert "->N(J)V" not in idle and "->C()V" in idle and "->S()V" in idle
+assert 'PortPreferences.number("port_sidebar_inset",0)' in Path("java/com/gzy/redmiport/SidebarRuntime.java").read_text()
+print("Persistent handle, edge default and original tap-to-panel opening contracts checked (static)")

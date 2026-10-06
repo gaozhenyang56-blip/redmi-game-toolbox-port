@@ -59,6 +59,8 @@ public class OriginalSettingsTest {
   check(CrashReporter.failures==2,"failed leaf isolated on each traversal");
   GameShortcut.supported=false;OriginalSettings.apply(fragment);
   check(!shortcut.enabled,"launcher capability respected");
-  System.out.println("17 settings behavior checks passed (host preference simulation; no Android device)");
+  PortPreferences.values.remove("port_sidebar_inset");OriginalSettings.apply(fragment);
+  check("0".equals(inset.value),"unconfigured handle defaults to screen edge");
+  System.out.println("18 settings behavior checks passed (host preference simulation; no Android device)");
  }
 }

@@ -682,39 +682,26 @@
 
     .line 61
     :cond_1b1
-    if-eqz v6, :cond_211
+    if-eqz v6, :cond_206
 
     .line 62
-    const-string v0, "port_sidebar_side"
+    const-string v0, "port_sidebar_height"
 
     invoke-virtual {v0, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 
     move-result v0
 
-    if-eqz v0, :cond_1bd
+    if-eqz v0, :cond_1be
 
-    move v0, v2
-
-    goto :goto_1ca
-
-    :cond_1bd
-    const-string v0, "port_sidebar_inset"
-
-    invoke-virtual {v0, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
-
-    move-result v0
-
-    if-eqz v0, :cond_1c8
-
-    const/16 v0, 0x18
-
-    goto :goto_1ca
-
-    :cond_1c8
     const/16 v0, 0x19
 
+    goto :goto_1bf
+
+    :cond_1be
+    move v0, v2
+
     .line 63
-    :goto_1ca
+    :goto_1bf
     const-class v3, Ljava/lang/String;
 
     filled-new-array {v3}, [Ljava/lang/Class;
@@ -789,15 +776,15 @@
     invoke-virtual {v0, p0, v2}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
     .line 70
-    :cond_211
-    if-nez v5, :cond_217
+    :cond_206
+    if-nez v5, :cond_20c
 
-    if-nez v6, :cond_217
+    if-nez v6, :cond_20c
 
-    if-eqz v7, :cond_23f
+    if-eqz v7, :cond_234
 
     .line 71
-    :cond_217
+    :cond_20c
     const-string v0, "androidx.preference.Preference$c"
 
     invoke-static {v0}, Ljava/lang/Class;->forName(Ljava/lang/String;)Ljava/lang/Class;
@@ -839,6 +826,6 @@
     invoke-virtual {v0, p0, p1}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
     .line 94
-    :cond_23f
+    :cond_234
     return-void
 .end method

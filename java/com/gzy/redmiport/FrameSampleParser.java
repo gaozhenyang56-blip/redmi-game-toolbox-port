@@ -9,6 +9,7 @@ public final class FrameSampleParser {
   public boolean available(){return fps>=0;}
  }
  public static Result parse(String dump,long now){
+  if(dump.contains("Permission Denial")||dump.contains("Permission denied"))return new Result("",-1,0,0,"系统拒绝读取帧数据");
   String pkg="",layer=null;TreeSet<Long> times=new TreeSet<Long>();Result best=null,rejected=null;int bestPriority=-1;
   for(String line:(dump+"\nLAYER:\n").split("\\r?\\n")){
    if(line.startsWith("PACKAGE:")){pkg=line.substring(8).trim();continue;}

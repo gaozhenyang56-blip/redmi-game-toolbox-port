@@ -9,7 +9,7 @@ public class FrameSampleParserTest {
   check(!FrameSampleParser.parse("PACKAGE:com.test.game\nLAYER:SurfaceView[com.test.game/Main]\n8333333\n0 0 0\n0 9223372036854775807 0",now).available(),"zero/pending frames must not become refresh-rate FPS");
   check(!FrameSampleParser.parse("PACKAGE:com.test.game\n"+frames("SurfaceView[com.test.game/Main]",60,61,now-2000000000L),now).available(),"old timestamps must expire");
   check(!FrameSampleParser.parse("PACKAGE:com.test.game\n"+frames("SurfaceView[com.test.gameclone/Main]",60,61,now),now).available(),"other package prefix must be rejected");
-  check(!FrameSampleParser.parse("Permission Denial: can't dump SurfaceFlinger",now).available(),"permission denial");
+  check(FrameSampleParser.parse("PACKAGE:com.test.game\nPermission Denial: can't dump SurfaceFlinger",now).reason.equals("系统拒绝读取帧数据"),"permission denial must be distinct from missing layer");
   String multi="PACKAGE:com.test.game\nLAYER:SurfaceView[com.test.game/Main] container\n8333333\n"+frames("SurfaceView[com.test.game/Main](BLAST)#buffer",60,61,now)+"broken line\n0 not-a-number 0\n";
   check(FrameSampleParser.parse(multi,now).fps==60,"skip container without frame data and malformed rows");
   check(!FrameSampleParser.parse("PACKAGE:com.test.game\n"+frames("SurfaceView[com.test.game/Main]",1000,127,now),now).available(),"implausible timestamps");

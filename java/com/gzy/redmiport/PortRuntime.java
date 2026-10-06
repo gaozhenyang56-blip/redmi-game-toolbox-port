@@ -147,7 +147,8 @@ public final class PortRuntime {
                         if (session!=epoch||!game.equals(activeGame())) return;
                         if (!result.available()) {
                             previousLayer=null;previousTimestamp=0;
-                            scanOffset=candidate==null?(offset+2)%8:0;
+                            int count=FpsShellCommand.layerCount(raw.toString());
+                            scanOffset=candidate==null&&offset+2<count?offset+2:0;
                             fps=-1;sampledAt=0;state(result.reason+"；正在重新查找游戏图层");return;
                         }
                         fps=result.layer.equals(previousLayer)&&result.last==previousTimestamp?0:result.fps;

@@ -21,7 +21,7 @@
     .registers 5
 
     .line 7
-    if-eqz p0, :cond_b3
+    if-eqz p0, :cond_b8
 
     const-string v0, "[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)+"
 
@@ -29,7 +29,7 @@
 
     move-result v0
 
-    if-eqz v0, :cond_b3
+    if-eqz v0, :cond_b8
 
     .line 8
     new-instance v0, Ljava/lang/StringBuilder;
@@ -109,9 +109,9 @@
 
     .line 10
     :cond_55
-    const/16 p1, 0x8
+    const/4 p1, 0x0
 
-    invoke-static {p2, p1}, Ljava/lang/Math;->floorMod(II)I
+    invoke-static {p1, p2}, Ljava/lang/Math;->max(II)I
 
     move-result p1
 
@@ -161,14 +161,21 @@
     move-result-object p0
 
     .line 14
-    const-string p2, "{ printf \'%s\\n\' \"$ls\"|grep SurfaceView; printf \'%s\\n\' \"$ls\"|grep -v SurfaceView; }"
+    const-string p2, "ls=$({ printf \'%s\\n\' \"$ls\"|grep SurfaceView; printf \'%s\\n\' \"$ls\"|grep -v SurfaceView; }"
 
     invoke-virtual {p0, p2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object p0
 
     .line 15
-    const-string p2, "|head -8|sed -n \'"
+    const-string p2, "|awk \'NF\'); count=$(printf \'%s\\n\' \"$ls\"|awk \'NF {n++} END {print n+0}\');printf \'LAYERS:%s\\n\' \"$count\";"
+
+    invoke-virtual {p0, p2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p0
+
+    .line 16
+    const-string p2, "printf \'%s\\n\' \"$ls\"|sed -n \'"
 
     invoke-virtual {p0, p2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
@@ -196,7 +203,7 @@
 
     move-result-object p0
 
-    .line 16
+    .line 17
     const-string p1, "printf \'LAYER:%s\\n\' \"$l\";dumpsys SurfaceFlinger --latency \"$l\";done"
 
     invoke-virtual {p0, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
@@ -211,7 +218,7 @@
     return-object p0
 
     .line 7
-    :cond_b3
+    :cond_b8
     new-instance p0, Ljava/lang/IllegalArgumentException;
 
     const-string p1, "Invalid game package"
@@ -221,10 +228,78 @@
     throw p0
 .end method
 
+.method public static layerCount(Ljava/lang/String;)I
+    .registers 6
+
+    .line 20
+    const-string v0, "\\r?\\n"
+
+    invoke-virtual {p0, v0}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+
+    move-result-object p0
+
+    array-length v0, p0
+
+    const/4 v1, 0x0
+
+    move v2, v1
+
+    :goto_9
+    if-lt v2, v0, :cond_c
+
+    .line 23
+    return v1
+
+    .line 20
+    :cond_c
+    aget-object v3, p0, v2
+
+    const-string v4, "LAYERS:"
+
+    invoke-virtual {v3, v4}, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
+
+    move-result v4
+
+    if-eqz v4, :cond_29
+
+    .line 21
+    const/4 v4, 0x7
+
+    :try_start_17
+    invoke-virtual {v3, v4}, Ljava/lang/String;->substring(I)Ljava/lang/String;
+
+    move-result-object v3
+
+    invoke-virtual {v3}, Ljava/lang/String;->trim()Ljava/lang/String;
+
+    move-result-object v3
+
+    invoke-static {v3}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
+
+    move-result v3
+
+    invoke-static {v1, v3}, Ljava/lang/Math;->max(II)I
+
+    move-result p0
+    :try_end_27
+    .catch Ljava/lang/NumberFormatException; {:try_start_17 .. :try_end_27} :catch_28
+
+    return p0
+
+    :catch_28
+    move-exception v3
+
+    .line 20
+    :cond_29
+    add-int/lit8 v2, v2, 0x1
+
+    goto :goto_9
+.end method
+
 .method private static quote(Ljava/lang/String;)Ljava/lang/String;
     .registers 4
 
-    .line 18
+    .line 25
     new-instance v0, Ljava/lang/StringBuilder;
 
     const-string v1, "\'"

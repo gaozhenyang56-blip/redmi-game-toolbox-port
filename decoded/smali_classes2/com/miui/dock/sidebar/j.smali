@@ -273,20 +273,10 @@
 .end method
 
 .method private L()V
-    .locals 2
-
-    const-string v0, "SidebarWrapper"
-
-    const-string v1, "lowlightSidebarLine"
-
-    invoke-static {v0, v1}, Lb8/a;->c(Ljava/lang/String;Ljava/lang/String;)V
-
-    iget-object v0, p0, Lcom/miui/dock/sidebar/j;->g:Lcom/miui/dock/sidebar/RegionSamplingImageView;
-
-    const v1, 0x3ecccccd    # 0.4f
-
-    invoke-static {v0, v1}, Lcom/miui/dock/sidebar/a;->h(Landroid/view/View;F)V
-
+    .locals 0
+    # Persistent handle: cancel idle callbacks and keep the original line fully visible.
+    invoke-virtual {p0}, Lcom/miui/dock/sidebar/j;->S()V
+    invoke-virtual {p0}, Lcom/miui/dock/sidebar/j;->C()V
     return-void
 .end method
 
@@ -928,14 +918,10 @@
 .end method
 
 .method public M()V
-    .locals 2
-
+    .locals 0
+    # Persistent handle: cancel idle callbacks and keep the original line fully visible.
     invoke-virtual {p0}, Lcom/miui/dock/sidebar/j;->S()V
-
-    const-wide/16 v0, 0x2710
-
-    invoke-direct {p0, v0, v1}, Lcom/miui/dock/sidebar/j;->N(J)V
-
+    invoke-virtual {p0}, Lcom/miui/dock/sidebar/j;->C()V
     return-void
 .end method
 
