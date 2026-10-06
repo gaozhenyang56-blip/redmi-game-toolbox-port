@@ -22,15 +22,19 @@
 
 .field private final synthetic val$key:Ljava/lang/String;
 
+.field private final synthetic val$shortcut:Z
+
 
 # direct methods
-.method constructor <init>(Ljava/lang/String;Landroid/content/Context;)V
-    .registers 3
+.method constructor <init>(ZLandroid/content/Context;Ljava/lang/String;)V
+    .registers 4
 
-    .line 54
-    iput-object p1, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$key:Ljava/lang/String;
+    .line 69
+    iput-boolean p1, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$shortcut:Z
 
     iput-object p2, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$context:Landroid/content/Context;
+
+    iput-object p3, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$key:Ljava/lang/String;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
@@ -47,7 +51,7 @@
         }
     .end annotation
 
-    .line 56
+    .line 71
     invoke-virtual {p2}, Ljava/lang/reflect/Method;->getDeclaringClass()Ljava/lang/Class;
 
     move-result-object v0
@@ -56,23 +60,23 @@
 
     const/4 v2, 0x0
 
-    .line 72
+    .line 88
     invoke-static {v2}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
 
     move-result-object v3
 
-    .line 56
+    .line 71
     const/4 v4, 0x1
 
-    .line 58
+    .line 73
     invoke-static {v4}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
 
     move-result-object v5
 
-    .line 56
+    .line 71
     if-ne v0, v1, :cond_3c
 
-    .line 57
+    .line 72
     const-string v0, "hashCode"
 
     invoke-virtual {p2}, Ljava/lang/reflect/Method;->getName()Ljava/lang/String;
@@ -95,7 +99,7 @@
 
     return-object p1
 
-    .line 58
+    .line 73
     :cond_27
     const-string v0, "equals"
 
@@ -118,20 +122,46 @@
     :cond_38
     return-object v3
 
-    .line 59
+    .line 74
     :cond_39
     const-string p1, "OriginalSettingsListener"
 
     return-object p1
 
-    .line 62
+    .line 77
     :cond_3c
     :try_start_3c
+    iget-boolean p1, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$shortcut:Z
+
+    if-eqz p1, :cond_53
+
+    iget-object p1, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$context:Landroid/content/Context;
+
+    aget-object p2, p3, v4
+
+    check-cast p2, Ljava/lang/Boolean;
+
+    invoke-virtual {p2}, Ljava/lang/Boolean;->booleanValue()Z
+
+    move-result p2
+
+    invoke-static {p1, p2}, Lcom/gzy/redmiport/GameShortcut;->change(Landroid/content/Context;Z)Z
+
+    move-result p1
+
+    invoke-static {p1}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
+
+    move-result-object p1
+
+    return-object p1
+
+    .line 78
+    :cond_53
     aget-object p1, p3, v4
 
     instance-of p1, p1, Ljava/lang/Boolean;
 
-    if-eqz p1, :cond_54
+    if-eqz p1, :cond_6b
 
     iget-object p1, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$key:Ljava/lang/String;
 
@@ -150,10 +180,10 @@
 
     invoke-static {p1, p2}, Lcom/gzy/redmiport/PortPreferences;->put(Ljava/lang/String;Z)V
 
-    goto :goto_63
+    goto :goto_7a
 
-    .line 63
-    :cond_54
+    .line 79
+    :cond_6b
     iget-object p1, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$key:Ljava/lang/String;
 
     aget-object p2, p3, v4
@@ -168,8 +198,8 @@
 
     invoke-static {p1, p2}, Lcom/gzy/redmiport/PortPreferences;->put(Ljava/lang/String;I)V
 
-    .line 64
-    :goto_63
+    .line 80
+    :goto_7a
     iget-object p1, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$key:Ljava/lang/String;
 
     const-string p2, "port_sidebar_"
@@ -178,12 +208,12 @@
 
     move-result p1
 
-    if-eqz p1, :cond_b5
+    if-eqz p1, :cond_cc
 
-    .line 65
+    .line 81
     aget-object p1, p3, v2
 
-    .line 66
+    .line 82
     invoke-virtual {p1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
 
     move-result-object p2
@@ -212,7 +242,7 @@
 
     invoke-virtual {p2, p1, p3}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 67
+    .line 83
     invoke-virtual {p1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
 
     move-result-object p2
@@ -231,7 +261,7 @@
 
     move-result-object p2
 
-    .line 68
+    .line 84
     invoke-virtual {p1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
 
     move-result-object p3
@@ -254,19 +284,19 @@
 
     invoke-virtual {p3, p1, p2}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 70
-    :cond_b5
+    .line 86
+    :cond_cc
     iget-object p1, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$context:Landroid/content/Context;
 
     invoke-static {p1}, Lcom/gzy/redmiport/SidebarRuntime;->start(Landroid/content/Context;)V
-    :try_end_ba
-    .catchall {:try_start_3c .. :try_end_ba} :catchall_bb
+    :try_end_d1
+    .catchall {:try_start_3c .. :try_end_d1} :catchall_d2
 
-    .line 71
+    .line 87
     return-object v5
 
-    .line 72
-    :catchall_bb
+    .line 88
+    :catchall_d2
     move-exception p1
 
     const-string p2, "Original settings save"

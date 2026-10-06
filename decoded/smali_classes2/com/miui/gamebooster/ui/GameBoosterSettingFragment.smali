@@ -2156,124 +2156,28 @@
 .end method
 
 .method public onCreatePreferences(Landroid/os/Bundle;Ljava/lang/String;)V
-    .locals 2
-
+    .locals 1
     invoke-virtual {p0}, Landroidx/fragment/app/Fragment;->getActivity()Landroidx/fragment/app/FragmentActivity;
-
-    move-result-object p1
-
-    iput-object p1, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->X:Landroid/app/Activity;
-
-    invoke-static {p1}, Lc7/c;->a(Landroid/app/Activity;)Z
-
-    move-result p1
-
-    if-eqz p1, :cond_0
-
-    return-void
-
-    :cond_0
-    const-string p1, "ro.product.locale"
-
-    const-string p2, "unknown"
-
-    invoke-static {p1, p2}, Lx4/v1;->c(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-
-    move-result-object p1
-
-    iput-object p1, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->W:Ljava/lang/String;
-
-    new-instance p1, Landroid/os/Handler;
-
-    invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
-
-    move-result-object p2
-
-    invoke-direct {p1, p2}, Landroid/os/Handler;-><init>(Landroid/os/Looper;)V
-
-    iput-object p1, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->b:Landroid/os/Handler;
-
-    iget-object p1, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->X:Landroid/app/Activity;
-
-    invoke-static {p1}, La8/i0;->c(Landroid/content/Context;)La8/i0;
-
-    move-result-object p1
-
-    iget-object p2, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->f0:Lo4/a$a;
-
-    invoke-virtual {p1, p2}, La8/i0;->a(Lo4/a$a;)V
-
-    # Huawei: no external PowerKeeper binding
-
-    const p1, 0x7f150035
-
-    invoke-virtual {p0, p1}, Landroidx/preference/PreferenceFragmentCompat;->addPreferencesFromResource(I)V
-
-    iget-object p1, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->X:Landroid/app/Activity;
-
-    invoke-static {p1}, Lm6/a;->e(Landroid/content/Context;)Lm6/a;
-
-    move-result-object p1
-
-    iput-object p1, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->R:Lm6/a;
-
-    invoke-direct {p0}, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->n1()V
-
-    invoke-direct {p0}, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->r1()V
-
-    invoke-direct {p0}, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->s1()V
-
-    invoke-direct {p0}, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->y1()V
-
+    move-result-object v0
+    iput-object v0, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->X:Landroid/app/Activity;
+    const v0, 0x7f150035
+    invoke-virtual {p0, v0}, Landroidx/preference/PreferenceFragmentCompat;->addPreferencesFromResource(I)V
+    invoke-static {p0}, Lcom/gzy/redmiport/OriginalSettings;->apply(Ljava/lang/Object;)V
     return-void
 .end method
 
 .method public onDestroy()V
     .locals 2
-
-    iget-object v0, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->X:Landroid/app/Activity;
-
-    invoke-static {v0}, La8/i0;->c(Landroid/content/Context;)La8/i0;
-
-    move-result-object v0
-
-    invoke-virtual {v0}, La8/i0;->d()V
-
-    invoke-static {}, La8/h2;->a()La8/h2;
-
-    move-result-object v0
-
-    invoke-virtual {v0}, La8/h2;->b()V
-
-    iget-object v0, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->a:Lcom/miui/powerkeeper/feedbackcontrol/IFeedbackControl;
-
-    if-eqz v0, :cond_0
-
-    iget-object v0, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->X:Landroid/app/Activity;
-
-    iget-object v1, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->Z:Landroid/content/ServiceConnection;
-
-    invoke-virtual {v0, v1}, Landroid/content/Context;->unbindService(Landroid/content/ServiceConnection;)V
-
-    :cond_0
-    invoke-super {p0}, Landroidx/fragment/app/Fragment;->onDestroy()V
-
-    invoke-static {}, Lv7/c;->a()Lv7/c;
-
-    move-result-object v0
-
-    invoke-virtual {v0}, Lv7/c;->b()V
-
-    iget-object v0, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->U:Lcom/miui/gamebooster/ui/GameBoosterSettingFragment$f;
-
     const/4 v1, 0x1
-
+    iget-object v0, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->U:Lcom/miui/gamebooster/ui/GameBoosterSettingFragment$f;
+    if-eqz v0, :port_task_v
     invoke-virtual {v0, v1}, Landroid/os/AsyncTask;->cancel(Z)Z
-
+    :port_task_v
     iget-object v0, p0, Lcom/miui/gamebooster/ui/GameBoosterSettingFragment;->V:Lcom/miui/gamebooster/ui/GameBoosterSettingFragment$i;
-
+    if-eqz v0, :port_destroy
     invoke-virtual {v0, v1}, Landroid/os/AsyncTask;->cancel(Z)Z
-
+    :port_destroy
+    invoke-super {p0}, Landroidx/fragment/app/Fragment;->onDestroy()V
     return-void
 .end method
 

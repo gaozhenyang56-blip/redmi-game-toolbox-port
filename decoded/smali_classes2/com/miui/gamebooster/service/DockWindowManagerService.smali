@@ -593,18 +593,8 @@
 .end method
 
 .method private static synthetic G0()V
-    .locals 3
-
-    invoke-static {}, Lcom/miui/bubbles/utils/TipsManager;->getInstance()Lcom/miui/bubbles/utils/TipsManager;
-
-    move-result-object v0
-
-    const/4 v1, 0x0
-
-    const/4 v2, 0x2
-
-    invoke-virtual {v0, v1, v2}, Lcom/miui/bubbles/utils/TipsManager;->showBarrageTipsIfNeed(Ljava/lang/String;I)V
-
+    .locals 0
+    # Xiaomi bubble tips require private system capabilities; not part of the game sidebar.
     return-void
 .end method
 

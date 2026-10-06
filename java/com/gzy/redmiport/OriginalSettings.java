@@ -10,6 +10,7 @@ public final class OriginalSettings {
         if("pref_game_shortcut".equals(key))return "pref_open_game_booster";
         if("pref_game_box".equals(key))return "pref_gamebox_turbo";
         if("pref_slip".equals(key))return "pref_gamebooster_slip_status";
+        if("pref_content_setting".equals(key))return "gb_game_content";
         return key;
     }
     public static void apply(Object fragment){
@@ -28,13 +29,19 @@ public final class OriginalSettings {
             Method count=type.getMethod("getPreferenceCount");
             int size=(Integer)count.invoke(preference);
             type.getMethod("setEnabled",boolean.class).invoke(preference,true);
-            for(int i=0;i<size;i++)walk(type.getMethod("getPreference",int.class).invoke(preference,i),context);
+            for(int i=0;i<size;i++){
+                Object child=type.getMethod("getPreference",int.class).invoke(preference,i);
+                try{walk(child,context);}
+                catch(Throwable failure){CrashReporter.record("Original settings item compatibility",failure);}
+            }
             return;
         }catch(NoSuchMethodException leaf){}
         final String key=(String)type.getMethod("getKey").invoke(preference);
-        boolean primary="pref_game_shortcut".equals(key)||"pref_game_box".equals(key)||"pref_slip".equals(key);
+        boolean primary="pref_game_shortcut".equals(key)||"pref_game_box".equals(key)||"pref_slip".equals(key)
+            ||"pref_content_setting".equals(key);
         boolean position=key!=null&&key.startsWith("port_sidebar_");
-        boolean supported=primary||position||"pref_shizuku".equals(key);
+        final boolean shortcut="pref_shortcut".equals(key);
+        boolean supported=primary||position||"pref_shizuku".equals(key)||(shortcut&&GameShortcut.supported(context));
         type.getMethod("setEnabled",boolean.class).invoke(preference,supported);
         if(!supported){
             CharSequence summary=(CharSequence)type.getMethod("getSummary").invoke(preference);
@@ -42,14 +49,22 @@ public final class OriginalSettings {
             if(!text.contains("当前设备暂不支持"))type.getMethod("setSummary",CharSequence.class).invoke(preference,text+(text.isEmpty()?"":"\n")+"当前设备暂不支持");
             return;
         }
-        if(primary)type.getMethod("setChecked",boolean.class).invoke(preference,PortPreferences.bool(storageKey(key),true));
+        if(primary){
+            type.getMethod("setPersistent",boolean.class).invoke(preference,false);
+            type.getMethod("setChecked",boolean.class).invoke(preference,PortPreferences.bool(storageKey(key),true));
+        }
+        if(shortcut){
+            type.getMethod("setPersistent",boolean.class).invoke(preference,false);
+            type.getMethod("setChecked",boolean.class).invoke(preference,GameShortcut.pinned(context));
+            type.getMethod("setSummary",CharSequence.class).invoke(preference,"开启时由桌面确认添加；关闭时停用，图标可手动移除");
+        }
         if(position){
             int fallback="port_sidebar_side".equals(key)?0:"port_sidebar_inset".equals(key)?24:25;
             type.getMethod("setValue",String.class).invoke(preference,String.valueOf(PortPreferences.number(key,fallback)));
             CharSequence entry=(CharSequence)type.getMethod("getEntry").invoke(preference);
             type.getMethod("setSummary",CharSequence.class).invoke(preference,entry);
         }
-        if(primary||position){
+        if(primary||position||shortcut){
             Class<?> listener=Class.forName("androidx.preference.Preference$c");
             Object proxy=Proxy.newProxyInstance(listener.getClassLoader(),new Class<?>[]{listener},new InvocationHandler(){
                 public Object invoke(Object proxy,Method method,Object[] args)throws Throwable{
@@ -59,6 +74,7 @@ public final class OriginalSettings {
                         return "OriginalSettingsListener";
                     }
                     try{
+                        if(shortcut)return GameShortcut.change(context,(Boolean)args[1]);
                         if(args[1] instanceof Boolean)PortPreferences.put(storageKey(key),(Boolean)args[1]);
                         else PortPreferences.put(key,Integer.parseInt(args[1].toString()));
                         if(key.startsWith("port_sidebar_")){

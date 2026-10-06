@@ -282,7 +282,7 @@
     .line 38
     new-instance p1, Ljava/lang/StringBuilder;
 
-    const-string v2, "\nOriginal 10.4.5 repair14\n"
+    const-string v2, "\nOriginal 10.4.5-huawei-repair16-settings / 40001055\n"
 
     invoke-direct {p1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 

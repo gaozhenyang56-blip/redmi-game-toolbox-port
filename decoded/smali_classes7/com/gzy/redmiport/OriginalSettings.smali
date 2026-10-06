@@ -27,7 +27,7 @@
 .method public static apply(Ljava/lang/Object;)V
     .registers 6
 
-    .line 17
+    .line 18
     :try_start_0
     invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
 
@@ -49,7 +49,7 @@
 
     move-result-object v0
 
-    .line 18
+    .line 19
     invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
 
     move-result-object v1
@@ -70,31 +70,31 @@
 
     check-cast p0, Landroid/content/Context;
 
-    .line 19
+    .line 20
     if-eqz v0, :cond_33
 
     if-nez p0, :cond_2c
 
     goto :goto_33
 
-    .line 20
+    .line 21
     :cond_2c
     invoke-static {v0, p0}, Lcom/gzy/redmiport/OriginalSettings;->walk(Ljava/lang/Object;Landroid/content/Context;)V
 
-    .line 21
+    .line 22
     invoke-static {p0}, Lcom/gzy/redmiport/SidebarRuntime;->start(Landroid/content/Context;)V
     :try_end_32
     .catchall {:try_start_0 .. :try_end_32} :catchall_34
 
-    .line 22
+    .line 23
     goto :goto_3a
 
-    .line 19
+    .line 20
     :cond_33
     :goto_33
     return-void
 
-    .line 22
+    .line 23
     :catchall_34
     move-exception p0
 
@@ -102,7 +102,7 @@
 
     invoke-static {v0, p0}, Lcom/gzy/redmidiag/CrashReporter;->record(Ljava/lang/String;Ljava/lang/Throwable;)V
 
-    .line 23
+    .line 24
     :goto_3a
     return-void
 .end method
@@ -153,25 +153,39 @@
 
     .line 13
     :cond_21
+    const-string v0, "pref_content_setting"
+
+    invoke-virtual {v0, p0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v0
+
+    if-eqz v0, :cond_2c
+
+    const-string p0, "gb_game_content"
+
+    return-object p0
+
+    .line 14
+    :cond_2c
     return-object p0
 .end method
 
 .method private static walk(Ljava/lang/Object;Landroid/content/Context;)V
-    .registers 11
+    .registers 14
     .annotation system Ldalvik/annotation/Throws;
         value = {
             Ljava/lang/Exception;
         }
     .end annotation
 
-    .line 25
+    .line 26
     const-string v0, "setEnabled"
 
     invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
 
     move-result-object v1
 
-    .line 26
+    .line 27
     sget-object v2, Ljava/lang/Boolean;->TYPE:Ljava/lang/Class;
 
     filled-new-array {v2}, [Ljava/lang/Class;
@@ -196,7 +210,7 @@
 
     invoke-virtual {v2, p0, v5}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 28
+    .line 29
     const/4 v2, 0x0
 
     :try_start_1f
@@ -208,7 +222,7 @@
 
     move-result-object v5
 
-    .line 29
+    .line 30
     new-array v6, v2, [Ljava/lang/Object;
 
     invoke-virtual {v5, p0, v6}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
@@ -221,7 +235,7 @@
 
     move-result v5
 
-    .line 30
+    .line 31
     sget-object v6, Ljava/lang/Boolean;->TYPE:Ljava/lang/Class;
 
     filled-new-array {v6}, [Ljava/lang/Class;
@@ -238,16 +252,16 @@
 
     invoke-virtual {v6, p0, v4}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 31
+    .line 32
     move v4, v2
 
     :goto_45
     if-lt v4, v5, :cond_48
 
-    .line 32
+    .line 37
     return-void
 
-    .line 31
+    .line 33
     :cond_48
     const-string v6, "getPreference"
 
@@ -272,20 +286,39 @@
     invoke-virtual {v6, p0, v7}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
     move-result-object v6
+    :try_end_60
+    .catch Ljava/lang/NoSuchMethodException; {:try_start_1f .. :try_end_60} :catch_6d
 
+    .line 34
+    :try_start_60
     invoke-static {v6, p1}, Lcom/gzy/redmiport/OriginalSettings;->walk(Ljava/lang/Object;Landroid/content/Context;)V
     :try_end_63
-    .catch Ljava/lang/NoSuchMethodException; {:try_start_1f .. :try_end_63} :catch_66
+    .catchall {:try_start_60 .. :try_end_63} :catchall_64
 
+    goto :goto_6a
+
+    .line 35
+    :catchall_64
+    move-exception v6
+
+    :try_start_65
+    const-string v7, "Original settings item compatibility"
+
+    invoke-static {v7, v6}, Lcom/gzy/redmidiag/CrashReporter;->record(Ljava/lang/String;Ljava/lang/Throwable;)V
+    :try_end_6a
+    .catch Ljava/lang/NoSuchMethodException; {:try_start_65 .. :try_end_6a} :catch_6d
+
+    .line 32
+    :goto_6a
     add-int/lit8 v4, v4, 0x1
 
     goto :goto_45
 
-    .line 33
-    :catch_66
+    .line 38
+    :catch_6d
     move-exception v4
 
-    .line 34
+    .line 39
     const-string v4, "getKey"
 
     new-array v5, v2, [Ljava/lang/Class;
@@ -302,14 +335,14 @@
 
     check-cast v4, Ljava/lang/String;
 
-    .line 35
+    .line 40
     const-string v5, "pref_game_shortcut"
 
     invoke-virtual {v5, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 
     move-result v5
 
-    if-nez v5, :cond_91
+    if-nez v5, :cond_a0
 
     const-string v5, "pref_game_box"
 
@@ -317,7 +350,7 @@
 
     move-result v5
 
-    if-nez v5, :cond_91
+    if-nez v5, :cond_a0
 
     const-string v5, "pref_slip"
 
@@ -325,18 +358,28 @@
 
     move-result v5
 
-    if-nez v5, :cond_91
+    if-nez v5, :cond_a0
 
+    .line 41
+    const-string v5, "pref_content_setting"
+
+    invoke-virtual {v5, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v5
+
+    if-nez v5, :cond_a0
+
+    .line 40
     move v5, v2
 
-    goto :goto_92
+    goto :goto_a1
 
-    :cond_91
+    :cond_a0
     move v5, v3
 
-    .line 36
-    :goto_92
-    if-eqz v4, :cond_9e
+    .line 42
+    :goto_a1
+    if-eqz v4, :cond_ad
 
     const-string v6, "port_sidebar_"
 
@@ -344,64 +387,80 @@
 
     move-result v6
 
-    if-eqz v6, :cond_9e
+    if-eqz v6, :cond_ad
 
     move v6, v3
 
-    goto :goto_9f
+    goto :goto_ae
 
-    :cond_9e
+    :cond_ad
     move v6, v2
 
-    .line 37
-    :goto_9f
-    if-nez v5, :cond_ad
-
-    if-nez v6, :cond_ad
-
-    const-string v7, "pref_shizuku"
+    .line 43
+    :goto_ae
+    const-string v7, "pref_shortcut"
 
     invoke-virtual {v7, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 
     move-result v7
 
-    if-nez v7, :cond_ad
+    .line 44
+    if-nez v5, :cond_ca
 
-    move v7, v2
+    if-nez v6, :cond_ca
 
-    goto :goto_ae
+    const-string v8, "pref_shizuku"
 
-    :cond_ad
-    move v7, v3
+    invoke-virtual {v8, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 
-    .line 38
-    :goto_ae
-    sget-object v8, Ljava/lang/Boolean;->TYPE:Ljava/lang/Class;
+    move-result v8
 
-    filled-new-array {v8}, [Ljava/lang/Class;
+    if-nez v8, :cond_ca
 
-    move-result-object v8
+    if-eqz v7, :cond_c8
 
-    invoke-virtual {v1, v0, v8}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+    invoke-static {p1}, Lcom/gzy/redmiport/GameShortcut;->supported(Landroid/content/Context;)Z
+
+    move-result v8
+
+    if-nez v8, :cond_ca
+
+    :cond_c8
+    move v8, v2
+
+    goto :goto_cb
+
+    :cond_ca
+    move v8, v3
+
+    .line 45
+    :goto_cb
+    sget-object v9, Ljava/lang/Boolean;->TYPE:Ljava/lang/Class;
+
+    filled-new-array {v9}, [Ljava/lang/Class;
+
+    move-result-object v9
+
+    invoke-virtual {v1, v0, v9}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
 
     move-result-object v0
 
-    invoke-static {v7}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
+    invoke-static {v8}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
 
-    move-result-object v8
+    move-result-object v9
 
-    filled-new-array {v8}, [Ljava/lang/Object;
+    filled-new-array {v9}, [Ljava/lang/Object;
 
-    move-result-object v8
+    move-result-object v9
 
-    invoke-virtual {v0, p0, v8}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+    invoke-virtual {v0, p0, v9}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 39
+    .line 46
     const-string v0, "setSummary"
 
-    if-nez v7, :cond_119
+    if-nez v8, :cond_136
 
-    .line 40
+    .line 47
     const-string p1, "getSummary"
 
     new-array v3, v2, [Ljava/lang/Class;
@@ -418,29 +477,29 @@
 
     check-cast p1, Ljava/lang/CharSequence;
 
-    .line 41
+    .line 48
     const-string v2, ""
 
-    if-nez p1, :cond_dd
+    if-nez p1, :cond_fa
 
     move-object p1, v2
 
-    goto :goto_e1
+    goto :goto_fe
 
-    :cond_dd
+    :cond_fa
     invoke-interface {p1}, Ljava/lang/CharSequence;->toString()Ljava/lang/String;
 
     move-result-object p1
 
-    .line 42
-    :goto_e1
+    .line 49
+    :goto_fe
     const-string v3, "\u5f53\u524d\u8bbe\u5907\u6682\u4e0d\u652f\u6301"
 
     invoke-virtual {p1, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
 
     move-result v4
 
-    if-nez v4, :cond_118
+    if-nez v4, :cond_135
 
     const-class v4, Ljava/lang/CharSequence;
 
@@ -464,14 +523,14 @@
 
     move-result p1
 
-    if-eqz p1, :cond_103
+    if-eqz p1, :cond_120
 
-    goto :goto_105
+    goto :goto_122
 
-    :cond_103
+    :cond_120
     const-string v2, "\n"
 
-    :goto_105
+    :goto_122
     invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object p1
@@ -490,31 +549,55 @@
 
     invoke-virtual {v0, p0, p1}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 43
-    :cond_118
+    .line 50
+    :cond_135
     return-void
 
-    .line 45
-    :cond_119
-    if-eqz v5, :cond_13a
-
-    sget-object v7, Ljava/lang/Boolean;->TYPE:Ljava/lang/Class;
-
-    filled-new-array {v7}, [Ljava/lang/Class;
-
-    move-result-object v7
-
+    .line 52
+    :cond_136
     const-string v8, "setChecked"
 
-    invoke-virtual {v1, v8, v7}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+    const-string v9, "setPersistent"
 
-    move-result-object v7
+    if-eqz v5, :cond_16e
+
+    .line 53
+    sget-object v10, Ljava/lang/Boolean;->TYPE:Ljava/lang/Class;
+
+    filled-new-array {v10}, [Ljava/lang/Class;
+
+    move-result-object v10
+
+    invoke-virtual {v1, v9, v10}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+
+    move-result-object v10
+
+    invoke-static {v2}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
+
+    move-result-object v11
+
+    filled-new-array {v11}, [Ljava/lang/Object;
+
+    move-result-object v11
+
+    invoke-virtual {v10, p0, v11}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+
+    .line 54
+    sget-object v10, Ljava/lang/Boolean;->TYPE:Ljava/lang/Class;
+
+    filled-new-array {v10}, [Ljava/lang/Class;
+
+    move-result-object v10
+
+    invoke-virtual {v1, v8, v10}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+
+    move-result-object v10
 
     invoke-static {v4}, Lcom/gzy/redmiport/OriginalSettings;->storageKey(Ljava/lang/String;)Ljava/lang/String;
 
-    move-result-object v8
+    move-result-object v11
 
-    invoke-static {v8, v3}, Lcom/gzy/redmiport/PortPreferences;->bool(Ljava/lang/String;Z)Z
+    invoke-static {v11, v3}, Lcom/gzy/redmiport/PortPreferences;->bool(Ljava/lang/String;Z)Z
 
     move-result v3
 
@@ -526,54 +609,123 @@
 
     move-result-object v3
 
-    invoke-virtual {v7, p0, v3}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+    invoke-virtual {v10, p0, v3}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 46
-    :cond_13a
-    if-eqz v6, :cond_18f
+    .line 56
+    :cond_16e
+    if-eqz v7, :cond_1b1
 
-    .line 47
+    .line 57
+    sget-object v3, Ljava/lang/Boolean;->TYPE:Ljava/lang/Class;
+
+    filled-new-array {v3}, [Ljava/lang/Class;
+
+    move-result-object v3
+
+    invoke-virtual {v1, v9, v3}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+
+    move-result-object v3
+
+    invoke-static {v2}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
+
+    move-result-object v9
+
+    filled-new-array {v9}, [Ljava/lang/Object;
+
+    move-result-object v9
+
+    invoke-virtual {v3, p0, v9}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+
+    .line 58
+    sget-object v3, Ljava/lang/Boolean;->TYPE:Ljava/lang/Class;
+
+    filled-new-array {v3}, [Ljava/lang/Class;
+
+    move-result-object v3
+
+    invoke-virtual {v1, v8, v3}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+
+    move-result-object v3
+
+    invoke-static {p1}, Lcom/gzy/redmiport/GameShortcut;->pinned(Landroid/content/Context;)Z
+
+    move-result v8
+
+    invoke-static {v8}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
+
+    move-result-object v8
+
+    filled-new-array {v8}, [Ljava/lang/Object;
+
+    move-result-object v8
+
+    invoke-virtual {v3, p0, v8}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+
+    .line 59
+    const-class v3, Ljava/lang/CharSequence;
+
+    filled-new-array {v3}, [Ljava/lang/Class;
+
+    move-result-object v3
+
+    invoke-virtual {v1, v0, v3}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+
+    move-result-object v3
+
+    const-string v8, "\u5f00\u542f\u65f6\u7531\u684c\u9762\u786e\u8ba4\u6dfb\u52a0\uff1b\u5173\u95ed\u65f6\u505c\u7528\uff0c\u56fe\u6807\u53ef\u624b\u52a8\u79fb\u9664"
+
+    filled-new-array {v8}, [Ljava/lang/Object;
+
+    move-result-object v8
+
+    invoke-virtual {v3, p0, v8}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+
+    .line 61
+    :cond_1b1
+    if-eqz v6, :cond_206
+
+    .line 62
     const-string v3, "port_sidebar_side"
 
     invoke-virtual {v3, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 
     move-result v3
 
-    if-eqz v3, :cond_146
+    if-eqz v3, :cond_1bd
 
     move v3, v2
 
-    goto :goto_153
+    goto :goto_1ca
 
-    :cond_146
+    :cond_1bd
     const-string v3, "port_sidebar_inset"
 
     invoke-virtual {v3, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 
     move-result v3
 
-    if-eqz v3, :cond_151
+    if-eqz v3, :cond_1c8
 
     const/16 v3, 0x18
 
-    goto :goto_153
+    goto :goto_1ca
 
-    :cond_151
+    :cond_1c8
     const/16 v3, 0x19
 
-    .line 48
-    :goto_153
-    const-class v7, Ljava/lang/String;
+    .line 63
+    :goto_1ca
+    const-class v8, Ljava/lang/String;
 
-    filled-new-array {v7}, [Ljava/lang/Class;
+    filled-new-array {v8}, [Ljava/lang/Class;
 
-    move-result-object v7
+    move-result-object v8
 
-    const-string v8, "setValue"
+    const-string v9, "setValue"
 
-    invoke-virtual {v1, v8, v7}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+    invoke-virtual {v1, v9, v8}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
 
-    move-result-object v7
+    move-result-object v8
 
     invoke-static {v4, v3}, Lcom/gzy/redmiport/PortPreferences;->number(Ljava/lang/String;I)I
 
@@ -587,14 +739,14 @@
 
     move-result-object v3
 
-    invoke-virtual {v7, p0, v3}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+    invoke-virtual {v8, p0, v3}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 49
+    .line 64
     const-string v3, "getEntry"
 
-    new-array v7, v2, [Ljava/lang/Class;
+    new-array v8, v2, [Ljava/lang/Class;
 
-    invoke-virtual {v1, v3, v7}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+    invoke-virtual {v1, v3, v8}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
 
     move-result-object v3
 
@@ -606,7 +758,7 @@
 
     check-cast v2, Ljava/lang/CharSequence;
 
-    .line 50
+    .line 65
     const-class v3, Ljava/lang/CharSequence;
 
     filled-new-array {v3}, [Ljava/lang/Class;
@@ -623,21 +775,23 @@
 
     invoke-virtual {v0, p0, v2}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 52
-    :cond_18f
-    if-nez v5, :cond_193
+    .line 67
+    :cond_206
+    if-nez v5, :cond_20c
 
-    if-eqz v6, :cond_1bb
+    if-nez v6, :cond_20c
 
-    .line 53
-    :cond_193
+    if-eqz v7, :cond_234
+
+    .line 68
+    :cond_20c
     const-string v0, "androidx.preference.Preference$c"
 
     invoke-static {v0}, Ljava/lang/Class;->forName(Ljava/lang/String;)Ljava/lang/Class;
 
     move-result-object v0
 
-    .line 54
+    .line 69
     invoke-virtual {v0}, Ljava/lang/Class;->getClassLoader()Ljava/lang/ClassLoader;
 
     move-result-object v2
@@ -648,13 +802,13 @@
 
     new-instance v5, Lcom/gzy/redmiport/OriginalSettings$1;
 
-    invoke-direct {v5, v4, p1}, Lcom/gzy/redmiport/OriginalSettings$1;-><init>(Ljava/lang/String;Landroid/content/Context;)V
+    invoke-direct {v5, v7, p1, v4}, Lcom/gzy/redmiport/OriginalSettings$1;-><init>(ZLandroid/content/Context;Ljava/lang/String;)V
 
     invoke-static {v2, v3, v5}, Ljava/lang/reflect/Proxy;->newProxyInstance(Ljava/lang/ClassLoader;[Ljava/lang/Class;Ljava/lang/reflect/InvocationHandler;)Ljava/lang/Object;
 
     move-result-object p1
 
-    .line 75
+    .line 91
     const-string v2, "setOnPreferenceChangeListener"
 
     filled-new-array {v0}, [Ljava/lang/Class;
@@ -671,7 +825,7 @@
 
     invoke-virtual {v0, p0, p1}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 77
-    :cond_1bb
+    .line 93
+    :cond_234
     return-void
 .end method

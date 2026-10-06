@@ -276,99 +276,11 @@
 .end method
 
 .method private init()V
-    .locals 7
-
-    sget-boolean v0, Lsl/a;->a:Z
-
-    const/4 v1, 0x1
-
-    const/4 v2, 0x0
-
-    if-nez v0, :cond_0
-
-    invoke-static {}, Lcom/miui/common/e;->d()Landroid/app/Application;
-
-    move-result-object v0
-
-    invoke-static {v0}, Lcom/miui/bubbles/settings/BubblesSettings;->isBubbleNotificationSupport(Landroid/content/Context;)Z
-
-    move-result v0
-
-    if-eqz v0, :cond_0
-
-    move v0, v1
-
-    goto :goto_0
-
-    :cond_0
-    move v0, v2
-
-    :goto_0
+    .locals 1
+    # Do not register Xiaomi cross-user game-mode observers on an ordinary app UID.
+    const/4 v0, 0x0
     iput-boolean v0, p0, Lcom/miui/bubbles/utils/TipsManager;->isSupportBubbleTips:Z
-
-    invoke-virtual {p0}, Lcom/miui/bubbles/utils/TipsManager;->isBubbleBarrageTipShownForCase1()Z
-
-    move-result v0
-
-    iput-boolean v0, p0, Lcom/miui/bubbles/utils/TipsManager;->isBubbleBarrageTipShownForCase1:Z
-
-    invoke-direct {p0}, Lcom/miui/bubbles/utils/TipsManager;->isBubbleBarrageTipShownForCase2()Z
-
-    move-result v0
-
-    iput-boolean v0, p0, Lcom/miui/bubbles/utils/TipsManager;->isBubbleBarrageTipShownForCase2:Z
-
-    iget-boolean v0, p0, Lcom/miui/bubbles/utils/TipsManager;->isSupportBubbleTips:Z
-
-    if-eqz v0, :cond_2
-
-    invoke-static {}, Lcom/miui/common/e;->d()Landroid/app/Application;
-
-    move-result-object v0
-
-    invoke-virtual {v0}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
-
-    move-result-object v0
-
-    const-string v3, "gb_boosting"
-
-    invoke-static {v3}, Landroid/provider/Settings$Secure;->getUriFor(Ljava/lang/String;)Landroid/net/Uri;
-
-    move-result-object v4
-
-    iget-object v5, p0, Lcom/miui/bubbles/utils/TipsManager;->mContentObserver:Landroid/database/ContentObserver;
-
-    const/4 v6, -0x1
-
-    invoke-virtual {v0, v4, v2, v5, v6}, Landroid/content/ContentResolver;->registerContentObserver(Landroid/net/Uri;ZLandroid/database/ContentObserver;I)V
-
-    invoke-static {}, Lcom/miui/common/e;->d()Landroid/app/Application;
-
-    move-result-object v0
-
-    invoke-virtual {v0}, Landroid/content/Context;->getContentResolver()Landroid/content/ContentResolver;
-
-    move-result-object v0
-
-    invoke-static {}, Landroid/os/UserHandle;->myUserId()I
-
-    move-result v4
-
-    invoke-static {v0, v3, v2, v4}, Landroid/provider/Settings$Secure;->getIntForUser(Landroid/content/ContentResolver;Ljava/lang/String;II)I
-
-    move-result v0
-
-    if-ne v0, v1, :cond_1
-
-    goto :goto_1
-
-    :cond_1
-    move v1, v2
-
-    :goto_1
-    iput-boolean v1, p0, Lcom/miui/bubbles/utils/TipsManager;->mIsGameMode:Z
-
-    :cond_2
+    iput-boolean v0, p0, Lcom/miui/bubbles/utils/TipsManager;->mIsGameMode:Z
     return-void
 .end method
 

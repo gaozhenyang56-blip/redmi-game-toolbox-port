@@ -69,3 +69,17 @@ print("Original sidebar reflection contracts, settings retention and service/res
 assert "Settings$Secure;->putString" not in original("s8/h")
 assert "Settings$Global;->putInt" not in original("s8/h")
 print("Sidebar attachment/swipe state uses app-owned storage; no privileged settings writes")
+
+fragment = original("com/miui/gamebooster/ui/GameBoosterSettingFragment")
+creation = fragment.split(".method public onCreatePreferences(", 1)[1].split(".end method", 1)[0]
+assert "->n1()" not in creation and "->r1()" not in creation and "->s1()" not in creation
+assert "OriginalSettings;->apply" in creation
+destruction = fragment.split(".method public onDestroy()V", 1)[1].split(".end method", 1)[0]
+assert "if-eqz v0, :port_task_v" in destruction and "if-eqz v0, :port_destroy" in destruction
+method_path = "com/miui/bubbles/utils/TipsManager"
+bubble_init = original(method_path).split(".method private init()V", 1)[1].split(".end method", 1)[0]
+assert "registerContentObserver" not in bubble_init and "isSupportBubbleTips:Z" in bubble_init
+bubble_entry = original(service).split(".method private static synthetic G0()V", 1)[1].split(".end method", 1)[0]
+assert "TipsManager" not in bubble_entry
+assert ".method public addPreferencesFromResource(I)V" in Path("decoded/smali/androidx/preference/PreferenceFragmentCompat.smali").read_text()
+print("Crash-path checks passed: no Xiaomi bubble observer; null-safe task teardown; no legacy settings callbacks")

@@ -8,3 +8,7 @@ java -cp build/tests ForegroundSnapshotTest
 python3 tests/fps_shell_test.py
 java -cp build/tests SidebarGeometryTest
 python3 tests/sidebar_integration_check.py
+
+mkdir -p build/settings-tests
+java -jar tools/ecj.jar -1.8 -proc:none -nowarn -d build/settings-tests java/com/gzy/redmiport/OriginalSettings.java $(rg --files tests/settings -g '*.java')
+java -cp build/settings-tests OriginalSettingsTest
