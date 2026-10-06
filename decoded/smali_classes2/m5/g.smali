@@ -541,6 +541,12 @@
 
     :goto_2
     iput v1, v0, Landroid/view/WindowManager$LayoutParams;->y:I
+    if-nez p2, :port_resize_done
+    invoke-virtual {p1}, Landroid/view/View;->getContext()Landroid/content/Context;
+    move-result-object v1
+    invoke-static {v1, v0}, Lcom/gzy/redmiport/SidebarRuntime;->panelLayout(Landroid/content/Context;Landroid/view/WindowManager$LayoutParams;)V
+    :port_resize_done
+
 
     invoke-virtual {p0}, Lcom/miui/dock/sidebar/j;->o()Ls8/h;
 

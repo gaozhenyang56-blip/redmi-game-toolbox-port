@@ -21,7 +21,7 @@
 .method constructor <init>()V
     .registers 1
 
-    .line 40
+    .line 41
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
     return-void
@@ -32,7 +32,7 @@
 .method public onBinderDead()V
     .registers 3
 
-    .line 41
+    .line 42
     const-wide/16 v0, -0x1
 
     invoke-static {v0, v1}, Lcom/gzy/redmiport/PortRuntime;->access$1(J)V
@@ -52,6 +52,7 @@
 
     const-string v0, "Shizuku \u8fde\u63a5\u5df2\u65ad\u5f00"
 
+    # invokes: Lcom/gzy/redmiport/PortRuntime;->state(Ljava/lang/String;)V
     invoke-static {v0}, Lcom/gzy/redmiport/PortRuntime;->access$5(Ljava/lang/String;)V
 
     const/4 v0, 0x0

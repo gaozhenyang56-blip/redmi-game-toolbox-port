@@ -21,7 +21,7 @@
 .method constructor <init>()V
     .registers 1
 
-    .line 37
+    .line 38
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
     return-void
@@ -32,7 +32,7 @@
 .method public onBinderReceived()V
     .registers 1
 
-    .line 38
+    .line 39
     # invokes: Lcom/gzy/redmiport/PortRuntime;->requestPermission()V
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->access$0()V
 

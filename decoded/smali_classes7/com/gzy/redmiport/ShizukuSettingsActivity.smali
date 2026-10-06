@@ -68,7 +68,7 @@
 .method static synthetic access$1(Lcom/gzy/redmiport/ShizukuSettingsActivity;)V
     .registers 1
 
-    .line 68
+    .line 69
     invoke-direct {p0}, Lcom/gzy/redmiport/ShizukuSettingsActivity;->authorize()V
 
     return-void
@@ -77,7 +77,7 @@
 .method static synthetic access$2(Lcom/gzy/redmiport/ShizukuSettingsActivity;)V
     .registers 1
 
-    .line 76
+    .line 77
     invoke-direct {p0}, Lcom/gzy/redmiport/ShizukuSettingsActivity;->openManager()V
 
     return-void
@@ -86,7 +86,7 @@
 .method static synthetic access$3(Lcom/gzy/redmiport/ShizukuSettingsActivity;Landroid/content/Intent;)V
     .registers 2
 
-    .line 81
+    .line 82
     invoke-direct {p0, p1}, Lcom/gzy/redmiport/ShizukuSettingsActivity;->launch(Landroid/content/Intent;)V
 
     return-void
@@ -95,7 +95,7 @@
 .method static synthetic access$4(Lcom/gzy/redmiport/ShizukuSettingsActivity;)V
     .registers 1
 
-    .line 84
+    .line 85
     invoke-direct {p0}, Lcom/gzy/redmiport/ShizukuSettingsActivity;->testChannel()V
 
     return-void
@@ -122,7 +122,7 @@
 .method private authorize()V
     .registers 4
 
-    .line 70
+    .line 71
     const/4 v0, 0x0
 
     :try_start_1
@@ -142,7 +142,7 @@
 
     return-void
 
-    .line 71
+    .line 72
     :cond_11
     invoke-static {}, Lrikka/shizuku/Shizuku;->checkSelfPermission()I
 
@@ -154,7 +154,7 @@
 
     return-void
 
-    .line 72
+    .line 73
     :cond_1b
     invoke-static {}, Lrikka/shizuku/Shizuku;->shouldShowRequestPermissionRationale()Z
 
@@ -166,7 +166,7 @@
 
     return-void
 
-    .line 73
+    .line 74
     :cond_25
     const/16 v1, 0x579
 
@@ -174,7 +174,7 @@
     :try_end_2a
     .catchall {:try_start_1 .. :try_end_2a} :catchall_2b
 
-    .line 74
+    .line 75
     goto :goto_3a
 
     :catchall_2b
@@ -192,7 +192,7 @@
 
     invoke-virtual {v0}, Landroid/widget/Toast;->show()V
 
-    .line 75
+    .line 76
     :goto_3a
     return-void
 .end method
@@ -222,7 +222,7 @@
 .method private launch(Landroid/content/Intent;)V
     .registers 3
 
-    .line 82
+    .line 83
     :try_start_0
     invoke-virtual {p0, p1}, Lcom/gzy/redmiport/ShizukuSettingsActivity;->startActivity(Landroid/content/Intent;)V
     :try_end_3
@@ -243,7 +243,7 @@
 
     invoke-virtual {p1}, Landroid/widget/Toast;->show()V
 
-    .line 83
+    .line 84
     :goto_f
     return-void
 .end method
@@ -251,7 +251,7 @@
 .method private openManager()V
     .registers 3
 
-    .line 77
+    .line 78
     invoke-virtual {p0}, Lcom/gzy/redmiport/ShizukuSettingsActivity;->getPackageManager()Landroid/content/pm/PackageManager;
 
     move-result-object v0
@@ -262,7 +262,7 @@
 
     move-result-object v0
 
-    .line 78
+    .line 79
     if-nez v0, :cond_17
 
     const-string v0, "\u672a\u627e\u5230 Shizuku \u5e94\u7528"
@@ -277,11 +277,11 @@
 
     goto :goto_1a
 
-    .line 79
+    .line 80
     :cond_17
     invoke-direct {p0, v0}, Lcom/gzy/redmiport/ShizukuSettingsActivity;->launch(Landroid/content/Intent;)V
 
-    .line 80
+    .line 81
     :goto_1a
     return-void
 .end method
@@ -406,6 +406,25 @@
 
     move-result-object v0
 
+    const-string v1, "\n\nFPS \u72b6\u6001\uff1a"
+
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    const-string v1, "port_fps_status"
+
+    const-string v3, "\u7b49\u5f85\u6e38\u620f\u91c7\u6837"
+
+    invoke-static {v1, v3}, Lcom/gzy/redmiport/PortPreferences;->text(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    .line 67
     const-string v1, "\n\n\u767d\u6761\u4e0e\u7cfb\u7edf\u4fa7\u8fb9\u5c0f\u7a97\u91cd\u53e0\u65f6\uff0c\u53ef\u5728\u539f\u8bbe\u7f6e\u4e2d\u8c03\u6574\u767d\u6761\u5de6\u53f3\u4f4d\u7f6e\u3001\u9ad8\u5ea6\u4e0e\u8fb9\u7f18\u5185\u7f29\u3002"
 
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
@@ -419,7 +438,7 @@
     .line 64
     invoke-virtual {v2, v0}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
-    .line 67
+    .line 68
     return-void
 .end method
 
@@ -439,14 +458,14 @@
 .method private testChannel()V
     .registers 3
 
-    .line 85
+    .line 86
     iget-object v0, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity;->probe:Landroid/widget/TextView;
 
     const-string v1, "\u6b63\u5728\u68c0\u6d4b\u2026"
 
     invoke-virtual {v0, v1}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
-    .line 86
+    .line 87
     iget-object v0, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity;->worker:Ljava/util/concurrent/ExecutorService;
 
     new-instance v1, Lcom/gzy/redmiport/ShizukuSettingsActivity$13;
@@ -455,7 +474,7 @@
 
     invoke-interface {v0, v1}, Ljava/util/concurrent/ExecutorService;->execute(Ljava/lang/Runnable;)V
 
-    .line 100
+    .line 101
     return-void
 .end method
 
@@ -654,7 +673,7 @@
 .method protected onDestroy()V
     .registers 2
 
-    .line 103
+    .line 104
     iget-object v0, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity;->received:Lrikka/shizuku/Shizuku$OnBinderReceivedListener;
 
     invoke-static {v0}, Lrikka/shizuku/Shizuku;->removeBinderReceivedListener(Lrikka/shizuku/Shizuku$OnBinderReceivedListener;)Z
@@ -663,7 +682,7 @@
 
     invoke-static {v0}, Lrikka/shizuku/Shizuku;->removeBinderDeadListener(Lrikka/shizuku/Shizuku$OnBinderDeadListener;)Z
 
-    .line 104
+    .line 105
     iget-object v0, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity;->permission:Lrikka/shizuku/Shizuku$OnRequestPermissionResultListener;
 
     invoke-static {v0}, Lrikka/shizuku/Shizuku;->removeRequestPermissionResultListener(Lrikka/shizuku/Shizuku$OnRequestPermissionResultListener;)Z
@@ -674,14 +693,14 @@
 
     invoke-super {p0}, Landroid/app/Activity;->onDestroy()V
 
-    .line 105
+    .line 106
     return-void
 .end method
 
 .method protected onResume()V
     .registers 2
 
-    .line 101
+    .line 102
     invoke-super {p0}, Landroid/app/Activity;->onResume()V
 
     iget-object v0, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity;->status:Landroid/widget/TextView;

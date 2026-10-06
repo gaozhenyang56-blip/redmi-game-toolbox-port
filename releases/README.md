@@ -2,17 +2,17 @@
 
 [下载 Redmi-GameToolbox-new-signed.apk](Redmi-GameToolbox-new-signed.apk)
 
-repair16：10.4.5-huawei-repair16-settings / 40001055，2026-10-06 构建。
+repair17：10.4.5-huawei-repair17-touch-fps / 40001056，2026-10-06 构建。
 
-修复用户日志中的两处崩溃：小米气泡模块注册跨用户 gb_boosting 监听被拒绝，以及退出原设置时取消空任务。原设置直接接入应用存储，不再被旧初始化服务回调改写；单个条目失败不阻断其他设置。核心三个开关、游戏内容推荐及白条位置可保存；桌面快捷方式使用 Android 公开接口，由桌面确认添加，关闭时停用，图标需手动移除。未适配的小米性能、网络或硬件功能仍标注不可用。
+针对用户反馈的白条隐藏后不能滑出、FPS 显示两次后不可用及悬浮面板有时不消失：透明 cover 直接调用原手势并恢复白条；原收起动画/全屏恢复保留设置位置；面板外点击同步收起，退出时补齐移动视图、菜单及附属提示清理，取消残留动画。
 
-保留 repair15 的原白条、滑出面板、红色 FPS、原设置项和白条位置修复。日志标题已更新为当前版本，历史日志仍可能保留 repair14 标题。
+FPS 使用经前台监测确认的游戏包名。发现阶段每批查询两层，拿到真实帧后直接查询缓存图层，失效时重新查找；独立超时与错误流执行器，减少重复枚举和工作线程占用。Shizuku 页面新增跨进程 FPS 状态。仍只使用有效真实帧时间，系统不提供数据时继续显示不可用。
 
-沿用本会话新 RSA3072 密钥，可覆盖本会话上一新签名 APK，包括 repair15。repair12/13/14 原签名不同，不能直接覆盖。
+保留原白条、TurboLayout、红色 FrameRateView、原设置树，以及 repair16 的设置/跨用户气泡崩溃修复。小米专属硬件功能仍标注不可用。
 
-33 项既有用例与 12 项主机模拟设置行为检查通过；静态崩溃路径检查、完整构建、v1/v2/v3 签名、ZIP CRC、7 个 DEX 完整性及 zipalign 验证通过。尚未连接华为手机做实机回归。详细记录见 [repair16 验证说明](../verification/repair16-settings-crashes.md)。
+沿用本会话新 RSA3072 密钥，可覆盖 repair15/16 新签名版；原 repair12/13/14 签名不同，不能直接覆盖。
+
+57 项自动化检查和静态接线/清理契约检查通过；完整构建、v1/v2/v3 签名、ZIP CRC、7 个 DEX 完整性和 zipalign 通过。没有手机或模拟器实机回归，不能保证设备全部问题已消除。详见 [repair17 验证记录](../verification/repair17-touch-fps.md)。
 
 签名证书 SHA-256：`1aa44a60bd30efb08b2ccc3a26157125e7632572ae68dd4aad738c6b657f6752`。
-APK SHA-256 见 [SHA256SUMS](SHA256SUMS)，签名验证见 [new-signature-verification.txt](new-signature-verification.txt)。
-
-签名私钥及密码不包含在仓库中。
+APK SHA-256 见 [SHA256SUMS](SHA256SUMS)，签名验证见 [new-signature-verification.txt](new-signature-verification.txt)。签名私钥及密码不在仓库中。

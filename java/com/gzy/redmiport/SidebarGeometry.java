@@ -2,6 +2,7 @@ package com.gzy.redmiport;
 
 /** Keep the handle on screen at different densities and orientations. */
 public final class SidebarGeometry {
+    public static int anchor(int animatedX,int inset){return Math.max(animatedX,inset);}
     public static int inset(int dp,float density){return Math.round(Math.max(0,Math.min(64,dp))*density);}
     public static int y(int screenHeight,int handleHeight,int percent){
         int height=Math.max(0,screenHeight);

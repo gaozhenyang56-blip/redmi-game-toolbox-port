@@ -27,7 +27,7 @@
 .method constructor <init>(Lcom/gzy/redmiport/ShizukuSettingsActivity$13;Ljava/lang/String;)V
     .registers 3
 
-    .line 98
+    .line 99
     iput-object p1, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity$13$1;->this$1:Lcom/gzy/redmiport/ShizukuSettingsActivity$13;
 
     iput-object p2, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity$13$1;->val$text:Ljava/lang/String;
@@ -42,7 +42,7 @@
 .method public run()V
     .registers 3
 
-    .line 98
+    .line 99
     iget-object v0, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity$13$1;->this$1:Lcom/gzy/redmiport/ShizukuSettingsActivity$13;
 
     # getter for: Lcom/gzy/redmiport/ShizukuSettingsActivity$13;->this$0:Lcom/gzy/redmiport/ShizukuSettingsActivity;

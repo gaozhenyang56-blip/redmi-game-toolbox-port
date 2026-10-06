@@ -8,7 +8,7 @@
 
 # annotations
 .annotation system Ldalvik/annotation/EnclosingMethod;
-    value = Lcom/gzy/redmiport/PortRuntime;->open(Ljava/lang/String;)Ljava/io/InputStream;
+    value = Lcom/gzy/redmiport/PortRuntime;->open(Ljava/lang/String;I)Ljava/io/InputStream;
 .end annotation
 
 .annotation system Ldalvik/annotation/InnerClass;
@@ -25,7 +25,7 @@
 .method constructor <init>(Ljava/lang/Process;)V
     .registers 2
 
-    .line 96
+    .line 100
     iput-object p1, p0, Lcom/gzy/redmiport/PortRuntime$7;->val$process:Ljava/lang/Process;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -38,7 +38,7 @@
 .method public run()V
     .registers 6
 
-    .line 98
+    .line 102
     const/4 v0, 0x0
 
     :try_start_1
@@ -50,7 +50,7 @@
     :try_end_7
     .catchall {:try_start_1 .. :try_end_7} :catchall_1f
 
-    .line 99
+    .line 103
     const/16 v2, 0x400
 
     :try_start_9
@@ -67,7 +67,7 @@
 
     if-ne v3, v4, :cond_b
 
-    .line 100
+    .line 104
     if-eqz v1, :cond_2b
 
     :try_start_14
@@ -111,7 +111,7 @@
     :catch_2a
     move-exception v0
 
-    .line 101
+    .line 105
     :cond_2b
     :goto_2b
     return-void

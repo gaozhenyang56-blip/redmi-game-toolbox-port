@@ -1,3 +1,14 @@
+repair17 — 白条触摸、悬浮面板关闭与 FPS 采样修复
+
+版本：10.4.5-huawei-repair17-touch-fps / 40001056
+安装包：releases/Redmi-GameToolbox-new-signed.apk，沿用本会话新签名，可覆盖 repair16。
+修正白条隐藏后的原手势路由、收起位置与透明触摸区域。外点击同步收起原面板；退出时清理附属视图/菜单/提示，避免单个清理失败阻断其余移除。
+FPS 使用真实前台游戏包名和缓存图层；发现每批查询两层，缓存无效时轮询重查。读取仍是 SurfaceFlinger actualPresentTime，没有刷新率替代或过期数据回填。Shizuku 页面显示跨进程 FPS 状态。
+验证：57 项自动化检查及静态接线/清理契约检查通过，完整构建和签名验证通过。未实机回归；手机上具体 FPS 失效原因尚未由帧时间输出确认。
+详见 verification/repair17-touch-fps.md。
+
+以下为历史版本记录：
+
 repair16 — 设置生命周期与气泡跨用户监听修复
 
 版本：10.4.5-huawei-repair16-settings / 40001055

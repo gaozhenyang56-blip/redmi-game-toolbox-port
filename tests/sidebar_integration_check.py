@@ -83,3 +83,19 @@ bubble_entry = original(service).split(".method private static synthetic G0()V",
 assert "TipsManager" not in bubble_entry
 assert ".method public addPreferencesFromResource(I)V" in Path("decoded/smali/androidx/preference/PreferenceFragmentCompat.smali").read_text()
 print("Crash-path checks passed: no Xiaomi bubble observer; null-safe task teardown; no legacy settings callbacks")
+
+wrapper=original("com/miui/dock/sidebar/j")
+assert "SidebarRuntime;->handleTouch" in wrapper
+assert "SidebarRuntime;->anchorX" in wrapper
+assert "SidebarRuntime;->preserveHandle" in original("s8/h")
+method("com/miui/dock/sidebar/j","C()V")
+field("com/miui/dock/sidebar/j","s","Lcom/miui/dock/sidebar/f;")
+print("Collapsed-handle touch routing and animated inset protection wired (static checks)")
+
+assert "SidebarRuntime;->closePanel" in original("s8/h")
+assert "SidebarRuntime;->panelLayout" in original("m5/g")
+for signature in ["q()Landroid/view/View;", "o()Ls8/h;", "Q()V", "O()V"]: method("com/miui/dock/sidebar/j",signature)
+for name,descriptor in {"f":"Lmiuix/popupwidget/widget/GuidePopupWindow;", "s":"Landroid/view/View;"}.items(): field("s8/h",name,descriptor)
+method("s8/h","I()V")
+method("s8/h","U0(I)V")
+print("Panel collapse coordinates and auxiliary-window cleanup contracts checked (static)")

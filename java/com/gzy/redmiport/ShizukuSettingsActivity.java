@@ -63,7 +63,8 @@ public final class ShizukuSettingsActivity extends Activity {
         } catch (Throwable ignored) {service="连接失败";}
         status.setText("Shizuku 服务："+service+"\n应用授权："+grant
             +"\n悬浮窗权限："+(Settings.canDrawOverlays(this)?"已允许":"未允许")+"\n\n"+GameStore.status(this)
-            +"\n\n"+SidebarRuntime.status()+"\n\n白条与系统侧边小窗重叠时，可在原设置中调整白条左右位置、高度与边缘内缩。");
+            +"\n\n"+SidebarRuntime.status()+"\n\nFPS 状态："+PortPreferences.text("port_fps_status","等待游戏采样")
+            +"\n\n白条与系统侧边小窗重叠时，可在原设置中调整白条左右位置、高度与边缘内缩。");
     }
     private void authorize(){
         try {

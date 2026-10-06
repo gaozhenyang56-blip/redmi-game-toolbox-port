@@ -13,10 +13,21 @@
     return-void
 .end method
 
+.method public static anchor(II)I
+    .registers 2
+
+    .line 5
+    invoke-static {p0, p1}, Ljava/lang/Math;->max(II)I
+
+    move-result p0
+
+    return p0
+.end method
+
 .method public static inset(IF)I
     .registers 3
 
-    .line 5
+    .line 6
     const/16 v0, 0x40
 
     invoke-static {v0, p0}, Ljava/lang/Math;->min(II)I
@@ -43,14 +54,14 @@
 .method public static y(III)I
     .registers 5
 
-    .line 7
+    .line 8
     const/4 v0, 0x0
 
     invoke-static {v0, p0}, Ljava/lang/Math;->max(II)I
 
     move-result p0
 
-    .line 8
+    .line 9
     invoke-static {v0, p1}, Ljava/lang/Math;->max(II)I
 
     move-result p1
@@ -61,7 +72,7 @@
 
     move-result p1
 
-    .line 9
+    .line 10
     const/16 v1, 0x55
 
     invoke-static {v1, p2}, Ljava/lang/Math;->min(II)I
@@ -86,7 +97,7 @@
 
     move-result p0
 
-    .line 10
+    .line 11
     invoke-static {p1, p0}, Ljava/lang/Math;->min(II)I
 
     move-result p0

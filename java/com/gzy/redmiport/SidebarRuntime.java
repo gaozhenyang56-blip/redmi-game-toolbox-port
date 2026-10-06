@@ -59,6 +59,7 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
             runtime.controller=Class.forName("s8.h").getConstructor(service.getClass(),Handler.class).newInstance(service,new Handler(Looper.getMainLooper()));
             set(service,"b",runtime.controller);
             runtime.status("侧栏服务运行中，等待前台游戏");
+            PortPreferences.put("port_active_game","");
             ForegroundMonitor.start(runtime);
             runtime.main.postDelayed(runtime.watchdog,1000);
         }catch(Throwable failure){runtime.failure("Initialize original sidebar",failure);service.stopSelf();}
@@ -104,6 +105,7 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
             View white=(View)call(wrapper,"w",new Class<?>[0]);
             white.setVisibility(View.VISIBLE);white.setAlpha(1f);
             shown=pkg;layout=nextLayout;
+            PortPreferences.put("port_active_game",pkg);
             status("白条已创建："+pkg+"；可从白条向屏幕内滑动");
         }catch(Throwable failure){
             try{hide("");}catch(Throwable cleanup){CrashReporter.record("Sidebar partial-window cleanup",cleanup);}
@@ -116,29 +118,35 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
     }
     private void hide(String reason)throws Exception{
         if(controller!=null){
-            call(controller,"z",new Class<?>[0]);
+            cleanup(controller,"z");
             ((Handler)get(controller,"n")).removeCallbacksAndMessages(null);
-            call(controller,"O0",new Class<?>[0]);call(controller,"M0",new Class<?>[0]);
+            cleanup(controller,"O0");cleanup(controller,"M0");cleanup(controller,"I");
+            Object popup=get(controller,"f");if(popup!=null)cleanup(popup,"dismiss");
             // Clean up partial additions too; original flag is set only after all four windows attach.
             WindowManager windows=(WindowManager)call(controller,"Z",new Class<?>[0]);
             for(String field:new String[]{"d","e"}){
                 Object wrapper=get(controller,field);if(wrapper==null)continue;
+                cancelLineAnimation(wrapper);
                 try {
                     call(wrapper,"S",new Class<?>[0]);
                     Object panel=call(wrapper,"A",new Class<?>[0]);
-                    if(panel!=null)call(panel,"o",new Class<?>[0]);
+                    if(panel!=null){cancelViewAnimation((View)panel);call(panel,"o",new Class<?>[0]);}
                     call(wrapper,"T",new Class<?>[]{boolean.class},false);
                 }catch(Exception cleanup){CrashReporter.record("Sidebar panel cleanup",cleanup);}
-                for(String getter:new String[]{"u","z"}){
+                for(String getter:new String[]{"q","u","z"}){
                     View view=(View)call(wrapper,getter,new Class<?>[0]);
-                    if(view!=null&&view.isAttachedToWindow())windows.removeViewImmediate(view);
+                    remove(windows,view);
                 }
             }
+            for(String field:new String[]{"l","s"})remove(windows,(View)get(controller,field));
             set(controller,"o",false);set(controller,"d",null);set(controller,"e",null);
             set(controller,"k",null);set(controller,"l",null);set(controller,"m",false);
+            set(controller,"f",null);set(controller,"s",null);
         }
         if(mode!=null)call(mode,"a",new Class<?>[]{int.class},0);
-        set(service,"c",false);shown="";layout="";
+        set(service,"c",false);
+        if(!shown.isEmpty())PortPreferences.put("port_active_game","");
+        shown="";layout="";
         if(!reason.isEmpty())status(reason);
     }
     private void failure(String where,Throwable failure){
@@ -172,6 +180,70 @@ public final class SidebarRuntime implements ForegroundMonitor.Listener {
         params.width=Math.max(params.width,Math.round(24*context.getResources().getDisplayMetrics().density));
     }
     public static void panelLayout(Context context,WindowManager.LayoutParams params){params.x=inset(context);params.y=y(context);}
+    public static int anchorX(Context context,int animatedX){return SidebarGeometry.anchor(animatedX,inset(context));}
+    public static void preserveHandle(View view,WindowManager.LayoutParams params){
+        if(!"com.miui.dock.sidebar.b".equals(view.getClass().getName()))return;
+        params.flags&=~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+        params.flags|=WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
+        params.width=Math.max(params.width,Math.round(24*view.getResources().getDisplayMetrics().density));
+        params.x=anchorX(view.getContext(),params.x);
+    }
+    private static void cleanup(Object object,String method){
+        try{call(object,method,new Class<?>[0]);}catch(Exception failure){CrashReporter.record("Sidebar cleanup "+method,failure);}
+    }
+    private static void remove(WindowManager windows,View view){
+        try{if(view!=null&&view.isAttachedToWindow())windows.removeViewImmediate(view);}
+        catch(Exception failure){CrashReporter.record("Remove sidebar window",failure);}
+    }
+    private static void cancelLineAnimation(Object wrapper){
+        try{Object style=get(wrapper,"o");Class.forName("miuix.animation.ICancelableStyle").getMethod("cancel").invoke(style);}
+        catch(Exception failure){CrashReporter.record("Cancel sidebar animation",failure);}
+    }
+    private static void cancelViewAnimation(View view){
+        try{
+            view.animate().cancel();
+            Object folme=Class.forName("miuix.animation.Folme").getMethod("useAt",View[].class).invoke(null,(Object)new View[]{view});
+            Object style=Class.forName("miuix.animation.IFolme").getMethod("state").invoke(folme);
+            Class.forName("miuix.animation.ICancelableStyle").getMethod("cancel").invoke(style);
+        }catch(Exception failure){CrashReporter.record("Cancel game panel animation",failure);}
+    }
+    public static void closePanel(Object wrapper){
+        try{
+            Object controller=call(wrapper,"o",new Class<?>[0]);
+            cleanup(controller,"z");cancelLineAnimation(wrapper);
+            cleanup(wrapper,"S");cleanup(wrapper,"Q");
+            ViewGroup panel=(ViewGroup)call(wrapper,"A",new Class<?>[0]);
+            cancelViewAnimation(panel);
+            panel.setAlpha(0);cleanup(panel,"o");panel.removeAllViews();
+            call(wrapper,"T",new Class<?>[]{boolean.class},false);
+            View frame=(View)call(wrapper,"z",new Class<?>[0]);
+            WindowManager.LayoutParams params=(WindowManager.LayoutParams)frame.getLayoutParams();
+            params.width=WindowManager.LayoutParams.WRAP_CONTENT;params.height=WindowManager.LayoutParams.WRAP_CONTENT;
+            params.flags|=WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+            panelLayout(frame.getContext(),params);
+            if(frame.isAttachedToWindow())((WindowManager)call(controller,"Z",new Class<?>[0])).updateViewLayout(frame,params);
+            WindowManager windows=(WindowManager)call(controller,"Z",new Class<?>[0]);
+            remove(windows,(View)call(wrapper,"q",new Class<?>[0]));set(wrapper,"d",null);
+            remove(windows,(View)get(controller,"l"));set(controller,"l",null);
+            set(controller,"k",null);set(controller,"m",false);
+            call(controller,"U0",new Class<?>[]{int.class},0);
+            cleanup(controller,"O0");cleanup(controller,"M0");cleanup(controller,"I");
+            Object popup=get(controller,"f");if(popup!=null)cleanup(popup,"dismiss");
+            View white=(View)call(wrapper,"w",new Class<?>[0]);white.setVisibility(View.VISIBLE);
+            cleanup(wrapper,"O");cleanup(wrapper,"C");
+        }catch(Exception failure){CrashReporter.record("Close original game panel",failure);}
+    }
+    public static boolean handleTouch(Object wrapper,MotionEvent event){
+        try{
+            View white=(View)call(wrapper,"w",new Class<?>[0]);
+            if(event.getActionMasked()==MotionEvent.ACTION_DOWN){
+                white.setVisibility(View.VISIBLE);
+                call(wrapper,"C",new Class<?>[0]);
+            }
+            // The transparent cover owns the hit region even when the visible line is hidden.
+            return ((View.OnTouchListener)get(wrapper,"s")).onTouch(white,event);
+        }catch(Exception failure){CrashReporter.record("Original sidebar touch rearm",failure);return false;}
+    }
     private static int inset(Context context){return SidebarGeometry.inset(PortPreferences.number("port_sidebar_inset",24),context.getResources().getDisplayMetrics().density);}
     private static Object get(Object object,String name)throws Exception{Field f=object.getClass().getDeclaredField(name);f.setAccessible(true);return f.get(object);}
     private static void set(Object object,String name,Object value)throws Exception{Field f=object.getClass().getDeclaredField(name);f.setAccessible(true);f.set(object,value);}

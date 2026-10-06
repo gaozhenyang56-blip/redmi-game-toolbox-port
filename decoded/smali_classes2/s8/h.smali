@@ -2667,27 +2667,7 @@
 
 .method private synthetic n0(Lcom/miui/dock/sidebar/j;Landroid/view/View;)V
     .locals 0
-
-    iget-object p2, p0, Ls8/h;->l:Lcom/miui/dock/drag/DockShortCutMenu;
-
-    invoke-virtual {p2}, Landroid/view/View;->getVisibility()I
-
-    move-result p2
-
-    if-nez p2, :cond_0
-
-    const/4 p2, 0x1
-
-    goto :goto_0
-
-    :cond_0
-    const/4 p2, 0x0
-
-    :goto_0
-    iput-boolean p2, p0, Ls8/h;->m:Z
-
-    invoke-virtual {p0, p1}, Ls8/h;->L(Lcom/miui/dock/sidebar/j;)V
-
+    invoke-static {p1}, Lcom/gzy/redmiport/SidebarRuntime;->closePanel(Ljava/lang/Object;)V
     return-void
 .end method
 
@@ -6304,6 +6284,7 @@
     if-eqz v0, :cond_0
 
     :try_start_0
+    invoke-static {p1, p2}, Lcom/gzy/redmiport/SidebarRuntime;->preserveHandle(Landroid/view/View;Landroid/view/WindowManager$LayoutParams;)V
     iget-object v0, p0, Ls8/h;->i:Landroid/view/WindowManager;
 
     invoke-interface {v0, p1, p2}, Landroid/view/ViewManager;->updateViewLayout(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V

@@ -13,6 +13,8 @@ public class FrameSampleParserTest {
   String multi="PACKAGE:com.test.game\nLAYER:SurfaceView[com.test.game/Main] container\n8333333\n"+frames("SurfaceView[com.test.game/Main](BLAST)#buffer",60,61,now)+"broken line\n0 not-a-number 0\n";
   check(FrameSampleParser.parse(multi,now).fps==60,"skip container without frame data and malformed rows");
   check(!FrameSampleParser.parse("PACKAGE:com.test.game\n"+frames("SurfaceView[com.test.game/Main]",1000,127,now),now).available(),"implausible timestamps");
-  System.out.println("12 FPS parser cases passed: actual frames, invalid/pending/expired/other-app data, multiple layers");
+  check(FrameSampleParser.parse("PACKAGE:com.test.game\n"+frames("SurfaceView[com.test.game/Main]",60,61,now-2000000000L),now).reason.equals("帧时间已过期"),"specific expiry diagnostic");
+  check(FrameSampleParser.parse("PACKAGE:com.test.game\nLAYER:SurfaceView[com.test.game/Main]\n8333333\n",now).reason.equals("帧时间不足"),"specific missing-data diagnostic");
+  System.out.println("14 FPS parser cases passed: actual frames, invalid/pending/expired/other-app data, multiple layers");
  }
 }

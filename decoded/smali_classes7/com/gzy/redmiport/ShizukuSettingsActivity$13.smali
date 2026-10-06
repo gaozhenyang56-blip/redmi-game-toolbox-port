@@ -25,7 +25,7 @@
 .method constructor <init>(Lcom/gzy/redmiport/ShizukuSettingsActivity;)V
     .registers 2
 
-    .line 86
+    .line 87
     iput-object p1, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity$13;->this$0:Lcom/gzy/redmiport/ShizukuSettingsActivity;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -36,7 +36,7 @@
 .method static synthetic access$0(Lcom/gzy/redmiport/ShizukuSettingsActivity$13;)Lcom/gzy/redmiport/ShizukuSettingsActivity;
     .registers 1
 
-    .line 86
+    .line 87
     iget-object p0, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity$13;->this$0:Lcom/gzy/redmiport/ShizukuSettingsActivity;
 
     return-object p0
@@ -47,7 +47,7 @@
 .method public run()V
     .registers 6
 
-    .line 88
+    .line 89
     const/4 v0, 0x0
 
     :try_start_1
@@ -59,7 +59,7 @@
     :try_end_7
     .catchall {:try_start_1 .. :try_end_7} :catchall_41
 
-    .line 89
+    .line 90
     if-nez v1, :cond_c
 
     :try_start_9
@@ -67,7 +67,7 @@
 
     goto :goto_27
 
-    .line 91
+    .line 92
     :cond_c
     new-instance v2, Ljava/io/BufferedReader;
 
@@ -79,10 +79,10 @@
 
     invoke-direct {v2, v3}, Ljava/io/BufferedReader;-><init>(Ljava/io/Reader;)V
 
-    .line 92
+    .line 93
     nop
 
-    .line 93
+    .line 94
     const/4 v3, 0x0
 
     :cond_1a
@@ -93,7 +93,7 @@
 
     if-nez v4, :cond_2d
 
-    .line 94
+    .line 95
     if-lez v3, :cond_25
 
     const-string v2, "SurfaceFlinger \u6570\u636e\u53ef\u8bfb\u53d6\uff1b\u6e38\u620f FPS \u8bf7\u8fdb\u5165\u6e38\u620f\u540e\u67e5\u770b"
@@ -105,7 +105,7 @@
     :try_end_27
     .catchall {:try_start_9 .. :try_end_27} :catchall_3a
 
-    .line 96
+    .line 97
     :goto_27
     if-eqz v1, :cond_69
 
@@ -116,7 +116,7 @@
 
     goto :goto_69
 
-    .line 93
+    .line 94
     :cond_2d
     :try_start_2d
     invoke-virtual {v4}, Ljava/lang/String;->trim()Ljava/lang/String;
@@ -135,7 +135,7 @@
 
     goto :goto_1a
 
-    .line 96
+    .line 97
     :catchall_3a
     move-exception v0
 
@@ -199,12 +199,12 @@
 
     invoke-static {v1, v0}, Lcom/gzy/redmidiag/CrashReporter;->record(Ljava/lang/String;Ljava/lang/Throwable;)V
 
-    .line 97
+    .line 98
     :cond_69
     :goto_69
     nop
 
-    .line 98
+    .line 99
     iget-object v0, p0, Lcom/gzy/redmiport/ShizukuSettingsActivity$13;->this$0:Lcom/gzy/redmiport/ShizukuSettingsActivity;
 
     new-instance v1, Lcom/gzy/redmiport/ShizukuSettingsActivity$13$1;
@@ -213,6 +213,6 @@
 
     invoke-virtual {v0, v1}, Lcom/gzy/redmiport/ShizukuSettingsActivity;->runOnUiThread(Ljava/lang/Runnable;)V
 
-    .line 99
+    .line 100
     return-void
 .end method

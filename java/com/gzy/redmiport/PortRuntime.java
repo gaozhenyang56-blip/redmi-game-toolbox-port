@@ -19,6 +19,7 @@ public final class PortRuntime {
     private static Activity foreground;
     private static boolean initialized, permissionRequested;
     private static final ExecutorService worker = Executors.newFixedThreadPool(2);
+    private static final ExecutorService errors = Executors.newCachedThreadPool();
     private static final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
     private static final AtomicBoolean sampling = new AtomicBoolean();
     private static volatile long fps = -1, sampledAt, attemptedAt;
@@ -26,8 +27,8 @@ public final class PortRuntime {
     private static volatile String fpsState = "等待游戏帧数据";
     private static String previousLayer;
     private static long previousTimestamp;
-    // Choose a layer belonging to the foreground app. Never sample another game's layer.
-    private static final String COMMAND = FpsShellCommand.COMMAND;
+    private static String samplingGame="";
+    private static int scanOffset;
 
     public static void init(Application app) {
         if (CrashReporter.diagnosticProcess() || initialized) return;
@@ -38,7 +39,7 @@ public final class PortRuntime {
                 public void onBinderReceived() { requestPermission(); }
             });
             Shizuku.addBinderDeadListener(new Shizuku.OnBinderDeadListener() {
-                public void onBinderDead() { fps = -1; sampledAt = 0; epoch++; fpsState="Shizuku 连接已断开"; permissionRequested = false; }
+                public void onBinderDead() { fps = -1; sampledAt = 0; epoch++; state("Shizuku 连接已断开"); permissionRequested = false; }
             });
             Shizuku.addRequestPermissionResultListener(new Shizuku.OnRequestPermissionResultListener() {
                 public void onRequestPermissionResult(int code, int result) {
@@ -84,6 +85,9 @@ public final class PortRuntime {
         });
     }
     public static InputStream open(String command) {
+        return open(command,3);
+    }
+    private static InputStream open(String command,int timeoutSeconds) {
         try {
             if (!Shizuku.pingBinder() || Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) return null;
             Method method = Shizuku.class.getDeclaredMethod("newProcess", String[].class, String[].class, String.class);
@@ -91,9 +95,9 @@ public final class PortRuntime {
             final Process process = (Process) method.invoke(null, new String[]{"sh", "-c", command}, null, null);
             final ScheduledFuture<?> timeout = timer.schedule(new Runnable() {
                 public void run() { try { process.destroy(); } catch (Throwable ignored) {} }
-            }, 3, TimeUnit.SECONDS);
+            }, timeoutSeconds, TimeUnit.SECONDS);
             // Drain stderr so a full error pipe cannot block the process.
-            worker.execute(new Runnable() {
+            errors.execute(new Runnable() {
                 public void run() {
                     try (InputStream errors = process.getErrorStream()) {
                         byte[] data = new byte[1024]; while (errors.read(data) != -1) {}
@@ -110,19 +114,29 @@ public final class PortRuntime {
             };
         } catch (Throwable failure) { CrashReporter.record("Shizuku shell channel", failure); return null; }
     }
-    public static void resetFps() { epoch++; fps=-1; sampledAt=0; attemptedAt=0; previousLayer=null; previousTimestamp=0; fpsState="等待游戏帧数据"; }
+    public static void resetFps() { epoch++; fps=-1; sampledAt=0; attemptedAt=0; previousLayer=null; previousTimestamp=0; scanOffset=0; state("等待游戏帧数据"); }
+    private static void state(String message){
+        fpsState=message;
+        try{PortPreferences.put("port_fps_status",message);}catch(Exception ignored){}
+    }
+    private static String activeGame(){try{return PortPreferences.text("port_active_game","");}catch(Exception ignored){return "";}}
     public static String fpsStatus() { return fpsState; }
     public static long sampleFps() {
+        final String game=activeGame();
+        if(!game.equals(samplingGame)){samplingGame=game;resetFps();}
+        if(game.isEmpty()){state("等待已添加的前台游戏");return -1;}
         long now = SystemClock.elapsedRealtime();
         if (now - attemptedAt >= 800 && sampling.compareAndSet(false, true)) {
             attemptedAt = now;
             final int session = epoch;
+            final String candidate=previousLayer;
+            final int offset=scanOffset;
             worker.execute(new Runnable() {
                 public void run() {
                     try {
-                        InputStream stream = open(COMMAND);
+                        InputStream stream = open(FpsShellCommand.forGame(game,candidate,offset),6);
                         if (stream == null) {
-                            if (session == epoch) { fps=-1;sampledAt=0;fpsState="请启动 Shizuku 并授权"; }
+                            if (session == epoch) { fps=-1;sampledAt=0;state("请启动 Shizuku 并授权"); }
                             return;
                         }
                         StringBuilder raw = new StringBuilder();
@@ -130,14 +144,18 @@ public final class PortRuntime {
                             String line;while((line=input.readLine())!=null) { raw.append(line).append('\n');if(raw.length()>512000)break; }
                         }
                         FrameSampleParser.Result result=FrameSampleParser.parse(raw.toString(),System.nanoTime());
-                        if (session!=epoch) return;
-                        if (!result.available()) {fps=-1;sampledAt=0;fpsState=result.reason;return;}
+                        if (session!=epoch||!game.equals(activeGame())) return;
+                        if (!result.available()) {
+                            previousLayer=null;previousTimestamp=0;
+                            scanOffset=candidate==null?(offset+2)%8:0;
+                            fps=-1;sampledAt=0;state(result.reason+"；正在重新查找游戏图层");return;
+                        }
                         fps=result.layer.equals(previousLayer)&&result.last==previousTimestamp?0:result.fps;
                         previousLayer=result.layer;previousTimestamp=result.last;
                         sampledAt=SystemClock.elapsedRealtime();
-                        fpsState="FPS："+fps+"\n图层："+result.layer;
+                        state("FPS："+fps+"\n图层："+result.layer);
                     } catch (Throwable failure) {
-                        if(session==epoch){fps=-1;sampledAt=0;fpsState="帧率读取失败";}
+                        if(session==epoch){fps=-1;sampledAt=0;state("帧率读取失败");}
                         CrashReporter.record("SurfaceFlinger FPS sample",failure);
                     } finally { sampling.set(false); }
                 }

@@ -3,6 +3,7 @@ import com.gzy.redmiport.FpsShellCommand;
 
 public class ForegroundSnapshotTest {
     public static void main(String[] args) {
+        if (args.length > 1) { System.out.print(FpsShellCommand.forGame(args[1],args.length>2?args[2]:null,args.length>3?Integer.parseInt(args[3]):0));return;}
         if (args.length > 0) { System.out.print(FpsShellCommand.COMMAND); return; }
         check("mResumedActivity: ActivityRecord{a u0 com.old.game/.Main}\n"
             + "topResumedActivity=ActivityRecord{b u0 com.top.game/.Main}\n"

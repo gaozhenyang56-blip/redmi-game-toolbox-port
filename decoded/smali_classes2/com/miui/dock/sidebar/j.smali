@@ -451,7 +451,7 @@
 .end method
 
 .method private d0(Landroid/view/View;I)V
-    .locals 1
+    .locals 2
 
     invoke-virtual {p1}, Landroid/view/View;->getLayoutParams()Landroid/view/ViewGroup$LayoutParams;
 
@@ -459,6 +459,9 @@
 
     check-cast v0, Landroid/view/WindowManager$LayoutParams;
 
+    iget-object v1, p0, Lcom/miui/dock/sidebar/j;->b:Landroid/content/Context;
+    invoke-static {v1, p2}, Lcom/gzy/redmiport/SidebarRuntime;->anchorX(Landroid/content/Context;I)I
+    move-result p2
     iput p2, v0, Landroid/view/WindowManager$LayoutParams;->x:I
 
     iget-object p2, p0, Lcom/miui/dock/sidebar/j;->c:Ls8/h;
@@ -1212,14 +1215,9 @@
 
 .method public c0(Landroid/view/MotionEvent;)Z
     .locals 1
-
-    iget-object v0, p0, Lcom/miui/dock/sidebar/j;->g:Lcom/miui/dock/sidebar/RegionSamplingImageView;
-
-    invoke-virtual {v0, p1}, Lcom/miui/dock/sidebar/RegionSamplingImageView;->dispatchTouchEvent(Landroid/view/MotionEvent;)Z
-
-    move-result p1
-
-    return p1
+    invoke-static {p0, p1}, Lcom/gzy/redmiport/SidebarRuntime;->handleTouch(Ljava/lang/Object;Landroid/view/MotionEvent;)Z
+    move-result v0
+    return v0
 .end method
 
 .method public l()V

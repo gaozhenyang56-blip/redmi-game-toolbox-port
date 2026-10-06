@@ -50,3 +50,36 @@ esac
     result = subprocess.run(["sh", "-c", command], env=env, capture_output=True, text=True, timeout=5)
     assert result.returncode != 0 and not result.stdout and not (root / "queries").read_text()
 print("5 production shell cases passed (simulated dumpsys)")
+
+with tempfile.TemporaryDirectory() as directory:
+    root=Path(directory)
+    mock=root/"dumpsys"
+    mock.write_text('''#!/bin/sh
+printf '%s\\n' "$*" >> "$MOCK_ROOT/calls"
+case "$*" in
+ "SurfaceFlinger --list") cat "$MOCK_ROOT/layers" ;;
+ "SurfaceFlinger --latency "*) printf '%s\\n' "$3" >> "$MOCK_ROOT/queries"; printf '8333333\\n1 2 3\\n' ;;
+ *) exit 91 ;;
+esac
+''')
+    mock.chmod(0o755)
+    env=dict(os.environ,MOCK_ROOT=directory,PATH=directory+os.pathsep+os.environ["PATH"])
+    wanted=[f"SurfaceView[com.test.game/.Main]#{i}" for i in range(8)]
+    (root/"layers").write_text("SurfaceView[com.test.gameclone/.Main]\n"+"\n".join(wanted)+"\n")
+    def run(layer,offset):
+        command=subprocess.check_output(["java","-cp","build/tests","ForegroundSnapshotTest","game","com.test.game",layer,str(offset)],text=True)
+        (root/"queries").write_text("");(root/"calls").write_text("")
+        result=subprocess.run(["sh","-c",command],env=env,capture_output=True,text=True,timeout=5)
+        assert result.returncode==0,result.stderr
+        assert result.stdout.startswith("PACKAGE:com.test.game\n")
+        return (root/"queries").read_text().splitlines(),(root/"calls").read_text()
+    for offset in (0,2,4,6):
+        queries,calls=run("",offset)
+        assert queries==wanted[offset:offset+2]
+        assert "activity" not in calls and "window" not in calls
+    cached="SurfaceView[com.test.game/.Main] O'Brien $(touch HACK)"
+    queries,calls=run(cached,0)
+    assert queries==[cached] and "--list" not in calls and not Path("HACK").exists()
+    bad=subprocess.run(["java","-cp","build/tests","ForegroundSnapshotTest","game","com.test.game;exit 0"],capture_output=True,text=True)
+    assert bad.returncode!=0 and not bad.stdout
+print("6 selected-game shell cases passed: bounded scans, cache and shell escaping (simulated dumpsys)")

@@ -12,7 +12,11 @@ public class SidebarGeometryTest {
         check(SidebarGeometry.y(600,120,999)==480,"bottom remains on screen");
         check(SidebarGeometry.y(600,120,-999)==60,"top clamp");
         check(SidebarGeometry.y(0,120,50)==0,"empty screen bounds");
-        System.out.println("10 sidebar geometry cases passed (no Android device)");
+        check(SidebarGeometry.anchor(0,72)==72,"collapse retains user inset");
+        check(SidebarGeometry.anchor(120,72)==120,"inward motion allowed");
+        check(SidebarGeometry.anchor(-20,72)==72,"never move touch region outside screen");
+        check(SidebarGeometry.anchor(0,0)==0,"zero-inset choice preserved");
+        System.out.println("14 sidebar geometry cases passed (no Android device)");
     }
     private static void check(boolean pass,String message){if(!pass)throw new AssertionError(message);}
 }
