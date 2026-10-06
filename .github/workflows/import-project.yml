@@ -1,0 +1,57 @@
+name: Import complete project
+on:
+  push:
+    paths:
+      - '.github/workflows/import-project.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download original private migration archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release download migration-repair14 --pattern 'Redmi-GameToolbox-Codex-Cloud-project.zip'
+      - name: Validate and import all project files
+        env:
+          EXPECTED_SHA256: "baa0877fc6eaa095babc56b4d4df20cc456f47723dec936a1ed38aa3fb288d1e"
+        run: |
+          python3 - <<'PYCODE'
+          import hashlib, os, pathlib, zipfile
+          root=pathlib.Path.cwd()
+          archive=root/'Redmi-GameToolbox-Codex-Cloud-project.zip'
+          digest=hashlib.sha256(archive.read_bytes()).hexdigest()
+          if digest!=os.environ['EXPECTED_SHA256']: raise SystemExit('Archive SHA256 mismatch')
+          with zipfile.ZipFile(archive) as z:
+              if z.testzip() is not None: raise SystemExit('ZIP CRC validation failed')
+              for entry in z.infolist():
+                  destination=(root/entry.filename).resolve()
+                  if not destination.is_relative_to(root) or entry.filename.startswith('.git/'):
+                      raise SystemExit('Unsafe archive path')
+              z.extractall(root)
+              for entry in z.infolist():
+                  if entry.is_dir(): continue
+                  actual=(root/entry.filename).read_bytes()
+                  if hashlib.sha256(actual).digest()!=hashlib.sha256(z.read(entry)).digest():
+                      raise SystemExit('Imported file mismatch: '+entry.filename)
+              print('Verified all',len(z.infolist()),'archive entries; SHA256',digest)
+          for part in root.glob('project.zip.part*'): part.unlink()
+          archive.unlink()
+          for script in (root/'scripts').glob('*.sh'): script.chmod(0o755)
+          for name in ['aapt','aapt2','aidl','apksigner','d8','dexdump','zipalign','split-select']:
+              path=root/'tools/build-tools'/name
+              if path.exists(): path.chmod(0o755)
+          PYCODE
+      - name: Verify cloud setup and FPS parser
+        run: bash scripts/setup.sh
+      - name: Publish extracted project to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Import complete repair14 project; verify archive and cloud setup"
+          git push origin HEAD:main
