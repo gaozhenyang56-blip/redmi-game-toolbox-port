@@ -1,3 +1,13 @@
+repair18 — 白条位置设置刷新修复
+
+版本：10.4.5-huawei-repair18-position / 40001057
+安装包：releases/Redmi-GameToolbox-new-signed.apk，沿用本会话新签名，可覆盖 repair17。
+原因：原 ListPreference.setValue/getEntry 被混淆为 w/m，反射初始化失败导致未安装保存监听。已匹配真实方法，位置保存至原 RemoteProvider；采用原摘要提供器，避免百分号格式化异常。
+验证：62 项自动化检查及实际混淆方法静态接线检查通过，完整构建/签名/ZIP CRC/七 DEX/zipalign 通过。没有手机实机回归。
+详见 verification/repair18-position.md。
+
+以下为历史版本记录：
+
 repair17 — 白条触摸、悬浮面板关闭与 FPS 采样修复
 
 版本：10.4.5-huawei-repair17-touch-fps / 40001056

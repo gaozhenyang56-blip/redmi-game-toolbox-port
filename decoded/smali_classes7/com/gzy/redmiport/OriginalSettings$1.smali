@@ -29,7 +29,7 @@
 .method constructor <init>(ZLandroid/content/Context;Ljava/lang/String;)V
     .registers 4
 
-    .line 69
+    .line 72
     iput-boolean p1, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$shortcut:Z
 
     iput-object p2, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$context:Landroid/content/Context;
@@ -51,7 +51,7 @@
         }
     .end annotation
 
-    .line 71
+    .line 74
     invoke-virtual {p2}, Ljava/lang/reflect/Method;->getDeclaringClass()Ljava/lang/Class;
 
     move-result-object v0
@@ -60,23 +60,23 @@
 
     const/4 v2, 0x0
 
-    .line 88
+    .line 89
     invoke-static {v2}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
 
     move-result-object v3
 
-    .line 71
+    .line 74
     const/4 v4, 0x1
 
-    .line 73
+    .line 76
     invoke-static {v4}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
 
     move-result-object v5
 
-    .line 71
+    .line 74
     if-ne v0, v1, :cond_3c
 
-    .line 72
+    .line 75
     const-string v0, "hashCode"
 
     invoke-virtual {p2}, Ljava/lang/reflect/Method;->getName()Ljava/lang/String;
@@ -99,7 +99,7 @@
 
     return-object p1
 
-    .line 73
+    .line 76
     :cond_27
     const-string v0, "equals"
 
@@ -122,13 +122,13 @@
     :cond_38
     return-object v3
 
-    .line 74
+    .line 77
     :cond_39
     const-string p1, "OriginalSettingsListener"
 
     return-object p1
 
-    .line 77
+    .line 80
     :cond_3c
     :try_start_3c
     iget-boolean p1, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$shortcut:Z
@@ -155,7 +155,7 @@
 
     return-object p1
 
-    .line 78
+    .line 81
     :cond_53
     aget-object p1, p3, v4
 
@@ -182,7 +182,7 @@
 
     goto :goto_7a
 
-    .line 79
+    .line 82
     :cond_6b
     iget-object p1, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$key:Ljava/lang/String;
 
@@ -198,7 +198,7 @@
 
     invoke-static {p1, p2}, Lcom/gzy/redmiport/PortPreferences;->put(Ljava/lang/String;I)V
 
-    .line 80
+    .line 83
     :goto_7a
     iget-object p1, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$key:Ljava/lang/String;
 
@@ -208,17 +208,17 @@
 
     move-result p1
 
-    if-eqz p1, :cond_cc
+    if-eqz p1, :cond_a3
 
-    .line 81
+    .line 84
     aget-object p1, p3, v2
 
-    .line 82
+    .line 85
     invoke-virtual {p1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
 
     move-result-object p2
 
-    const-string v0, "setValue"
+    const-string v0, "w"
 
     const-class v1, Ljava/lang/String;
 
@@ -242,61 +242,19 @@
 
     invoke-virtual {p2, p1, p3}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 83
-    invoke-virtual {p1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
-
-    move-result-object p2
-
-    const-string p3, "getEntry"
-
-    new-array v0, v2, [Ljava/lang/Class;
-
-    invoke-virtual {p2, p3, v0}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
-
-    move-result-object p2
-
-    new-array p3, v2, [Ljava/lang/Object;
-
-    invoke-virtual {p2, p1, p3}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
-
-    move-result-object p2
-
-    .line 84
-    invoke-virtual {p1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
-
-    move-result-object p3
-
-    const-string v0, "setSummary"
-
-    const-class v1, Ljava/lang/CharSequence;
-
-    filled-new-array {v1}, [Ljava/lang/Class;
-
-    move-result-object v1
-
-    invoke-virtual {p3, v0, v1}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
-
-    move-result-object p3
-
-    filled-new-array {p2}, [Ljava/lang/Object;
-
-    move-result-object p2
-
-    invoke-virtual {p3, p1, p2}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
-
-    .line 86
-    :cond_cc
+    .line 87
+    :cond_a3
     iget-object p1, p0, Lcom/gzy/redmiport/OriginalSettings$1;->val$context:Landroid/content/Context;
 
     invoke-static {p1}, Lcom/gzy/redmiport/SidebarRuntime;->start(Landroid/content/Context;)V
-    :try_end_d1
-    .catchall {:try_start_3c .. :try_end_d1} :catchall_d2
-
-    .line 87
-    return-object v5
+    :try_end_a8
+    .catchall {:try_start_3c .. :try_end_a8} :catchall_a9
 
     .line 88
-    :catchall_d2
+    return-object v5
+
+    .line 89
+    :catchall_a9
     move-exception p1
 
     const-string p2, "Original settings save"

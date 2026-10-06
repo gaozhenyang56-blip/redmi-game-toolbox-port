@@ -282,7 +282,7 @@
     .line 38
     new-instance p1, Ljava/lang/StringBuilder;
 
-    const-string v2, "\nOriginal 10.4.5-huawei-repair17-touch-fps / 40001056\n"
+    const-string v2, "\nOriginal 10.4.5-huawei-repair18-position / 40001057\n"
 
     invoke-direct {p1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 

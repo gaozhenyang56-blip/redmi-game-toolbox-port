@@ -670,102 +670,115 @@
 
     invoke-virtual {v1, v0, v3}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
 
-    move-result-object v3
+    move-result-object v0
 
-    const-string v8, "\u5f00\u542f\u65f6\u7531\u684c\u9762\u786e\u8ba4\u6dfb\u52a0\uff1b\u5173\u95ed\u65f6\u505c\u7528\uff0c\u56fe\u6807\u53ef\u624b\u52a8\u79fb\u9664"
-
-    filled-new-array {v8}, [Ljava/lang/Object;
-
-    move-result-object v8
-
-    invoke-virtual {v3, p0, v8}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
-
-    .line 61
-    :cond_1b1
-    if-eqz v6, :cond_206
-
-    .line 62
-    const-string v3, "port_sidebar_side"
-
-    invoke-virtual {v3, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
-
-    move-result v3
-
-    if-eqz v3, :cond_1bd
-
-    move v3, v2
-
-    goto :goto_1ca
-
-    :cond_1bd
-    const-string v3, "port_sidebar_inset"
-
-    invoke-virtual {v3, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
-
-    move-result v3
-
-    if-eqz v3, :cond_1c8
-
-    const/16 v3, 0x18
-
-    goto :goto_1ca
-
-    :cond_1c8
-    const/16 v3, 0x19
-
-    .line 63
-    :goto_1ca
-    const-class v8, Ljava/lang/String;
-
-    filled-new-array {v8}, [Ljava/lang/Class;
-
-    move-result-object v8
-
-    const-string v9, "setValue"
-
-    invoke-virtual {v1, v9, v8}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
-
-    move-result-object v8
-
-    invoke-static {v4, v3}, Lcom/gzy/redmiport/PortPreferences;->number(Ljava/lang/String;I)I
-
-    move-result v3
-
-    invoke-static {v3}, Ljava/lang/String;->valueOf(I)Ljava/lang/String;
-
-    move-result-object v3
+    const-string v3, "\u5f00\u542f\u65f6\u7531\u684c\u9762\u786e\u8ba4\u6dfb\u52a0\uff1b\u5173\u95ed\u65f6\u505c\u7528\uff0c\u56fe\u6807\u53ef\u624b\u52a8\u79fb\u9664"
 
     filled-new-array {v3}, [Ljava/lang/Object;
 
     move-result-object v3
 
-    invoke-virtual {v8, p0, v3}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+    invoke-virtual {v0, p0, v3}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 64
-    const-string v3, "getEntry"
+    .line 61
+    :cond_1b1
+    if-eqz v6, :cond_211
 
-    new-array v8, v2, [Ljava/lang/Class;
+    .line 62
+    const-string v0, "port_sidebar_side"
 
-    invoke-virtual {v1, v3, v8}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+    invoke-virtual {v0, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 
-    move-result-object v3
+    move-result v0
 
-    new-array v2, v2, [Ljava/lang/Object;
+    if-eqz v0, :cond_1bd
 
-    invoke-virtual {v3, p0, v2}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+    move v0, v2
 
-    move-result-object v2
+    goto :goto_1ca
 
-    check-cast v2, Ljava/lang/CharSequence;
+    :cond_1bd
+    const-string v0, "port_sidebar_inset"
 
-    .line 65
-    const-class v3, Ljava/lang/CharSequence;
+    invoke-virtual {v0, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v0
+
+    if-eqz v0, :cond_1c8
+
+    const/16 v0, 0x18
+
+    goto :goto_1ca
+
+    :cond_1c8
+    const/16 v0, 0x19
+
+    .line 63
+    :goto_1ca
+    const-class v3, Ljava/lang/String;
 
     filled-new-array {v3}, [Ljava/lang/Class;
 
     move-result-object v3
 
-    invoke-virtual {v1, v0, v3}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+    const-string v8, "w"
+
+    invoke-virtual {v1, v8, v3}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+
+    move-result-object v3
+
+    invoke-static {v4, v0}, Lcom/gzy/redmiport/PortPreferences;->number(Ljava/lang/String;I)I
+
+    move-result v0
+
+    invoke-static {v0}, Ljava/lang/String;->valueOf(I)Ljava/lang/String;
+
+    move-result-object v0
+
+    filled-new-array {v0}, [Ljava/lang/Object;
+
+    move-result-object v0
+
+    invoke-virtual {v3, p0, v0}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+
+    .line 66
+    const-string v0, "androidx.preference.Preference$f"
+
+    invoke-static {v0}, Ljava/lang/Class;->forName(Ljava/lang/String;)Ljava/lang/Class;
+
+    move-result-object v0
+
+    .line 67
+    const-string v3, "androidx.preference.ListPreference$a"
+
+    invoke-static {v3}, Ljava/lang/Class;->forName(Ljava/lang/String;)Ljava/lang/Class;
+
+    move-result-object v3
+
+    const-string v8, "b"
+
+    new-array v9, v2, [Ljava/lang/Class;
+
+    invoke-virtual {v3, v8, v9}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+
+    move-result-object v3
+
+    const/4 v8, 0x0
+
+    new-array v2, v2, [Ljava/lang/Object;
+
+    invoke-virtual {v3, v8, v2}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+
+    move-result-object v2
+
+    .line 68
+    const-string v3, "setSummaryProvider"
+
+    filled-new-array {v0}, [Ljava/lang/Class;
+
+    move-result-object v0
+
+    invoke-virtual {v1, v3, v0}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
 
     move-result-object v0
 
@@ -775,23 +788,23 @@
 
     invoke-virtual {v0, p0, v2}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 67
-    :cond_206
-    if-nez v5, :cond_20c
+    .line 70
+    :cond_211
+    if-nez v5, :cond_217
 
-    if-nez v6, :cond_20c
+    if-nez v6, :cond_217
 
-    if-eqz v7, :cond_234
+    if-eqz v7, :cond_23f
 
-    .line 68
-    :cond_20c
+    .line 71
+    :cond_217
     const-string v0, "androidx.preference.Preference$c"
 
     invoke-static {v0}, Ljava/lang/Class;->forName(Ljava/lang/String;)Ljava/lang/Class;
 
     move-result-object v0
 
-    .line 69
+    .line 72
     invoke-virtual {v0}, Ljava/lang/Class;->getClassLoader()Ljava/lang/ClassLoader;
 
     move-result-object v2
@@ -808,7 +821,7 @@
 
     move-result-object p1
 
-    .line 91
+    .line 92
     const-string v2, "setOnPreferenceChangeListener"
 
     filled-new-array {v0}, [Ljava/lang/Class;
@@ -825,7 +838,7 @@
 
     invoke-virtual {v0, p0, p1}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 93
-    :cond_234
+    .line 94
+    :cond_23f
     return-void
 .end method

@@ -20,11 +20,11 @@ public class OriginalSettingsTest {
   public Broken(){super("broken");}
   public void setVisible(boolean value){throw new IllegalStateException("unsupported preference");}
  }
- public static class ListItem extends Preference {
+ public static class ListItem extends androidx.preference.ListPreference {
   public String value;
   public ListItem(String key){super(key);}
-  public void setValue(String value){this.value=value;}
-  public CharSequence getEntry(){return "entry:"+value;}
+  public void w(String value){this.value=value;}
+  public CharSequence m(){return "entry:"+value+("port_sidebar_height".equals(key)?"%":"");}
  }
  public static class Fragment {
   final Group root;
@@ -35,8 +35,8 @@ public class OriginalSettingsTest {
  private static void check(boolean valid,String reason){if(!valid)throw new AssertionError(reason);}
  public static void main(String[] args){
   Toggle master=new Toggle("pref_game_shortcut"),box=new Toggle("pref_game_box"),slip=new Toggle("pref_slip"),content=new Toggle("pref_content_setting"),unsupported=new Toggle("pref_smart_five_g"),shortcut=new Toggle("pref_shortcut");
-  Preference shizuku=new Preference("pref_shizuku");ListItem inset=new ListItem("port_sidebar_inset");
-  Group category=new Group(new Broken(),master,box,slip,content,unsupported,shortcut,shizuku,inset);
+  Preference shizuku=new Preference("pref_shizuku");ListItem inset=new ListItem("port_sidebar_inset"),side=new ListItem("port_sidebar_side"),height=new ListItem("port_sidebar_height");
+  Group category=new Group(new Broken(),master,box,slip,content,unsupported,shortcut,shizuku,inset,side,height);
   Fragment fragment=new Fragment(new Group(category));
   PortPreferences.put("pref_gamebox_turbo",false);PortPreferences.put("port_sidebar_inset",40);
   OriginalSettings.apply(fragment);
@@ -44,16 +44,21 @@ public class OriginalSettingsTest {
   check(master.checked&&!box.checked&&slip.checked,"saved off state respected");
   check(!master.persistent&&!box.persistent&&!slip.persistent,"single provider-backed storage");
   check(content.enabled&&content.listener.onPreferenceChange(content,false)&&Boolean.FALSE.equals(PortPreferences.values.get("gb_game_content")),"content original backend key");
-  check(inset.enabled&&"40".equals(inset.value)&&"entry:40".contentEquals(inset.summary),"saved geometry shown");
+  check(inset.enabled&&"40".equals(inset.value)&&"entry:40".contentEquals(inset.getSummary()),"saved geometry shown");
   check(inset.listener.onPreferenceChange(inset,"16")&&PortPreferences.number("port_sidebar_inset",0)==16,"geometry edit saved");
+  check("entry:16".contentEquals(inset.getSummary()),"inset summary updates immediately");
+  check(side.listener!=null&&height.listener!=null,"all position listeners initialized with bundled method names");
+  check(side.listener.onPreferenceChange(side,"1")&&"1".equals(side.value)&&"entry:1".contentEquals(side.getSummary())&&PortPreferences.number("port_sidebar_side",0)==1,"side selection UI and provider readback");
+  check(height.listener.onPreferenceChange(height,"75")&&"75".equals(height.value)&&"entry:75%".contentEquals(height.getSummary())&&PortPreferences.number("port_sidebar_height",0)==75,"height selection UI and provider readback");
+  check(height.provider!=null&&"entry:75%".contentEquals(height.getSummary()),"percent entry bypasses ListPreference summary formatting");
   check(box.listener.onPreferenceChange(box,true)&&PortPreferences.bool("pref_gamebox_turbo",false),"core switch save");
   check(!unsupported.enabled&&unsupported.summary.toString().contains("当前设备暂不支持"),"no fake hardware functionality");
   check(shortcut.enabled&&shortcut.listener.onPreferenceChange(shortcut,true)&&GameShortcut.pinned,"shortcut backend routing");
   OriginalSettings.apply(fragment);
-  check(box.checked&&"16".equals(inset.value)&&shortcut.checked,"reopen readback");
+  check(box.checked&&"16".equals(inset.value)&&"1".equals(side.value)&&"75".equals(height.value)&&shortcut.checked,"reopen readback");
   check(CrashReporter.failures==2,"failed leaf isolated on each traversal");
   GameShortcut.supported=false;OriginalSettings.apply(fragment);
   check(!shortcut.enabled,"launcher capability respected");
-  System.out.println("12 settings behavior checks passed (host preference simulation; no Android device)");
+  System.out.println("17 settings behavior checks passed (host preference simulation; no Android device)");
  }
 }

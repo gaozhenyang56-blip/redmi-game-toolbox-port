@@ -9,8 +9,8 @@ sdkInfo:
 packageInfo:
   forcedPackageId: 127
 versionInfo:
-  versionCode: 40001056
-  versionName: 10.4.5-huawei-repair17-touch-fps
+  versionCode: 40001057
+  versionName: 10.4.5-huawei-repair18-position
 doNotCompress:
 - arsc
 - gif

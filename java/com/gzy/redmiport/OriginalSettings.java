@@ -60,9 +60,12 @@ public final class OriginalSettings {
         }
         if(position){
             int fallback="port_sidebar_side".equals(key)?0:"port_sidebar_inset".equals(key)?24:25;
-            type.getMethod("setValue",String.class).invoke(preference,String.valueOf(PortPreferences.number(key,fallback)));
-            CharSequence entry=(CharSequence)type.getMethod("getEntry").invoke(preference);
-            type.getMethod("setSummary",CharSequence.class).invoke(preference,entry);
+            type.getMethod("w",String.class).invoke(preference,String.valueOf(PortPreferences.number(key,fallback)));
+            // The bundled ListPreference formats literal summaries; use its entry provider
+            // so height labels containing '%' render without String.format exceptions.
+            Class<?> provider=Class.forName("androidx.preference.Preference$f");
+            Object entries=Class.forName("androidx.preference.ListPreference$a").getMethod("b").invoke(null);
+            type.getMethod("setSummaryProvider",provider).invoke(preference,entries);
         }
         if(primary||position||shortcut){
             Class<?> listener=Class.forName("androidx.preference.Preference$c");
@@ -79,9 +82,7 @@ public final class OriginalSettings {
                         else PortPreferences.put(key,Integer.parseInt(args[1].toString()));
                         if(key.startsWith("port_sidebar_")){
                             Object changed=args[0];
-                            changed.getClass().getMethod("setValue",String.class).invoke(changed,args[1].toString());
-                            Object entry=changed.getClass().getMethod("getEntry").invoke(changed);
-                            changed.getClass().getMethod("setSummary",CharSequence.class).invoke(changed,entry);
+                            changed.getClass().getMethod("w",String.class).invoke(changed,args[1].toString());
                         }
                         SidebarRuntime.start(context);
                         return true;

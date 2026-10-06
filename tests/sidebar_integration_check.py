@@ -99,3 +99,16 @@ for name,descriptor in {"f":"Lmiuix/popupwidget/widget/GuidePopupWindow;", "s":"
 method("s8/h","I()V")
 method("s8/h","U0(I)V")
 print("Panel collapse coordinates and auxiliary-window cleanup contracts checked (static)")
+
+# Verify the exact bundled ListPreference reflection targets, not Android's API names.
+list_preference = Path("decoded/smali/androidx/preference/ListPreference.smali").read_text()
+assert ".method public w(Ljava/lang/String;)V" in list_preference
+assert ".method public m()Ljava/lang/CharSequence;" in list_preference
+settings_source = Path("java/com/gzy/redmiport/OriginalSettings.java").read_text()
+assert 'getMethod("w",String.class)' in settings_source
+assert 'getMethod("setSummaryProvider",provider)' in settings_source
+assert 'Class.forName("androidx.preference.ListPreference$a").getMethod("b")' in settings_source
+assert ".method public static b()Landroidx/preference/ListPreference$a;" in Path("decoded/smali/androidx/preference/ListPreference$a.smali").read_text()
+assert ".method public final setSummaryProvider(Landroidx/preference/Preference$f;)V" in Path("decoded/smali/androidx/preference/Preference.smali").read_text()
+assert 'getMethod("setValue"' not in settings_source and 'getMethod("getEntry"' not in settings_source
+print("Bundled ListPreference value/entry reflection contracts passed")
