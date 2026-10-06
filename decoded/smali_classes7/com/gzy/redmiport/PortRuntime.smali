@@ -4,7 +4,7 @@
 
 
 # static fields
-.field private static final COMMAND:Ljava/lang/String; = "p=$(dumpsys activity activities|sed -n \'s/.*[Rr]esumedActivity:.* \\([^/ ]*\\)\\/.*/\\1/p\'|head -1);[ -z \"$p\" ]&&p=$(dumpsys window|sed -n \'s/.*mCurrentFocus=.* \\([^/ ]*\\)\\/.*/\\1/p\'|head -1);[ -z \"$p\" ]&&exit 1;printf \'PACKAGE:%s\\n\' \"$p\";ls=$(dumpsys SurfaceFlinger --list|grep -F \"$p\");{ printf \'%s\\n\' \"$ls\"|grep SurfaceView; printf \'%s\\n\' \"$ls\"|grep -v SurfaceView; }|head -8|while IFS= read -r l; do [ -z \"$l\" ]&&continue;printf \'LAYER:%s\\n\' \"$l\";dumpsys SurfaceFlinger --latency \"$l\";done"
+.field private static final COMMAND:Ljava/lang/String; = "a=$(dumpsys activity activities);p=$(printf \'%s\\n\' \"$a\"|sed -n \'s/.*topResumedActivity[=:].* \\([^/ ]*\\)\\/.*/\\1/p\'|head -1);[ -z \"$p\" ]&&p=$(dumpsys window windows|sed -n \'s/.*mCurrentFocus=.* \\([^/ ]*\\)\\/.*/\\1/p\'|head -1);[ -z \"$p\" ]&&p=$(printf \'%s\\n\' \"$a\"|sed -n \'s/.*mResumedActivity[=:].* \\([^/ ]*\\)\\/.*/\\1/p\'|head -1);[ -z \"$p\" ]&&exit 1;printf \'PACKAGE:%s\\n\' \"$p\";ls=$(dumpsys SurfaceFlinger --list|awk -v p=\"$p\" \'{ rest=$0; while ((i=index(rest,p))>0) {before=substr(rest,1,i-1); after=substr(rest,i+length(p));if (before !~ /[A-Za-z0-9_.]$/ && after !~ /^[A-Za-z0-9_.]/) { print; break; }rest=after; } }\');{ printf \'%s\\n\' \"$ls\"|grep SurfaceView; printf \'%s\\n\' \"$ls\"|grep -v SurfaceView; }|head -8|while IFS= read -r l; do [ -z \"$l\" ]&&continue;printf \'LAYER:%s\\n\' \"$l\";dumpsys SurfaceFlinger --latency \"$l\";done"
 
 .field private static volatile attemptedAt:J
 
@@ -72,7 +72,7 @@
 
     sput-object v0, Lcom/gzy/redmiport/PortRuntime;->fpsState:Ljava/lang/String;
 
-    .line 37
+    .line 30
     return-void
 .end method
 
@@ -88,7 +88,7 @@
 .method static synthetic access$0()V
     .registers 0
 
-    .line 73
+    .line 66
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->requestPermission()V
 
     return-void
@@ -223,7 +223,7 @@
 .method public static connect(Landroid/app/Application;)V
     .registers 3
 
-    .line 84
+    .line 77
     invoke-static {}, Lcom/gzy/redmidiag/CrashReporter;->diagnosticProcess()Z
 
     move-result v0
@@ -246,7 +246,7 @@
 
     goto :goto_20
 
-    .line 85
+    .line 78
     :cond_15
     sget-object v0, Lcom/gzy/redmiport/PortRuntime;->worker:Ljava/util/concurrent/ExecutorService;
 
@@ -256,10 +256,10 @@
 
     invoke-interface {v0, v1}, Ljava/util/concurrent/ExecutorService;->execute(Ljava/lang/Runnable;)V
 
-    .line 91
+    .line 84
     return-void
 
-    .line 84
+    .line 77
     :cond_20
     :goto_20
     return-void
@@ -268,7 +268,7 @@
 .method public static fpsStatus()Ljava/lang/String;
     .registers 1
 
-    .line 120
+    .line 113
     sget-object v0, Lcom/gzy/redmiport/PortRuntime;->fpsState:Ljava/lang/String;
 
     return-object v0
@@ -277,7 +277,7 @@
 .method public static init(Landroid/app/Application;)V
     .registers 3
 
-    .line 40
+    .line 33
     invoke-static {}, Lcom/gzy/redmidiag/CrashReporter;->diagnosticProcess()Z
 
     move-result v0
@@ -290,13 +290,13 @@
 
     goto :goto_45
 
-    .line 41
+    .line 34
     :cond_b
     const/4 v0, 0x1
 
     sput-boolean v0, Lcom/gzy/redmiport/PortRuntime;->initialized:Z
 
-    .line 43
+    .line 36
     :try_start_e
     invoke-virtual {p0}, Landroid/app/Application;->getPackageName()Ljava/lang/String;
 
@@ -312,28 +312,28 @@
 
     invoke-static {v0}, Lrikka/shizuku/ShizukuProvider;->enableMultiProcessSupport(Z)V
 
-    .line 44
+    .line 37
     new-instance v0, Lcom/gzy/redmiport/PortRuntime$1;
 
     invoke-direct {v0}, Lcom/gzy/redmiport/PortRuntime$1;-><init>()V
 
     invoke-static {v0}, Lrikka/shizuku/Shizuku;->addBinderReceivedListenerSticky(Lrikka/shizuku/Shizuku$OnBinderReceivedListener;)V
 
-    .line 47
+    .line 40
     new-instance v0, Lcom/gzy/redmiport/PortRuntime$2;
 
     invoke-direct {v0}, Lcom/gzy/redmiport/PortRuntime$2;-><init>()V
 
     invoke-static {v0}, Lrikka/shizuku/Shizuku;->addBinderDeadListener(Lrikka/shizuku/Shizuku$OnBinderDeadListener;)V
 
-    .line 50
+    .line 43
     new-instance v0, Lcom/gzy/redmiport/PortRuntime$3;
 
     invoke-direct {v0}, Lcom/gzy/redmiport/PortRuntime$3;-><init>()V
 
     invoke-static {v0}, Lrikka/shizuku/Shizuku;->addRequestPermissionResultListener(Lrikka/shizuku/Shizuku$OnRequestPermissionResultListener;)V
 
-    .line 59
+    .line 52
     new-instance v0, Lcom/gzy/redmiport/PortRuntime$4;
 
     invoke-direct {v0}, Lcom/gzy/redmiport/PortRuntime$4;-><init>()V
@@ -342,7 +342,7 @@
     :try_end_3d
     .catchall {:try_start_e .. :try_end_3d} :catchall_3e
 
-    .line 71
+    .line 64
     goto :goto_44
 
     :catchall_3e
@@ -352,11 +352,11 @@
 
     invoke-static {v0, p0}, Lcom/gzy/redmidiag/CrashReporter;->record(Ljava/lang/String;Ljava/lang/Throwable;)V
 
-    .line 72
+    .line 65
     :goto_44
     return-void
 
-    .line 40
+    .line 33
     :cond_45
     :goto_45
     return-void
@@ -365,7 +365,7 @@
 .method public static open(Ljava/lang/String;)Ljava/io/InputStream;
     .registers 7
 
-    .line 94
+    .line 87
     const/4 v0, 0x0
 
     :try_start_1
@@ -383,7 +383,7 @@
 
     goto :goto_59
 
-    .line 95
+    .line 88
     :cond_e
     const-class v1, Lrikka/shizuku/Shizuku;
 
@@ -403,12 +403,12 @@
 
     move-result-object v1
 
-    .line 96
+    .line 89
     const/4 v2, 0x1
 
     invoke-virtual {v1, v2}, Ljava/lang/reflect/Method;->setAccessible(Z)V
 
-    .line 97
+    .line 90
     const-string v2, "sh"
 
     const-string v3, "-c"
@@ -427,24 +427,24 @@
 
     check-cast p0, Ljava/lang/Process;
 
-    .line 98
+    .line 91
     sget-object v1, Lcom/gzy/redmiport/PortRuntime;->timer:Ljava/util/concurrent/ScheduledExecutorService;
 
     new-instance v2, Lcom/gzy/redmiport/PortRuntime$6;
 
     invoke-direct {v2, p0}, Lcom/gzy/redmiport/PortRuntime$6;-><init>(Ljava/lang/Process;)V
 
-    .line 100
+    .line 93
     sget-object v3, Ljava/util/concurrent/TimeUnit;->SECONDS:Ljava/util/concurrent/TimeUnit;
 
-    .line 98
+    .line 91
     const-wide/16 v4, 0x3
 
     invoke-interface {v1, v2, v4, v5, v3}, Ljava/util/concurrent/ScheduledExecutorService;->schedule(Ljava/lang/Runnable;JLjava/util/concurrent/TimeUnit;)Ljava/util/concurrent/ScheduledFuture;
 
     move-result-object v1
 
-    .line 102
+    .line 95
     sget-object v2, Lcom/gzy/redmiport/PortRuntime;->worker:Ljava/util/concurrent/ExecutorService;
 
     new-instance v3, Lcom/gzy/redmiport/PortRuntime$7;
@@ -453,7 +453,7 @@
 
     invoke-interface {v2, v3}, Ljava/util/concurrent/ExecutorService;->execute(Ljava/lang/Runnable;)V
 
-    .line 109
+    .line 102
     new-instance v2, Lcom/gzy/redmiport/PortRuntime$8;
 
     invoke-virtual {p0}, Ljava/lang/Process;->getInputStream()Ljava/io/InputStream;
@@ -466,12 +466,12 @@
 
     return-object v2
 
-    .line 94
+    .line 87
     :cond_59
     :goto_59
     return-object v0
 
-    .line 117
+    .line 110
     :catchall_5a
     move-exception p0
 
@@ -485,7 +485,7 @@
 .method private static requestPermission()V
     .registers 2
 
-    .line 74
+    .line 67
     sget-object v0, Lcom/gzy/redmiport/PortRuntime;->foreground:Landroid/app/Activity;
 
     if-eqz v0, :cond_35
@@ -496,7 +496,7 @@
 
     goto :goto_35
 
-    .line 76
+    .line 69
     :cond_9
     :try_start_9
     invoke-static {}, Lrikka/shizuku/Shizuku;->pingBinder()Z
@@ -513,7 +513,7 @@
 
     goto :goto_2d
 
-    .line 77
+    .line 70
     :cond_16
     invoke-static {}, Lrikka/shizuku/Shizuku;->checkSelfPermission()I
 
@@ -523,7 +523,7 @@
 
     return-void
 
-    .line 78
+    .line 71
     :cond_1d
     invoke-static {}, Lrikka/shizuku/Shizuku;->shouldShowRequestPermissionRationale()Z
 
@@ -533,28 +533,28 @@
 
     return-void
 
-    .line 79
+    .line 72
     :cond_24
     const/4 v0, 0x1
 
     sput-boolean v0, Lcom/gzy/redmiport/PortRuntime;->permissionRequested:Z
 
-    .line 80
+    .line 73
     const/16 v0, 0x4b1
 
     invoke-static {v0}, Lrikka/shizuku/Shizuku;->requestPermission(I)V
     :try_end_2c
     .catchall {:try_start_9 .. :try_end_2c} :catchall_2e
 
-    .line 81
+    .line 74
     goto :goto_34
 
-    .line 76
+    .line 69
     :cond_2d
     :goto_2d
     return-void
 
-    .line 81
+    .line 74
     :catchall_2e
     move-exception v0
 
@@ -562,11 +562,11 @@
 
     invoke-static {v1, v0}, Lcom/gzy/redmidiag/CrashReporter;->record(Ljava/lang/String;Ljava/lang/Throwable;)V
 
-    .line 82
+    .line 75
     :goto_34
     return-void
 
-    .line 74
+    .line 67
     :cond_35
     :goto_35
     return-void
@@ -575,7 +575,7 @@
 .method public static resetFps()V
     .registers 3
 
-    .line 119
+    .line 112
     sget v0, Lcom/gzy/redmiport/PortRuntime;->epoch:I
 
     add-int/lit8 v0, v0, 0x1
@@ -608,12 +608,12 @@
 .method public static sampleFps()J
     .registers 6
 
-    .line 122
+    .line 115
     invoke-static {}, Landroid/os/SystemClock;->elapsedRealtime()J
 
     move-result-wide v0
 
-    .line 123
+    .line 116
     sget-wide v2, Lcom/gzy/redmiport/PortRuntime;->attemptedAt:J
 
     sub-long v2, v0, v2
@@ -636,13 +636,13 @@
 
     if-eqz v2, :cond_26
 
-    .line 124
+    .line 117
     sput-wide v0, Lcom/gzy/redmiport/PortRuntime;->attemptedAt:J
 
-    .line 125
+    .line 118
     sget v2, Lcom/gzy/redmiport/PortRuntime;->epoch:I
 
-    .line 126
+    .line 119
     sget-object v3, Lcom/gzy/redmiport/PortRuntime;->worker:Ljava/util/concurrent/ExecutorService;
 
     new-instance v4, Lcom/gzy/redmiport/PortRuntime$9;
@@ -651,7 +651,7 @@
 
     invoke-interface {v3, v4}, Ljava/util/concurrent/ExecutorService;->execute(Ljava/lang/Runnable;)V
 
-    .line 152
+    .line 145
     :cond_26
     sget-wide v2, Lcom/gzy/redmiport/PortRuntime;->sampledAt:J
 

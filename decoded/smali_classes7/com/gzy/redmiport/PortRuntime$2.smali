@@ -21,7 +21,7 @@
 .method constructor <init>()V
     .registers 1
 
-    .line 47
+    .line 40
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
     return-void
@@ -32,7 +32,7 @@
 .method public onBinderDead()V
     .registers 3
 
-    .line 48
+    .line 41
     const-wide/16 v0, -0x1
 
     invoke-static {v0, v1}, Lcom/gzy/redmiport/PortRuntime;->access$1(J)V

@@ -4,7 +4,6 @@ import android.os.*;
 import java.io.*;
 import java.lang.reflect.*;
 import java.util.concurrent.*;
-import java.util.regex.*;
 import com.gzy.redmidiag.CrashReporter;
 /** Shell foreground detection; dispatches to the original local game listener. */
 public final class ForegroundMonitor {
@@ -12,7 +11,6 @@ public final class ForegroundMonitor {
  private static final Handler main=new Handler(Looper.getMainLooper());
  private static final ConcurrentHashMap<Object,ScheduledFuture<?>> subscriptions=new ConcurrentHashMap<>();
  private static volatile Object current;
- private static final Pattern component=Pattern.compile("(?:mResumedActivity|topResumedActivity|mCurrentFocus)[^\\n]*? ([A-Za-z0-9_.]+)/");
  public static Object current(){return current;}
  public static synchronized void start(final Object callback){
   if(callback==null||subscriptions.containsKey(callback))return;
@@ -20,7 +18,7 @@ public final class ForegroundMonitor {
    public void run(){try{
     InputStream stream=PortRuntime.open("dumpsys activity activities; dumpsys window windows"); if(stream==null)return;
     StringBuilder out=new StringBuilder();try(BufferedReader r=new BufferedReader(new InputStreamReader(stream,"UTF-8"))){String s;while((s=r.readLine())!=null)out.append(s).append('\n');}
-    Matcher m=component.matcher(out);if(!m.find())return;final String pkg=m.group(1);if(pkg.equals(last))return;
+    final String pkg=ForegroundSnapshot.packageName(out.toString());if(pkg.isEmpty()||pkg.equals(last))return;
     Class<?> type=Class.forName("com.gzy.redmiport.compat.process.ForegroundInfo");final Object info=type.newInstance();
     type.getField("mForegroundPackageName").set(info,pkg);type.getField("mLastForegroundPackageName").set(info,last);
     Class<?> app=Class.forName("com.miui.common.e");Context context=(Context)app.getMethod("d").invoke(null);

@@ -27,7 +27,7 @@
 .method constructor <init>(Ljava/lang/Object;)V
     .registers 2
 
-    .line 19
+    .line 17
     iput-object p1, p0, Lcom/gzy/redmiport/ForegroundMonitor$1;->val$callback:Ljava/lang/Object;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -44,7 +44,7 @@
 .method public run()V
     .registers 9
 
-    .line 21
+    .line 19
     :try_start_0
     const-string v0, "dumpsys activity activities; dumpsys window windows"
 
@@ -56,13 +56,13 @@
 
     return-void
 
-    .line 22
+    .line 20
     :cond_9
     new-instance v1, Ljava/lang/StringBuilder;
 
     invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
     :try_end_e
-    .catchall {:try_start_0 .. :try_end_e} :catchall_d9
+    .catchall {:try_start_0 .. :try_end_e} :catchall_d5
 
     const/4 v2, 0x0
 
@@ -77,7 +77,7 @@
 
     invoke-direct {v3, v4}, Ljava/io/BufferedReader;-><init>(Ljava/io/Reader;)V
     :try_end_1b
-    .catchall {:try_start_f .. :try_end_1b} :catchall_cf
+    .catchall {:try_start_f .. :try_end_1b} :catchall_cb
 
     :goto_1b
     :try_start_1b
@@ -85,40 +85,30 @@
 
     move-result-object v0
     :try_end_1f
-    .catchall {:try_start_1b .. :try_end_1f} :catchall_c9
+    .catchall {:try_start_1b .. :try_end_1f} :catchall_c5
 
-    if-nez v0, :cond_be
+    if-nez v0, :cond_ba
 
     :try_start_21
     invoke-virtual {v3}, Ljava/io/BufferedReader;->close()V
     :try_end_24
-    .catchall {:try_start_21 .. :try_end_24} :catchall_cf
+    .catchall {:try_start_21 .. :try_end_24} :catchall_cb
 
-    .line 23
+    .line 21
     :try_start_24
-    # getter for: Lcom/gzy/redmiport/ForegroundMonitor;->component:Ljava/util/regex/Pattern;
-    invoke-static {}, Lcom/gzy/redmiport/ForegroundMonitor;->access$0()Ljava/util/regex/Pattern;
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
 
     move-result-object v0
 
-    invoke-virtual {v0, v1}, Ljava/util/regex/Pattern;->matcher(Ljava/lang/CharSequence;)Ljava/util/regex/Matcher;
+    invoke-static {v0}, Lcom/gzy/redmiport/ForegroundSnapshot;->packageName(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v0
 
-    invoke-virtual {v0}, Ljava/util/regex/Matcher;->find()Z
+    invoke-virtual {v0}, Ljava/lang/String;->isEmpty()Z
 
     move-result v1
 
-    if-nez v1, :cond_33
-
-    return-void
-
-    :cond_33
-    const/4 v1, 0x1
-
-    invoke-virtual {v0, v1}, Ljava/util/regex/Matcher;->group(I)Ljava/lang/String;
-
-    move-result-object v0
+    if-nez v1, :cond_b9
 
     iget-object v1, p0, Lcom/gzy/redmiport/ForegroundMonitor$1;->last:Ljava/lang/String;
 
@@ -126,12 +116,12 @@
 
     move-result v1
 
-    if-eqz v1, :cond_41
+    if-eqz v1, :cond_3c
 
-    return-void
+    goto/16 :goto_b9
 
-    .line 24
-    :cond_41
+    .line 22
+    :cond_3c
     const-string v1, "com.gzy.redmiport.compat.process.ForegroundInfo"
 
     invoke-static {v1}, Ljava/lang/Class;->forName(Ljava/lang/String;)Ljava/lang/Class;
@@ -142,7 +132,7 @@
 
     move-result-object v3
 
-    .line 25
+    .line 23
     const-string v4, "mForegroundPackageName"
 
     invoke-virtual {v1, v4}, Ljava/lang/Class;->getField(Ljava/lang/String;)Ljava/lang/reflect/Field;
@@ -161,7 +151,7 @@
 
     invoke-virtual {v4, v3, v5}, Ljava/lang/reflect/Field;->set(Ljava/lang/Object;Ljava/lang/Object;)V
 
-    .line 26
+    .line 24
     const-string v4, "com.miui.common.e"
 
     invoke-static {v4}, Ljava/lang/Class;->forName(Ljava/lang/String;)Ljava/lang/Class;
@@ -185,11 +175,11 @@
     move-result-object v2
 
     check-cast v2, Landroid/content/Context;
-    :try_end_76
-    .catchall {:try_start_24 .. :try_end_76} :catchall_d9
+    :try_end_71
+    .catchall {:try_start_24 .. :try_end_71} :catchall_d5
 
-    .line 27
-    :try_start_76
+    .line 25
+    :try_start_71
     invoke-virtual {v2}, Landroid/content/Context;->getPackageManager()Landroid/content/pm/PackageManager;
 
     move-result-object v4
@@ -199,12 +189,12 @@
     move-result-object v4
 
     iget v4, v4, Landroid/content/pm/ApplicationInfo;->uid:I
-    :try_end_80
-    .catch Ljava/lang/Exception; {:try_start_76 .. :try_end_80} :catch_bc
-    .catchall {:try_start_76 .. :try_end_80} :catchall_d9
+    :try_end_7b
+    .catch Ljava/lang/Exception; {:try_start_71 .. :try_end_7b} :catch_b7
+    .catchall {:try_start_71 .. :try_end_7b} :catchall_d5
 
-    .line 28
-    :try_start_80
+    .line 26
+    :try_start_7b
     const-string v5, "mForegroundUid"
 
     invoke-virtual {v1, v5}, Ljava/lang/Class;->getField(Ljava/lang/String;)Ljava/lang/reflect/Field;
@@ -218,12 +208,12 @@
     invoke-virtual {v4}, Ljava/lang/String;->isEmpty()Z
 
     move-result v4
-    :try_end_8f
-    .catchall {:try_start_80 .. :try_end_8f} :catchall_d9
+    :try_end_8a
+    .catchall {:try_start_7b .. :try_end_8a} :catchall_d5
 
-    if-nez v4, :cond_a8
+    if-nez v4, :cond_a3
 
-    :try_start_91
+    :try_start_8c
     const-string v4, "mLastForegroundUid"
 
     invoke-virtual {v1, v4}, Ljava/lang/Class;->getField(Ljava/lang/String;)Ljava/lang/reflect/Field;
@@ -243,26 +233,26 @@
     iget v2, v2, Landroid/content/pm/ApplicationInfo;->uid:I
 
     invoke-virtual {v1, v3, v2}, Ljava/lang/reflect/Field;->setInt(Ljava/lang/Object;I)V
-    :try_end_a6
-    .catch Ljava/lang/Exception; {:try_start_91 .. :try_end_a6} :catch_a7
-    .catchall {:try_start_91 .. :try_end_a6} :catchall_d9
+    :try_end_a1
+    .catch Ljava/lang/Exception; {:try_start_8c .. :try_end_a1} :catch_a2
+    .catchall {:try_start_8c .. :try_end_a1} :catchall_d5
 
-    goto :goto_a8
+    goto :goto_a3
 
-    :catch_a7
+    :catch_a2
     move-exception v1
 
-    .line 29
-    :cond_a8
-    :goto_a8
-    :try_start_a8
+    .line 27
+    :cond_a3
+    :goto_a3
+    :try_start_a3
     iput-object v0, p0, Lcom/gzy/redmiport/ForegroundMonitor$1;->last:Ljava/lang/String;
 
-    invoke-static {v3}, Lcom/gzy/redmiport/ForegroundMonitor;->access$1(Ljava/lang/Object;)V
+    invoke-static {v3}, Lcom/gzy/redmiport/ForegroundMonitor;->access$0(Ljava/lang/Object;)V
 
-    .line 30
+    .line 28
     # getter for: Lcom/gzy/redmiport/ForegroundMonitor;->main:Landroid/os/Handler;
-    invoke-static {}, Lcom/gzy/redmiport/ForegroundMonitor;->access$2()Landroid/os/Handler;
+    invoke-static {}, Lcom/gzy/redmiport/ForegroundMonitor;->access$1()Landroid/os/Handler;
 
     move-result-object v0
 
@@ -273,21 +263,26 @@
     invoke-direct {v1, p0, v2, v3}, Lcom/gzy/redmiport/ForegroundMonitor$1$1;-><init>(Lcom/gzy/redmiport/ForegroundMonitor$1;Ljava/lang/Object;Ljava/lang/Object;)V
 
     invoke-virtual {v0, v1}, Landroid/os/Handler;->post(Ljava/lang/Runnable;)Z
-    :try_end_bb
-    .catchall {:try_start_a8 .. :try_end_bb} :catchall_d9
+    :try_end_b6
+    .catchall {:try_start_a3 .. :try_end_b6} :catchall_d5
 
-    .line 33
-    goto :goto_df
+    .line 31
+    goto :goto_db
 
-    .line 27
-    :catch_bc
+    .line 25
+    :catch_b7
     move-exception v0
 
     return-void
 
-    .line 22
-    :cond_be
-    :try_start_be
+    .line 21
+    :cond_b9
+    :goto_b9
+    return-void
+
+    .line 20
+    :cond_ba
+    :try_start_ba
     invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object v0
@@ -295,49 +290,49 @@
     const/16 v4, 0xa
 
     invoke-virtual {v0, v4}, Ljava/lang/StringBuilder;->append(C)Ljava/lang/StringBuilder;
-    :try_end_c7
-    .catchall {:try_start_be .. :try_end_c7} :catchall_c9
+    :try_end_c3
+    .catchall {:try_start_ba .. :try_end_c3} :catchall_c5
 
     goto/16 :goto_1b
 
-    :catchall_c9
+    :catchall_c5
     move-exception v0
 
     move-object v2, v0
 
-    :try_start_cb
+    :try_start_c7
     invoke-virtual {v3}, Ljava/io/BufferedReader;->close()V
 
     throw v2
-    :try_end_cf
-    .catchall {:try_start_cb .. :try_end_cf} :catchall_cf
+    :try_end_cb
+    .catchall {:try_start_c7 .. :try_end_cb} :catchall_cb
 
-    :catchall_cf
+    :catchall_cb
     move-exception v0
 
-    if-eqz v2, :cond_d8
+    if-eqz v2, :cond_d4
 
-    if-eq v2, v0, :cond_d7
+    if-eq v2, v0, :cond_d3
 
-    :try_start_d4
+    :try_start_d0
     invoke-virtual {v2, v0}, Ljava/lang/Throwable;->addSuppressed(Ljava/lang/Throwable;)V
 
-    :cond_d7
+    :cond_d3
     move-object v0, v2
 
-    :cond_d8
+    :cond_d4
     throw v0
-    :try_end_d9
-    .catchall {:try_start_d4 .. :try_end_d9} :catchall_d9
+    :try_end_d5
+    .catchall {:try_start_d0 .. :try_end_d5} :catchall_d5
 
-    .line 33
-    :catchall_d9
+    .line 31
+    :catchall_d5
     move-exception v0
 
     const-string v1, "Shell foreground monitor"
 
     invoke-static {v1, v0}, Lcom/gzy/redmidiag/CrashReporter;->record(Ljava/lang/String;Ljava/lang/Throwable;)V
 
-    :goto_df
+    :goto_db
     return-void
 .end method

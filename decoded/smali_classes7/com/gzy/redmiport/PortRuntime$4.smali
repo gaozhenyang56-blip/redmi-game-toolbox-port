@@ -21,7 +21,7 @@
 .method constructor <init>()V
     .registers 1
 
-    .line 59
+    .line 52
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
     return-void
@@ -32,14 +32,14 @@
 .method public onActivityCreated(Landroid/app/Activity;Landroid/os/Bundle;)V
     .registers 3
 
-    .line 65
+    .line 58
     return-void
 .end method
 
 .method public onActivityDestroyed(Landroid/app/Activity;)V
     .registers 3
 
-    .line 69
+    .line 62
     # getter for: Lcom/gzy/redmiport/PortRuntime;->foreground:Landroid/app/Activity;
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->access$7()Landroid/app/Activity;
 
@@ -58,7 +58,7 @@
 .method public onActivityPaused(Landroid/app/Activity;)V
     .registers 3
 
-    .line 64
+    .line 57
     # getter for: Lcom/gzy/redmiport/PortRuntime;->foreground:Landroid/app/Activity;
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->access$7()Landroid/app/Activity;
 
@@ -77,34 +77,34 @@
 .method public onActivityResumed(Landroid/app/Activity;)V
     .registers 2
 
-    .line 61
+    .line 54
     invoke-static {p1}, Lcom/gzy/redmiport/PortRuntime;->access$8(Landroid/app/Activity;)V
 
-    .line 62
+    .line 55
     # invokes: Lcom/gzy/redmiport/PortRuntime;->requestPermission()V
     invoke-static {}, Lcom/gzy/redmiport/PortRuntime;->access$0()V
 
-    .line 63
+    .line 56
     return-void
 .end method
 
 .method public onActivitySaveInstanceState(Landroid/app/Activity;Landroid/os/Bundle;)V
     .registers 3
 
-    .line 68
+    .line 61
     return-void
 .end method
 
 .method public onActivityStarted(Landroid/app/Activity;)V
     .registers 2
 
-    .line 66
+    .line 59
     return-void
 .end method
 
 .method public onActivityStopped(Landroid/app/Activity;)V
     .registers 2
 
-    .line 67
+    .line 60
     return-void
 .end method

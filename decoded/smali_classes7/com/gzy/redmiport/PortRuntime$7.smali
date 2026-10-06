@@ -25,7 +25,7 @@
 .method constructor <init>(Ljava/lang/Process;)V
     .registers 2
 
-    .line 102
+    .line 95
     iput-object p1, p0, Lcom/gzy/redmiport/PortRuntime$7;->val$process:Ljava/lang/Process;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -38,7 +38,7 @@
 .method public run()V
     .registers 6
 
-    .line 104
+    .line 97
     const/4 v0, 0x0
 
     :try_start_1
@@ -50,7 +50,7 @@
     :try_end_7
     .catchall {:try_start_1 .. :try_end_7} :catchall_1f
 
-    .line 105
+    .line 98
     const/16 v2, 0x400
 
     :try_start_9
@@ -67,7 +67,7 @@
 
     if-ne v3, v4, :cond_b
 
-    .line 106
+    .line 99
     if-eqz v1, :cond_2b
 
     :try_start_14
@@ -111,7 +111,7 @@
     :catch_2a
     move-exception v0
 
-    .line 107
+    .line 100
     :cond_2b
     :goto_2b
     return-void

@@ -1,0 +1,19 @@
+Verifies
+Verified using v1 scheme (JAR signing): true
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=Redmi Game Toolbox Port Release
+Signer #1 certificate SHA-256 digest: 1aa44a60bd30efb08b2ccc3a26157125e7632572ae68dd4aad738c6b657f6752
+Signer #1 certificate SHA-1 digest: f49109af40a9d2633335ed116595d8fd0372c110
+Signer #1 certificate MD5 digest: 97424547b22599abbae35e19be007904
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 3072
+Signer #1 public key SHA-256 digest: eeef254656f4418a4728a0aab43675f22a02a5fbd06d384ebd4f8e5b73cd630e
+Signer #1 public key SHA-1 digest: 5bba9c42a472e847fd65f510d92999743eb1ae55
+Signer #1 public key MD5 digest: 3845bd65a682adfbc31591bba801e768
+WARNING: META-INF/services/kotlinx.coroutines.internal.r not protected by signature. Unauthorized modifications to this JAR entry will not be detected. Delete or move the entry outside of META-INF/.
+WARNING: META-INF/services/lk.e0 not protected by signature. Unauthorized modifications to this JAR entry will not be detected. Delete or move the entry outside of META-INF/.

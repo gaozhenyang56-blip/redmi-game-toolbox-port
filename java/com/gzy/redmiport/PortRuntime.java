@@ -27,14 +27,7 @@ public final class PortRuntime {
     private static String previousLayer;
     private static long previousTimestamp;
     // Choose a layer belonging to the foreground app. Never sample another game's layer.
-    private static final String COMMAND =
-        "p=$(dumpsys activity activities|sed -n 's/.*[Rr]esumedActivity:.* \\([^/ ]*\\)\\/.*/\\1/p'|head -1);"
-        + "[ -z \"$p\" ]&&p=$(dumpsys window|sed -n 's/.*mCurrentFocus=.* \\([^/ ]*\\)\\/.*/\\1/p'|head -1);"
-        + "[ -z \"$p\" ]&&exit 1;printf 'PACKAGE:%s\\n' \"$p\";"
-        + "ls=$(dumpsys SurfaceFlinger --list|grep -F \"$p\");"
-        + "{ printf '%s\\n' \"$ls\"|grep SurfaceView; printf '%s\\n' \"$ls\"|grep -v SurfaceView; }"
-        + "|head -8|while IFS= read -r l; do [ -z \"$l\" ]&&continue;"
-        + "printf 'LAYER:%s\\n' \"$l\";dumpsys SurfaceFlinger --latency \"$l\";done";
+    private static final String COMMAND = FpsShellCommand.COMMAND;
 
     public static void init(Application app) {
         if (CrashReporter.diagnosticProcess() || initialized) return;

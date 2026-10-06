@@ -29,7 +29,7 @@
 .method constructor <init>(Lcom/gzy/redmiport/ForegroundMonitor$1;Ljava/lang/Object;Ljava/lang/Object;)V
     .registers 4
 
-    .line 30
+    .line 28
     iput-object p1, p0, Lcom/gzy/redmiport/ForegroundMonitor$1$1;->this$1:Lcom/gzy/redmiport/ForegroundMonitor$1;
 
     iput-object p2, p0, Lcom/gzy/redmiport/ForegroundMonitor$1$1;->val$callback:Ljava/lang/Object;
@@ -46,9 +46,9 @@
 .method public run()V
     .registers 4
 
-    .line 30
+    .line 28
     # getter for: Lcom/gzy/redmiport/ForegroundMonitor;->subscriptions:Ljava/util/concurrent/ConcurrentHashMap;
-    invoke-static {}, Lcom/gzy/redmiport/ForegroundMonitor;->access$3()Ljava/util/concurrent/ConcurrentHashMap;
+    invoke-static {}, Lcom/gzy/redmiport/ForegroundMonitor;->access$2()Ljava/util/concurrent/ConcurrentHashMap;
 
     move-result-object v0
 
@@ -62,7 +62,7 @@
 
     return-void
 
-    .line 31
+    .line 29
     :cond_d
     :try_start_d
     iget-object v0, p0, Lcom/gzy/redmiport/ForegroundMonitor$1$1;->val$callback:Ljava/lang/Object;
@@ -103,7 +103,7 @@
     :try_end_32
     .catchall {:try_start_d .. :try_end_32} :catchall_33
 
-    .line 32
+    .line 30
     goto :goto_39
 
     :catchall_33
