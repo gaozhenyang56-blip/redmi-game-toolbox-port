@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+"""Apply the small, reviewable overlay to the exact public upstream commit, never to a running server."""
+import argparse,shutil,subprocess
+from pathlib import Path
+BASE='f335c8d39a7191883b88aac56fbaf2a6f02656be'
+p=argparse.ArgumentParser();p.add_argument('source',type=Path);args=p.parse_args();source=args.source.resolve()
+head=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
+if head!=BASE:raise SystemExit('Refusing unsupported upstream commit; inspect the installed version first.')
+if subprocess.check_output(['git','-C',str(source),'status','--porcelain'],text=True).strip():raise SystemExit('Source tree must be clean.')
+web=source/'web/web.go';text=web.read_text();needle='\ts.xui = controller.NewXUIController(g)'
+if text.count(needle)!=1:raise SystemExit('Unexpected router layout')
+text=text.replace(needle,needle+'\n\tcontroller.NewQinglianController(g)')
+sider=source/'web/html/xui/common_sider.html';menu=sider.read_text();needle='<a-menu-item key="{{ .base_path }}xui/setting">'
+if menu.count(needle)!=1:raise SystemExit('Unexpected menu layout')
+menu=menu.replace(needle,'<a-menu-item key="{{ .base_path }}xui/qinglian"><a-icon type="laptop"></a-icon><span>在线设备</span></a-menu-item>\n'+needle)
+mod=source/'go.mod';modules=mod.read_text();needle='require (\n'
+if modules.count(needle)!=1:raise SystemExit('Unexpected dependency layout')
+modules=modules.replace(needle,needle+'\tgithub.com/mattn/go-sqlite3 v1.14.5\n')
+for file in (Path(__file__).parent/'files').rglob('*'):
+    if file.is_file():
+        dest=source/file.relative_to(Path(__file__).parent/'files');dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(file,dest)
+web.write_text(text);sider.write_text(menu);mod.write_text(modules)
+print('Overlay applied locally. Review, test and build before considering server deployment.')

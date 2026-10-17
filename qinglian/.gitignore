@@ -16,3 +16,6 @@ app/src/main/jniLibs/**/*.so
 upstream-source/
 server/*.env
 server/*.sqlite3*
+
+__pycache__/
+*.pyc

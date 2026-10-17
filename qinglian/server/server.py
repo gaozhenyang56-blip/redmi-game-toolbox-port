@@ -17,7 +17,10 @@ def init_db():
         c.execute('''CREATE TABLE IF NOT EXISTS devices (
          id TEXT PRIMARY KEY, session TEXT NOT NULL, name TEXT, brand TEXT, model TEXT,
          android TEXT, app TEXT, ip TEXT, started REAL, seen REAL, online INTEGER,
-         up INTEGER, down INTEGER, up_rate REAL, down_rate REAL)''')
+         up INTEGER, down INTEGER, up_rate REAL, down_rate REAL, generation INTEGER NOT NULL DEFAULT 0, sequence INTEGER NOT NULL DEFAULT 0)''')
+        columns={r[1] for r in c.execute("PRAGMA table_info(devices)")}
+        for name in ("generation","sequence"):
+            if name not in columns:c.execute(f"ALTER TABLE devices ADD COLUMN {name} INTEGER NOT NULL DEFAULT 0")
 
 def snapshot(now=None):
     now=time.time() if now is None else now
@@ -41,20 +44,27 @@ def heartbeat(data,ip,now=None):
         return v
     def rate(k):
         v=data.get(k,0)
-        if not isinstance(v,(int,float)) or not 0<=v<=1e13:raise ValueError('invalid rate')
+        if isinstance(v,bool) or not isinstance(v,(int,float)) or not 0<=v<=1e13:raise ValueError('invalid rate')
         return float(v)
     online=data.get('online')
     if type(online) is not bool:raise ValueError('invalid state')
+    generation=integer('generation');sequence=integer('sequence')
+    if generation==0 or sequence==0:raise ValueError('missing session ordering')
+    up,down=integer('uploadBytes'),integer('downloadBytes')
+    up_rate,down_rate=rate('uploadRate'),rate('downloadRate')
+    details=(txt('deviceName','Android 设备'),txt('brand'),txt('model'),txt('androidVersion'),txt('appVersion'))
     with LOCK,sqlite3.connect(DB) as c:
-        c.execute('DELETE FROM devices WHERE seen<?',(now-86400*7,))
-        old=c.execute('SELECT session,started,online,seen FROM devices WHERE id=?',(device,)).fetchone()
-        if not online:
-            c.execute('UPDATE devices SET online=0,seen=?,up=?,down=?,up_rate=0,down_rate=0 WHERE id=? AND session=?',(now,integer('uploadBytes'),integer('downloadBytes'),device,session))
-            return
+        # Keep the last generation as a tombstone, even after the seven-day detail window.
+        # Otherwise a very late online event could resurrect a retired session.
+        c.execute("UPDATE devices SET name='',brand='',model='',android='',app='',ip='',up=0,down=0,up_rate=0,down_rate=0,online=0 WHERE seen<?",(now-86400*7,))
+        old=c.execute('SELECT session,started,online,generation,sequence FROM devices WHERE id=?',(device,)).fetchone()
+        if old:
+            if generation<old[3]:return
+            if generation==old[3]:
+                if session!=old[0] or sequence<=old[4] or (online and not old[2]):return
         started=old[1] if old and old[0]==session else now
-        c.execute('INSERT OR REPLACE INTO devices VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(
-          device,session,txt('deviceName','Android 设备'),txt('brand'),txt('model'),txt('androidVersion'),txt('appVersion'),ip,started,now,1,
-          integer('uploadBytes'),integer('downloadBytes'),rate('uploadRate'),rate('downloadRate')))
+        c.execute('INSERT OR REPLACE INTO devices (id,session,name,brand,model,android,app,ip,started,seen,online,up,down,up_rate,down_rate,generation,sequence) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(
+          device,session,*details,ip,started,now,int(online),up,down,up_rate if online else 0,down_rate if online else 0,generation,sequence))
 
 class Handler(BaseHTTPRequestHandler):
     server_version='Qinglian'
@@ -85,6 +95,10 @@ class Handler(BaseHTTPRequestHandler):
         return peer
     def do_GET(self):
         if self.path=='/health':self.send(200,{'ok':True});return
+        if self.path=='/api/v1/quota':
+            if not self.client():self.send(401,{'error':'unauthorized'});return
+            # No guessed x-ui schema or invented quota. Wire a version-matched read-only adapter.
+            self.send(503,{'error':'quota source not configured'});return
         if self.path=='/api/v1/online':
             if not self.client():self.send(401,{'error':'unauthorized'});return
             data=snapshot();self.send(200,{'online':data['online'],'ttl':TTL,'serverTime':data['serverTime']});return
@@ -94,6 +108,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send(200,Path(__file__).with_name('dashboard.html').read_bytes(),'text/html; charset=utf-8');return
         self.send(404,{'error':'not found'})
     def do_POST(self):
+        self.connection.settimeout(5)
         if self.path!='/api/v1/heartbeat':self.send(404,{'error':'not found'});return
         if not self.client():self.send(401,{'error':'unauthorized'});return
         try:

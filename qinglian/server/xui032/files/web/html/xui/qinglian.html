@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+{{template "head" .}}
+<body>
+<a-layout id="app" v-cloak>
+ {{template "commonSider" .}}
+ <a-layout><a-layout-content style="margin:24px 16px">
+  <a-card title="轻连 · 在线设备">
+   <a-alert v-if="error" type="error" :message="error" show-icon style="margin-bottom:16px"></a-alert>
+   <p>在线 [[ online === null ? '不可用' : online ]] 台 · 每 3 秒刷新，30 秒无心跳即离线。</p>
+   <p>仅统计轻连 App。设备信息由客户端自报，不能作为身份或计费依据；通道建立不表示远端网络已验证。</p>
+   <a-table :columns="columns" :data-source="devices" row-key="deviceId" :scroll="{x:1300}" :pagination="{pageSize:20}">
+    <template slot="online" slot-scope="value"><a-tag :color="value?'green':'default'">[[ value?'在线':'离线' ]]</a-tag></template>
+    <template slot="time" slot-scope="value">[[ stamp(value) ]]</template>
+    <template slot="bytes" slot-scope="value">[[ size(value) ]]</template>
+    <template slot="rate" slot-scope="value">[[ size(value) ]]/s</template>
+   </a-table>
+  </a-card>
+ </a-layout-content></a-layout>
+</a-layout>
+{{template "js" .}}
+<script>
+ const app=new Vue({el:'#app',delimiters:['[[',']]'],data:{siderDrawer,online:null,devices:[],error:'',timer:null,
+ columns:[{title:'状态',dataIndex:'online',scopedSlots:{customRender:'online'}},{title:'设备名称',dataIndex:'deviceName'},{title:'品牌 / 型号',dataIndex:'model'},{title:'Android',dataIndex:'androidVersion'},{title:'App',dataIndex:'appVersion'},{title:'来源 IP',dataIndex:'sourceIp'},{title:'上线时间',dataIndex:'startedAt',scopedSlots:{customRender:'time'}},{title:'最近活跃',dataIndex:'lastSeen',scopedSlots:{customRender:'time'}},{title:'上传用量',dataIndex:'uploadBytes',scopedSlots:{customRender:'bytes'}},{title:'下载用量',dataIndex:'downloadBytes',scopedSlots:{customRender:'bytes'}},{title:'上传速度',dataIndex:'uploadRate',scopedSlots:{customRender:'rate'}},{title:'下载速度',dataIndex:'downloadRate',scopedSlots:{customRender:'rate'}}]},
+ mounted(){this.refresh()},beforeDestroy(){clearTimeout(this.timer)},methods:{
+ stamp(value){return value?new Date(value).toLocaleString():'—'},size(value){let n=Number(value||0),i=0;const units=['B','KB','MB','GB'];while(n>=1024&&i<3){n/=1024;i++}return n.toFixed(i?1:0)+' '+units[i]},
+ async refresh(){try{const response=await axios.get('xui/qinglian/devices',{timeout:5000});if(!Array.isArray(response.data.devices)||!Number.isInteger(response.data.online))throw Error();this.online=response.data.online;this.devices=response.data.devices;this.error=''}catch(error){this.online=null;this.devices=[];this.error=error.response&&error.response.status===401?'登录已过期，请重新登录面板。':'设备数据暂不可用，请检查面板模块配置。'}finally{this.timer=setTimeout(()=>this.refresh(),3000)}}}});
+</script>
+</body></html>

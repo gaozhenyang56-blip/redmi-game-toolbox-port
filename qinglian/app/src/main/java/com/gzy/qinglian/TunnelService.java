@@ -19,6 +19,9 @@ public class TunnelService extends VpnService {
  public static volatile double uploadRate=0,downloadRate=0;
  private long statsTick=0;
  private ScheduledExecutorService statsWorker;
+ private DeviceReporter reporter;
+ public static volatile String reportingStatus="设备上报未接入";
+ public static volatile String routingStatus="全局模式";
  private final ExecutorService worker=Executors.newSingleThreadExecutor();
  private volatile boolean cancelled=false;
  private ParcelFileDescriptor tun;
@@ -53,6 +56,7 @@ public class TunnelService extends VpnService {
  private void connect(){
   try {
    if(prepare(this)!=null)throw new IOException("请先允许系统 VPN 权限");
+   AppRouting routing=AppRouting.load(this);routing.plan(this);
    go.Seq.setContext(getApplicationContext());
    Libv2ray.initCoreEnv(getFilesDir().getAbsolutePath(),"");
    String node;
@@ -70,7 +74,8 @@ public class TunnelService extends VpnService {
    cm.registerNetworkCallback(new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN).build(),callback);
    Builder b=new Builder().setSession("轻连 · 专属节点").setMtu(1500)
     .addAddress("10.10.14.1",30).addRoute("0.0.0.0",0).addDnsServer("1.1.1.1").addDnsServer("8.8.8.8")
-    .addAddress("fdfe:dcba:9876::1",126).addRoute("::",0).addDisallowedApplication(getPackageName());
+    .addAddress("fdfe:dcba:9876::1",126).addRoute("::",0);
+   routing.apply(this,b);routingStatus=routing.title();
    b.setConfigureIntent(PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class),PendingIntent.FLAG_IMMUTABLE));
    if(Build.VERSION.SDK_INT>=29)b.setMetered(false);
    tun=b.establish();if(tun==null)throw new IOException("系统未建立 VPN 接口");
@@ -93,6 +98,10 @@ public class TunnelService extends VpnService {
    uploadBytes=0;downloadBytes=0;uploadRate=0;downloadRate=0;statsTick=SystemClock.elapsedRealtime();
    connectedAt=SystemClock.elapsedRealtime();status("connected","通道已建立 · 请测速确认网络可用");
    getSystemService(NotificationManager.class).notify(1,notification("已连接 · VMess"));
+   try{
+    reporter=DeviceReporter.create(this,()->new DeviceReporter.Sample(uploadBytes,downloadBytes,uploadRate,downloadRate));
+    if(reporter!=null){reporter.start();reportingStatus="设备上报准备中";}else reportingStatus="设备上报未接入";
+   }catch(Exception reportingError){reportingStatus="设备上报配置不可用";}
    statsWorker=Executors.newSingleThreadScheduledExecutor();
    statsWorker.scheduleWithFixedDelay(()->{
     try{
@@ -100,6 +109,7 @@ public class TunnelService extends VpnService {
      long now=SystemClock.elapsedRealtime(),dt=Math.max(1,now-statsTick);statsTick=now;
      long up=Math.max(0,core.queryStats("proxy","uplink")),down=Math.max(0,core.queryStats("proxy","downlink"));
      uploadBytes+=up;downloadBytes+=down;uploadRate=up*1000.0/dt;downloadRate=down*1000.0/dt;
+     if(reporter!=null)reportingStatus=reporter.status;
      getSystemService(NotificationManager.class).notify(1,notification("已连接"));
     }catch(Exception ignored){}
    },1,1,TimeUnit.SECONDS);
@@ -108,6 +118,7 @@ public class TunnelService extends VpnService {
  }
  private void fail(String reason){cancelled=true;cleanup();status("error",reason);stopSelf();}
  private void cleanup(){
+  if(reporter!=null){reporter.close();reporter=null;}reportingStatus="已断开 · 离线状态以服务端为准";
   cancelled=true;verified=false;connectedAt=0;uploadRate=0;downloadRate=0;
   if(statsWorker!=null){statsWorker.shutdownNow();statsWorker=null;}
   if(relay!=null){relay.destroy();relay=null;}

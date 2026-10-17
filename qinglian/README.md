@@ -1,10 +1,12 @@
 # 轻连 — Android 单节点 VPN，Codex 交接工程
 
-**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.0.1-preview`，versionCode `2`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
+**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.0.2-preview`，versionCode `3`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
 
 已实现唯一内置 VMess TCP/HTTP 节点连接、延迟/下载测速、通知栏每秒上下行速度与本次用量、Material 3 Expressive、动态配色、深浅色与原生自适应图标。连接页已显示在线数量与剩余流量卡片。
 
-**尚未完成服务器接入**：卡片显示“待接入”；没有设备心跳上报；没有修改或部署用户 x-ui。用户明确要求直接扩展现有 x-ui，不要独立管理后台，也不要 App 接口配置入口。用户没有订阅链接。
+新增 Surfboard 风格黑白名单，连接页切换规则/全局，名单独立保存，修改后重连生效。已加入绑定服务的10秒设备心跳和带鉴权的JSON配额读取。
+
+**尚未完成服务器部署接入**：当前APK未配置API资产，卡片仍显示“待接入”；本轮已登录用户面板做只读检查，面板内扩展源码在 `server/xui032/`，未部署。用户明确要求直接扩展现有 x-ui，不要独立管理后台，也不要 App 接口配置入口。用户没有订阅链接。
 
 ## 快速验证
 
@@ -29,7 +31,7 @@ python3 scripts/prepare_dependencies.py
 python3 scripts/verify_release_signature.py app/build/outputs/apk/release/app-release.apk --apksigner /path/to/apksigner
 ```
 
-外部属性包含 `storeFile`（推荐绝对路径）、`storePassword`、`keyAlias`、`keyPassword`。也可通过 `QINGLIAN_STORE_PASSWORD` / `QINGLIAN_KEY_PASSWORD` 提供密码。没有原私钥时 release 构建为未签名，**不得生成新发布私钥冒充同签名更新**。`assembleDebug` 仅供开发，不能覆盖原发布版。后续 versionCode 从 3 起。
+外部属性包含 `storeFile`（推荐绝对路径）、`storePassword`、`keyAlias`、`keyPassword`。也可通过 `QINGLIAN_STORE_PASSWORD` / `QINGLIAN_KEY_PASSWORD` 提供密码。没有原私钥时 release 构建为未签名，**不得生成新发布私钥冒充同签名更新**。`assembleDebug` 仅供开发，不能覆盖原发布版。本轮 versionCode 为3，下一次更新继续递增。
 
 原证书 SHA-256：`2e90d97183fbe26c05a8bd67454b0a5d0f5c01633609a335fdff693a4774a870`。公开证书在 `verification/release-certificate.der`，不含私钥。
 
@@ -37,7 +39,7 @@ python3 scripts/verify_release_signature.py app/build/outputs/apk/release/app-re
 
 - [HANDOFF.md](HANDOFF.md)：完整需求、当前边界、关键文件、部署待办及验收。
 - [CODEX_START.md](CODEX_START.md)：可直接用于下一次 Codex 任务。
-- `verification/`：原 16 项自动测试结果、UI 原生绘图截图、公开签名证书。
-- `server/`：未部署的旧原型。**独立仪表盘方案已被用户否定，仅作协议与 TTL 逻辑参考。**
+- `verification/ROUTING_CHECKS.md`：本轮验证；目录内原16项结果及旧预览保留作历史。
+- `server/xui032/`：按对应版本准备的原面板内扩展，尚未部署；`server.py` 和独立仪表盘仅作旧参考。
 
 源码 GPL-3.0；第三方许可证见 LICENSE 与 third_party/。

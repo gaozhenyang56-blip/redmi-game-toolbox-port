@@ -1,1 +1,1 @@
-{"subscriptionUrl":"https://YOUR-DOMAIN/PRIVATE-TRAFFIC-ENDPOINT"}
+{"url":"https://YOUR-DOMAIN/api/v1/quota","clientToken":"PRIVATE_READ_ONLY_CLIENT_TOKEN"}
