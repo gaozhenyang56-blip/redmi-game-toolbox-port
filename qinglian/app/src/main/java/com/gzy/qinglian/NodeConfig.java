@@ -20,8 +20,17 @@ public final class NodeConfig {
   JSONArray ins=new JSONArray()
    .put(new JSONObject().put("tag","socks").put("listen","127.0.0.1").put("port",10808).put("protocol","socks").put("settings",new JSONObject().put("auth","noauth").put("udp",true)))
    .put(new JSONObject().put("tag","http").put("listen","127.0.0.1").put("port",10809).put("protocol","http").put("settings",new JSONObject()));
-  return new JSONObject().put("log",new JSONObject().put("loglevel","none"))
-   .put("inbounds",ins).put("outbounds",new JSONArray().put(outbound)).put("stats",new JSONObject())
+  // Intercept app DNS in the core: cache answers and carry upstream DNS over TCP
+  // inside VMess instead of depending on UDP/53 at the exit. IPv4 answers avoid
+  // handing apps unusable AAAA records on this IPv4-only deployment; IPv6 TUN
+  // routes remain captured so apps with their own resolver cannot leak directly.
+  JSONObject dns=new JSONObject().put("queryStrategy","UseIPv4").put("tag","dns-internal")
+   .put("servers",new JSONArray().put("tcp://1.1.1.1").put("tcp://8.8.8.8"));
+  JSONObject dnsOutbound=new JSONObject().put("tag","dns-out").put("protocol","dns").put("settings",new JSONObject());
+  JSONObject dnsRule=new JSONObject().put("type","field").put("inboundTag",new JSONArray().put("socks").put("http"))
+   .put("port","53").put("network","tcp,udp").put("outboundTag","dns-out");
+  return new JSONObject().put("dns",dns).put("routing",new JSONObject().put("domainStrategy","AsIs").put("rules",new JSONArray().put(dnsRule))).put("log",new JSONObject().put("loglevel","none"))
+   .put("inbounds",ins).put("outbounds",new JSONArray().put(outbound).put(dnsOutbound)).put("stats",new JSONObject())
    .put("policy",new JSONObject().put("system",new JSONObject().put("statsOutboundUplink",true).put("statsOutboundDownlink",true))).toString();
  }
 }

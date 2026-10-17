@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Read-only real VMess probe; private profile/config never enter logs or artifacts."""
-import hashlib,json,os,socket,ssl,subprocess,sys,tempfile,time,urllib.request,zipfile
+import hashlib,json,os,socket,ssl,struct,subprocess,sys,tempfile,time,urllib.request,zipfile
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).parent/'github'))
 from ssh_common import connection,remote_json
@@ -27,11 +27,15 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
   with zipfile.ZipFile(archive) as z:(root/'v2ray').write_bytes(z.read('v2ray'))
   (root/'v2ray').chmod(0o700)
   with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
-  request={'method':'GET','path':[n.get('path') or '/']}
-  if n.get('host'):request['headers']={'Host':[n['host']]}
-  config={'log':{'loglevel':'none'},'inbounds':[{'listen':'127.0.0.1','port':port,'protocol':'http','settings':{}}],
-   'outbounds':[{'tag':'proxy','protocol':'vmess','settings':{'vnext':[{'address':n['add'],'port':n['port'],'users':[{'id':n['id'],'alterId':n.get('aid',0),'security':'auto'}]}]},
-    'streamSettings':{'network':'tcp','security':'none','tcpSettings':{'header':{'type':'http','request':request}}}}]}
+  classpath=os.environ['RUNNER_TEMP']+'/json.jar:'+os.environ['RUNNER_TEMP']+'/qinglian-config'
+  converted=subprocess.run(['java','-cp',classpath,'NodeConfigCli'],input=json.dumps(n).encode(),capture_output=True,timeout=20)
+  assert converted.returncode==0,'App configuration converter failed'
+  config=json.loads(converted.stdout)
+  for inbound in config['inbounds']:
+   if inbound['protocol']=='http':inbound['port']=port
+   else:
+    with socket.socket() as sock:sock.bind(('127.0.0.1',0));socks_port=sock.getsockname()[1]
+    inbound['port']=socks_port
   cfg=root/'config.json';cfg.write_text(json.dumps(config))
   core=subprocess.Popen([str(root/'v2ray'),'run','-c',str(cfg)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
   try:
@@ -46,7 +50,33 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
    elapsed=round((time.monotonic()-start)*1000)
    result=subprocess.run(args+['--output',str(root/'download'),'https://speed.cloudflare.com/__down?bytes=1048576'],capture_output=True,timeout=45)
    assert result.returncode==0 and (root/'download').stat().st_size==1048576,'VMess download failed'
-   print(json.dumps({'vmessHttps204':True,'requestMilliseconds':elapsed,'proxiedDownloadBytes':1048576,'directFallback':False}))
+   # App-style UDP DNS over SOCKS, twice, exercises the exact generated DNS
+   # routing, VMess TCP upstream and warm cache instead of curl's local resolver.
+   def read_exact(stream,count):
+    data=b''
+    while len(data)<count:
+     part=stream.recv(count-len(data));assert part;data+=part
+    return data
+   dns_times=[]
+   with socket.create_connection(('127.0.0.1',socks_port),5) as control,socket.socket(socket.AF_INET,socket.SOCK_DGRAM) as udp:
+    control.settimeout(5);udp.bind(('127.0.0.1',0));udp.settimeout(12)
+    control.sendall(bytes([5,1,0]));assert read_exact(control,2)==bytes([5,0])
+    control.sendall(bytes([5,3,0,1,127,0,0,1])+struct.pack('!H',udp.getsockname()[1]))
+    reply=read_exact(control,4);assert reply[:2]==bytes([5,0]) and reply[3]==1
+    relay_host=socket.inet_ntoa(read_exact(control,4));relay_port=struct.unpack('!H',read_exact(control,2))[0]
+    if relay_host=='0.0.0.0':relay_host='127.0.0.1'
+    for qtype in [1,1,28]:
+     query_id=1000+len(dns_times)
+     name=b''.join(bytes([len(label)])+label.encode() for label in 'example.com'.split('.'))+bytes([0])
+     query=struct.pack('!HHHHHH',query_id,256,1,0,0,0)+name+struct.pack('!HH',qtype,1)
+     start=time.monotonic();udp.sendto(bytes([0,0,0,1,1,1,1,1,0,53])+query,(relay_host,relay_port))
+     packet,_=udp.recvfrom(4096);offset=10 if packet[3]==1 else 22
+     answer=packet[offset:];rid,flags,questions,answers,_,_=struct.unpack('!HHHHHH',answer[:12])
+     assert rid==query_id and flags&32768 and flags&15==0,'DNS response invalid'
+     assert answers>0 if qtype==1 else answers==0,'DNS IPv4 policy failed'
+     dns_times.append(round((time.monotonic()-start)*1000,2))
+   print(json.dumps({'vmessHttps204':True,'requestMilliseconds':elapsed,'proxiedDownloadBytes':1048576,'directFallback':False,
+    'appGeneratedConfiguration':True,'udpDnsViaCore':True,'ipv6DnsNoData':True,'dnsMillisecondsColdWarmAAAA':dns_times}))
   finally:
    core.terminate()
    try:core.wait(timeout=5)

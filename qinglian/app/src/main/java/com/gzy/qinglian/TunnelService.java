@@ -26,8 +26,14 @@ public class TunnelService extends VpnService {
  private final ExecutorService worker=Executors.newSingleThreadExecutor();
  private volatile boolean cancelled=false;
  private ParcelFileDescriptor tun;
- private java.lang.Process relay;
- private CoreController core;
+ private volatile java.lang.Process relay;
+ private volatile CoreController core;
+ private final Object coreLock=new Object();
+ private final java.util.concurrent.atomic.AtomicBoolean recovering=new java.util.concurrent.atomic.AtomicBoolean();
+ private final RecoveryBudget recoveryBudget=new RecoveryBudget();
+ private String runningConfig;
+ private volatile Network underlying;
+ private volatile long connectionEpoch;
  private ConnectivityManager cm;
  private ConnectivityManager.NetworkCallback callback;
  private final Handler main=new Handler(Looper.getMainLooper());
@@ -35,7 +41,7 @@ public class TunnelService extends VpnService {
  @Override public int onStartCommand(Intent i,int flags,int id){
   if(i!=null&&"STOP".equals(i.getAction())) {cancelled=true;status("stopping","正在断开连接");worker.execute(()->{cleanup();stopSelf();});return START_NOT_STICKY;}
   if(!state.equals("disconnected")&&!state.equals("error"))return START_NOT_STICKY;
-  cancelled=false;verified=false;status("connecting","正在启动专属通道");
+  cancelled=false;verified=false;connectionEpoch++;recoveryBudget.reset();status("connecting","正在启动专属通道");
   NotificationManager nm=getSystemService(NotificationManager.class);
   nm.createNotificationChannel(new NotificationChannel("vpn","VPN 连接状态",NotificationManager.IMPORTANCE_LOW));
   if(Build.VERSION.SDK_INT>=34)startForeground(1,notification("正在连接"),ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
@@ -62,16 +68,9 @@ public class TunnelService extends VpnService {
    Libv2ray.initCoreEnv(getFilesDir().getAbsolutePath(),"");
    ProfileMonitor.Profile profile=ProfileMonitor.forConnection(this);String node=profile.node;activeProfileRevision=profile.revision;activeProfileLabel=profile.label;
    String config=NodeConfig.build(node);
-   core=Libv2ray.newCoreController(new CoreCallbackHandler(){public long startup(){return 0;}public long shutdown(){return 0;}public long onEmitStatus(long n,String s){return 0;}});
-   core.startLoop(config);
-   if(!core.getIsRunning())throw new IOException("核心启动失败");
+   runningConfig=config;startCore();
    if(cancelled){cleanup();return;}
-   cm=getSystemService(ConnectivityManager.class);
-   callback=new ConnectivityManager.NetworkCallback(){
-    @Override public void onAvailable(Network n){try{setUnderlyingNetworks(new Network[]{n});}catch(Exception ignored){}}
-    @Override public void onLost(Network n){try{setUnderlyingNetworks(null);}catch(Exception ignored){}}
-   };
-   cm.registerNetworkCallback(new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN).build(),callback);
+   trackNetwork();
    Builder b=new Builder().setSession("轻连 · 专属节点").setMtu(1500)
     .addAddress("10.10.14.1",30).addRoute("0.0.0.0",0).addDnsServer("1.1.1.1").addDnsServer("8.8.8.8")
     .addAddress("fdfe:dcba:9876::1",126).addRoute("::",0);
@@ -79,22 +78,8 @@ public class TunnelService extends VpnService {
    b.setConfigureIntent(PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class),PendingIntent.FLAG_IMMUTABLE));
    if(Build.VERSION.SDK_INT>=29)b.setMetered(false);
    tun=b.establish();if(tun==null)throw new IOException("系统未建立 VPN 接口");
-   File sock=new File(getFilesDir(),"relay.sock");sock.delete();
-   relay=new ProcessBuilder(new File(getApplicationInfo().nativeLibraryDir,"libtun2socks.so").getAbsolutePath(),
-    "--netif-ipaddr","10.10.14.2","--netif-netmask","255.255.255.252","--netif-ip6addr","fdfe:dcba:9876::2",
-    "--socks-server-addr","127.0.0.1:10808","--tunmtu","1500","--sock-path","relay.sock","--enable-udprelay","--loglevel","error")
-    .directory(getFilesDir()).redirectErrorStream(true).start();
-   final java.lang.Process started=relay;
-   Thread drain=new Thread(()->{try(InputStream in=started.getInputStream()){byte[] buf=new byte[1024];while(in.read(buf)!=-1){} }catch(Exception ignored){}});drain.setDaemon(true);drain.start();
-   boolean sent=false;
-   for(int attempt=0;attempt<7&&!cancelled;attempt++){
-    try(LocalSocket socket=new LocalSocket()){
-     socket.connect(new LocalSocketAddress(sock.getAbsolutePath(),LocalSocketAddress.Namespace.FILESYSTEM));
-     socket.setFileDescriptorsForSend(new FileDescriptor[]{tun.getFileDescriptor()});socket.getOutputStream().write(42);sent=true;break;
-    }catch(IOException e){Thread.sleep(50L<<attempt);}
-   }
+   startRelay();
    if(cancelled){cleanup();return;}
-   if(!sent||!relay.isAlive())throw new IOException("转发通道启动失败");
    uploadBytes=0;downloadBytes=0;uploadRate=0;downloadRate=0;statsTick=SystemClock.elapsedRealtime();
    connectedAt=SystemClock.elapsedRealtime();status("connected","通道已建立 · 请测速确认网络可用");
    getSystemService(NotificationManager.class).notify(1,notification("已连接 · VMess"));
@@ -107,22 +92,91 @@ public class TunnelService extends VpnService {
     try{
      if(cancelled||core==null||!state.equals("connected"))return;
      long now=SystemClock.elapsedRealtime(),dt=Math.max(1,now-statsTick);statsTick=now;
-     long up=Math.max(0,core.queryStats("proxy","uplink")),down=Math.max(0,core.queryStats("proxy","downlink"));
-     uploadBytes+=up;downloadBytes+=down;uploadRate=up*1000.0/dt;downloadRate=down*1000.0/dt;
+     synchronized(coreLock){
+      if(core==null)return;
+      if(!core.getIsRunning()||relay==null||!relay.isAlive()){requestRecovery();return;}
+      long up=Math.max(0,core.queryStats("proxy","uplink")),down=Math.max(0,core.queryStats("proxy","downlink"));
+      uploadBytes+=up;downloadBytes+=down;uploadRate=up*1000.0/dt;downloadRate=down*1000.0/dt;
+     }
      if(reporter!=null)reportingStatus=reporter.status;ProfileMonitor.refresh(this,false);
      getSystemService(NotificationManager.class).notify(1,notification("已连接"));
     }catch(Exception ignored){}
    },1,1,TimeUnit.SECONDS);
-   Thread monitor=new Thread(()->{try{started.waitFor();if(!cancelled){worker.execute(()->fail("转发通道已停止，请重新连接"));}}catch(Exception ignored){}});monitor.setDaemon(true);monitor.start();
   }catch(Throwable e){fail(e.getMessage()!=null&&e.getMessage().startsWith("请先")?e.getMessage():"连接失败，请检查网络或重新连接");}
+ }
+ void trackNetwork(){
+   cm=getSystemService(ConnectivityManager.class);
+   final long epoch=connectionEpoch;
+   callback=new ConnectivityManager.NetworkCallback(){
+    private void select(Network n){if(cancelled||connectionEpoch!=epoch)return;underlying=n;try{setUnderlyingNetworks(new Network[]{n});}catch(Exception ignored){}}
+    @Override public void onAvailable(Network n){select(n);}
+    @Override public void onCapabilitiesChanged(Network n,NetworkCapabilities caps){select(n);}
+    @Override public void onLost(Network n){if(cancelled||connectionEpoch!=epoch||!n.equals(underlying))return;underlying=null;try{setUnderlyingNetworks(null);}catch(Exception ignored){}}
+   };
+   // REQUEST chooses one best non-VPN network. LISTEN reports every matching
+   // network and can replace Wi-Fi with idle cellular, including late onLost.
+   cm.requestNetwork(new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN).addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED).build(),callback);
+ }
+ boolean coreHealthy(){synchronized(coreLock){return core!=null&&core.getIsRunning();}}
+ void startCore()throws Exception{
+  synchronized(coreLock){
+   core=Libv2ray.newCoreController(new CoreCallbackHandler(){public long startup(){return 0;}public long shutdown(){return 0;}public long onEmitStatus(long n,String s){return 0;}});
+   core.startLoop(runningConfig);if(!core.getIsRunning())throw new IOException("核心启动失败");
+  }
+ }
+ void stopCore(){synchronized(coreLock){
+  if(core!=null){try{core.stopLoop();}catch(Exception ignored){}core=null;}
+ }}
+ void startRelay()throws Exception{
+  File sock=new File(getFilesDir(),"relay.sock");sock.delete();
+  final java.lang.Process started=new ProcessBuilder(new File(getApplicationInfo().nativeLibraryDir,"libtun2socks.so").getAbsolutePath(),
+   "--netif-ipaddr","10.10.14.2","--netif-netmask","255.255.255.252","--netif-ip6addr","fdfe:dcba:9876::2",
+   "--socks-server-addr","127.0.0.1:10808","--tunmtu","1500","--sock-path","relay.sock","--enable-udprelay","--loglevel","error")
+   .directory(getFilesDir()).redirectErrorStream(true).start();
+  relay=started;
+  Thread drain=new Thread(()->{try(InputStream in=started.getInputStream()){byte[] buf=new byte[1024];while(in.read(buf)!=-1){} }catch(Exception ignored){}});drain.setDaemon(true);drain.start();
+  boolean sent=false;
+  for(int attempt=0;attempt<7&&!cancelled;attempt++){
+   if(!started.isAlive())break;
+   try(LocalSocket socket=new LocalSocket()){
+    socket.connect(new LocalSocketAddress(sock.getAbsolutePath(),LocalSocketAddress.Namespace.FILESYSTEM));
+    socket.setFileDescriptorsForSend(new FileDescriptor[]{tun.getFileDescriptor()});socket.getOutputStream().write(42);sent=true;break;
+   }catch(IOException e){Thread.sleep(50L<<attempt);}
+  }
+  if(cancelled)return;
+  if(!sent||!started.isAlive())throw new IOException("转发通道启动失败");
+  Thread monitor=new Thread(()->{try{started.waitFor();if(!cancelled&&relay==started)requestRecovery();}catch(InterruptedException ignored){Thread.currentThread().interrupt();}});
+  monitor.setDaemon(true);monitor.start();
+ }
+ void stopRelay(){
+  java.lang.Process previous=relay;relay=null;
+  if(previous!=null){previous.destroy();try{if(!previous.waitFor(500,TimeUnit.MILLISECONDS)){previous.destroyForcibly();previous.waitFor(500,TimeUnit.MILLISECONDS);}}catch(InterruptedException e){Thread.currentThread().interrupt();}}
+ }
+ void requestRecovery(){
+  if(cancelled||!recovering.compareAndSet(false,true))return;
+  final long epoch=connectionEpoch;
+  try{worker.execute(()->{try{
+   while(!cancelled&&epoch==connectionEpoch){
+    long delay=recoveryBudget.nextDelay(SystemClock.elapsedRealtime());
+    if(delay<0){fail("通道反复异常，已停止重试，请重新连接");return;}
+    verified=false;uploadRate=downloadRate=0;status("reconnecting","通道异常，正在自动恢复");
+    getSystemService(NotificationManager.class).notify(1,notification(message));
+    try{
+     Thread.sleep(delay);if(cancelled||epoch!=connectionEpoch)return;
+     stopRelay();if(!coreHealthy()){stopCore();startCore();}if(cancelled)return;startRelay();if(cancelled)return;
+     statsTick=SystemClock.elapsedRealtime();status("connected","通道已恢复 · 请继续使用");
+     getSystemService(NotificationManager.class).notify(1,notification(message));return;
+    }catch(Exception retry){if(cancelled)return;}
+   }
+  }finally{recovering.set(false);}});}catch(RejectedExecutionException stopped){recovering.set(false);}
  }
  private void fail(String reason){cancelled=true;cleanup();status("error",reason);stopSelf();}
  private void cleanup(){
   if(reporter!=null){reporter.close();reporter=null;}reportingStatus="已断开 · 离线状态以服务端为准";
-  cancelled=true;verified=false;connectedAt=0;uploadRate=0;downloadRate=0;
+  cancelled=true;connectionEpoch++;underlying=null;verified=false;connectedAt=0;uploadRate=0;downloadRate=0;
   if(statsWorker!=null){statsWorker.shutdownNow();statsWorker=null;}
-  if(relay!=null){relay.destroy();relay=null;}
-  if(core!=null){try{core.stopLoop();}catch(Exception ignored){} core=null;}
+  stopRelay();stopCore();
   if(tun!=null){try{tun.close();}catch(Exception ignored){}tun=null;}
   if(callback!=null&&cm!=null){try{cm.unregisterNetworkCallback(callback);}catch(Exception ignored){}callback=null;}
   new File(getFilesDir(),"relay.sock").delete();

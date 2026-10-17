@@ -5,7 +5,7 @@ import org.json.*;
 public class ConfigTest {
  private String fixture(){return "{\"id\":\"11111111-1111-4111-8111-111111111111\",\"add\":\"192.0.2.1\",\"port\":443,\"aid\":0,\"net\":\"tcp\",\"type\":\"http\",\"host\":\"\",\"path\":\"/\",\"tls\":\"none\"}";}
  @Test public void preservesHttpCamouflageAndOneProxy()throws Exception{
-  JSONObject c=new JSONObject(NodeConfig.build(fixture()));JSONArray out=c.getJSONArray("outbounds");assertEquals(1,out.length());assertEquals("vmess",out.getJSONObject(0).getString("protocol"));
+  JSONObject c=new JSONObject(NodeConfig.build(fixture()));JSONArray out=c.getJSONArray("outbounds");assertEquals(2,out.length());assertEquals("vmess",out.getJSONObject(0).getString("protocol"));
   JSONObject stream=out.getJSONObject(0).getJSONObject("streamSettings");assertEquals("none",stream.getString("security"));assertEquals("http",stream.getJSONObject("tcpSettings").getJSONObject("header").getString("type"));
   assertEquals("/",stream.getJSONObject("tcpSettings").getJSONObject("header").getJSONObject("request").getJSONArray("path").getString(0));
   assertEquals(2,c.getJSONArray("inbounds").length());for(int i=0;i<c.getJSONArray("inbounds").length();i++){assertEquals("127.0.0.1",c.getJSONArray("inbounds").getJSONObject(i).getString("listen"));}
