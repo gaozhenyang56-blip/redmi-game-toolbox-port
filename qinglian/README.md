@@ -1,12 +1,14 @@
 # 轻连 — Android 单节点 VPN，Codex 交接工程
 
-**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.0.3-preview`，versionCode `4`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
+**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.0.4-preview`，versionCode `5`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
 
 已完成标准 Material 3、默认亮色和亮色自适应图标；支持浅色/深色/跟随系统切换。包含延迟/下载测速、每秒通知栏速度与本次用量、Surfboard风格黑白名单及规则/全局模式。
 
 真实服务器已通过GitHub SSH完成加密一致性备份，并部署原x-ui内的“轻连 App”页面，沿用原面板登录。管理员从现有兼容入站选择App节点；App自动获取，重连生效，不提供节点/API编辑入口。在线数量、真实配额和设备心跳通过专用HTTPS API接入。
 
 最终私有APK使用原发布签名，包含构建固定的API资产和API专用CA；私有资产与APK不上传公开Git。手机安装和实际应用分流尚无实机验证，详见验证记录。
+
+本轮性能更新：最佳底层网络跟踪、经VMess的TCP DNS与核心缓存、通道异常有限自动恢复、官方核心延迟测试，以及底部重复系统栏间距修复。真实节点与DNS路径已通过运行器检查，实际手机提升仍需同节点同网络复测。
 
 ## 快速验证
 
@@ -31,7 +33,7 @@ python3 scripts/prepare_dependencies.py
 python3 scripts/verify_release_signature.py app/build/outputs/apk/release/app-release.apk --apksigner /path/to/apksigner
 ```
 
-外部属性包含 `storeFile`（推荐绝对路径）、`storePassword`、`keyAlias`、`keyPassword`。也可通过 `QINGLIAN_STORE_PASSWORD` / `QINGLIAN_KEY_PASSWORD` 提供密码。没有原私钥时 release 构建为未签名，**不得生成新发布私钥冒充同签名更新**。`assembleDebug` 仅供开发，不能覆盖原发布版。本轮 versionCode 为4，下一次更新继续递增。
+外部属性包含 `storeFile`（推荐绝对路径）、`storePassword`、`keyAlias`、`keyPassword`。也可通过 `QINGLIAN_STORE_PASSWORD` / `QINGLIAN_KEY_PASSWORD` 提供密码。没有原私钥时 release 构建为未签名，**不得生成新发布私钥冒充同签名更新**。`assembleDebug` 仅供开发，不能覆盖原发布版。本轮 versionCode 为5，下一次更新继续递增。
 
 原证书 SHA-256：`2e90d97183fbe26c05a8bd67454b0a5d0f5c01633609a335fdff693a4774a870`。公开证书在 `verification/release-certificate.der`，不含私钥。
 

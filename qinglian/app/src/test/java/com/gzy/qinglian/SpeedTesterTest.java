@@ -35,4 +35,16 @@ public class SpeedTesterTest {
    try{Result r=new Result();t.latency(r);assertTrue(server.arrived.await(3,TimeUnit.SECONDS));t.stop();assertFalse(r.latch.await(1,TimeUnit.SECONDS));assertNull(r.success);assertNull(r.error);}finally{t.close();}
   }
  }
+ @Test public void reportsCoreProbeAndNeverFallsBackWhenCoreFails()throws Exception{
+  SpeedTester t=new SpeedTester("http://unused.invalid/","http://unused.invalid/",Proxy.NO_PROXY,()->137L);
+  try{Result r=new Result();t.latency(r);assertTrue(r.latch.await(3,TimeUnit.SECONDS));assertEquals("137 ms",r.success);assertNull(r.error);}finally{t.close();}
+  SpeedTester failed=new SpeedTester("http://unused.invalid/","http://unused.invalid/",Proxy.NO_PROXY,()->{throw new IOException();});
+  try{Result r=new Result();failed.latency(r);assertTrue(r.latch.await(3,TimeUnit.SECONDS));assertNotNull(r.error);assertNull(r.success);}finally{failed.close();}
+ }
+ @Test public void cancelledCoreProbeCannotPublishStaleResult()throws Exception{
+  CountDownLatch entered=new CountDownLatch(1),release=new CountDownLatch(1);
+  SpeedTester t=new SpeedTester("http://unused.invalid/","http://unused.invalid/",Proxy.NO_PROXY,()->{entered.countDown();try{release.await();}catch(InterruptedException ignored){}return 42;});
+  try{Result r=new Result();t.latency(r);assertTrue(entered.await(3,TimeUnit.SECONDS));t.stop();release.countDown();assertFalse(r.latch.await(300,TimeUnit.MILLISECONDS));assertNull(r.success);assertNull(r.error);}finally{release.countDown();t.close();}
+ }
+
 }

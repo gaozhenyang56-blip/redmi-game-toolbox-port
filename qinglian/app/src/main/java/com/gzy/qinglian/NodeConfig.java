@@ -22,7 +22,7 @@ public final class NodeConfig {
    .put(new JSONObject().put("tag","http").put("listen","127.0.0.1").put("port",10809).put("protocol","http").put("settings",new JSONObject()));
   // Intercept app DNS in the core: cache answers and carry upstream DNS over TCP
   // inside VMess instead of depending on UDP/53 at the exit. IPv4 answers avoid
-  // handing apps unusable AAAA records on this IPv4-only deployment; IPv6 TUN
+  // handing apps unusable AAAA records when the exit has no usable IPv6 connectivity; IPv6 TUN
   // routes remain captured so apps with their own resolver cannot leak directly.
   JSONObject dns=new JSONObject().put("queryStrategy","UseIPv4").put("tag","dns-internal")
    .put("servers",new JSONArray().put("tcp://1.1.1.1").put("tcp://8.8.8.8"));

@@ -7,11 +7,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /** Every request explicitly uses the local core. Never falls back to DIRECT. */
 public final class SpeedTester {
+ interface DelayProbe {long measure()throws Exception;}
  public interface Listener {void update(double mbps,long bytes,double fraction);void done(String text);void failed(String text);}
  private final AtomicInteger generation=new AtomicInteger();
- private final String delayUrl,downloadUrl;private final Proxy proxy;
- public SpeedTester(){this("https://www.gstatic.com/generate_204","https://speed.cloudflare.com/__down?bytes=33554432",new Proxy(Proxy.Type.HTTP,new InetSocketAddress("127.0.0.1",10809)));}
- SpeedTester(String delay,String down,Proxy proxy){this.delayUrl=delay;this.downloadUrl=down;this.proxy=proxy;}
+ private final String delayUrl,downloadUrl;private final Proxy proxy;private final DelayProbe delayProbe;
+ public SpeedTester(){this("https://www.gstatic.com/generate_204","https://speed.cloudflare.com/__down?bytes=33554432",new Proxy(Proxy.Type.HTTP,new InetSocketAddress("127.0.0.1",10809)),TunnelService::measureDelay);}
+ SpeedTester(String delay,String down,Proxy proxy){this(delay,down,proxy,null);}
+ SpeedTester(String delay,String down,Proxy proxy,DelayProbe probe){this.delayUrl=delay;this.downloadUrl=down;this.proxy=proxy;this.delayProbe=probe;}
  private boolean cancelled(int run){return generation.get()!=run||Thread.currentThread().isInterrupted();}
  private volatile HttpURLConnection active;
  private volatile Future<?> job;
@@ -26,6 +28,10 @@ public final class SpeedTester {
  public synchronized void latency(Listener l){
   if(running())return;final int run=generation.incrementAndGet();
   job=executor.submit(()->{try{
+   if(delayProbe!=null){
+    long value=delayProbe.measure();if(value<0)throw new IOException();
+    if(!cancelled(run)){l.update(value,1,1);l.done(value+" ms");}return;
+   }
    long[] values=new long[3];
    for(int i=0;i<3;i++){
     if(cancelled(run))return;

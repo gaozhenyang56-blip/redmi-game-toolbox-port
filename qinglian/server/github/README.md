@@ -5,7 +5,7 @@
 - qinglian-server-check.yml：只读系统/版本/架构/路径/schema。首次缺Secret失败，配置后成功。
 - qinglian-server-backup.yml：部署前一致性SQLite、原二进制、服务与配置目录；AES256-GCM加密、RSA4096-OAEP封装密钥。run39047010715成功；下载后GCM/哈希/SQLite quick_check通过。
 - qinglian-server-deploy.yml：匹配Ubuntu24.04构建，SDK哈希固定，精确x-ui源码及race测试。首次原子部署并校验原登录/设备页/选择保存/配置计数保留/权限隔离/外部TLS。run39048482539成功。已有配置拒绝重跑，后续升级需单独方案。
-- qinglian-node-probe.yml：读取当前profile，校验官方V2Ray5.54.2包SHA256，经显式代理Google204与1MiB下载，无DIRECT回退。不会生成生产设备记录，不代替AndroidTUN测试。
+- qinglian-node-probe.yml：读取当前profile，校验官方V2Ray5.54.2包SHA256，使用Java编译App的NodeConfig生成配置，经显式代理Google204与1MiB下载，并验证SOCKS UDP DNS冷/热缓存及AAAA策略，无DIRECT回退。不会生成生产设备记录，不代替AndroidTUN测试。
 
 必需Secrets QINGLIAN_SSH_HOST、QINGLIAN_SSH_PASSWORD；可选USER默认root，PORT默认22。集成Secrets API403不影响用户手工配置。脚本固定主机指纹，不自动信任未知主机。
 

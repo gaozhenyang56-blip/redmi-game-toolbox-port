@@ -100,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
  }
  private void speed(){
   body.addView(text("网络测速",24,true));space(body,8);body.addView(note("所有测试都通过唯一节点进行"));space(body,20);
-  LinearLayout c=card(com.google.android.material.R.attr.colorSurfaceContainer);c.addView(note("连接延迟 / 三次中位数"));space(c,8);latencyValue=text(latency,32,true);c.addView(latencyValue);space(c,8);c.addView(note("包含代理连接与 HTTPS 握手时间"));space(c,12);
+  LinearLayout c=card(com.google.android.material.R.attr.colorSurfaceContainer);c.addView(note("核心延迟 / 连接复用"));space(c,8);latencyValue=text(latency,32,true);c.addView(latencyValue);space(c,8);c.addView(note("与 v2rayNG 使用相同核心测试；两次请求取较小值"));space(c,12);
   delayButton=button("测试延迟");delayButton.setOnClickListener(v->runDelay());c.addView(delayButton);
   LinearLayout d=card(com.google.android.material.R.attr.colorSecondaryContainer);d.addView(note("下载速度"));space(d,8);downloadValue=text(download,32,true);downloadValue.setTextColor(color(com.google.android.material.R.attr.colorOnSecondaryContainer));d.addView(downloadValue);space(d,12);
   graph=new Graph(this);d.addView(graph,new LinearLayout.LayoutParams(-1,dp(100)));space(d,12);
@@ -188,8 +188,8 @@ public class MainActivity extends AppCompatActivity {
  private void runDelay(){if(!ready())return;testSession++;testing=true;testKind=1;latency="测试中…";detail="延迟测试 0 / 3";refresh();tester.latency(listener(false));}
  private void runDownload(){if(!ready())return;testSession++;testing=true;testKind=2;download="准备中…";detail="正在连接测速站点…";if(graph!=null)graph.clear();refresh();tester.download(listener(true));}
  private SpeedTester.Listener listener(boolean dl){final int session=testSession;return new SpeedTester.Listener(){
-  public void update(double value,long bytes,double frac){main.post(()->{if(!testing||isDestroyed()||session!=testSession)return;if(dl){download=String.format(Locale.CHINA,"%.2f Mbps",value);detail="已接收 "+TunnelService.size(bytes);if(graph!=null)graph.add((float)value);}else{latency=String.format(Locale.CHINA,"%.0f ms",value);detail="延迟测试 "+bytes+" / 3";}if(progress!=null)progress.setProgressCompat((int)(frac*100),true);refresh();});}
-  public void done(String result){main.post(()->{if(!testing||isDestroyed()||session!=testSession)return;testing=false;testKind=0;TunnelService.verified=true;if(dl){detail=result;download=result.split(" · ")[0].replace("平均 ","");}else{latency=result;detail="延迟测试完成 · 采用三次测试的中位数";}if(progress!=null)progress.setProgressCompat(100,true);refresh();});}
+  public void update(double value,long bytes,double frac){main.post(()->{if(!testing||isDestroyed()||session!=testSession)return;if(dl){download=String.format(Locale.CHINA,"%.2f Mbps",value);detail="已接收 "+TunnelService.size(bytes);if(graph!=null)graph.add((float)value);}else{latency=String.format(Locale.CHINA,"%.0f ms",value);detail="核心延迟测量完成";}if(progress!=null)progress.setProgressCompat((int)(frac*100),true);refresh();});}
+  public void done(String result){main.post(()->{if(!testing||isDestroyed()||session!=testSession)return;testing=false;testKind=0;TunnelService.verified=true;if(dl){detail=result;download=result.split(" · ")[0].replace("平均 ","");}else{latency=result;detail="延迟测试完成 · 核心两次请求取较小值（可复用连接）";}if(progress!=null)progress.setProgressCompat(100,true);refresh();});}
   public void failed(String error){main.post(()->{if(!testing||isDestroyed()||session!=testSession)return;testing=false;testKind=0;if(dl)download="失败";else latency="失败";detail=error;refresh();});}
  };}
  private void toggle(){String s=TunnelService.state;if(s.equals("connected")||s.equals("connecting")||s.equals("reconnecting")){testSession++;tester.stop();testing=false;testKind=0;startService(new Intent(this,TunnelService.class).setAction("STOP"));return;}

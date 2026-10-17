@@ -12,6 +12,8 @@ import java.util.concurrent.*;
 import libv2ray.*;
 
 public class TunnelService extends VpnService {
+ private static volatile TunnelService activeService;
+ @Override public void onCreate(){super.onCreate();activeService=this;}
  public static volatile String state="disconnected", message="轻触连接，开启专属通道";
  public static volatile long connectedAt=0;
  public static volatile boolean verified=false;
@@ -171,6 +173,21 @@ public class TunnelService extends VpnService {
    }
   }finally{recovering.set(false);}});}catch(RejectedExecutionException stopped){recovering.set(false);}
  }
+ static long measureDelay()throws Exception{
+  TunnelService service=activeService;
+  if(service==null||!state.equals("connected")||service.cancelled)throw new IOException("通道未连接");
+  CoreController controller=service.core;long epoch=service.connectionEpoch;
+  if(controller==null)throw new IOException("核心不可用");
+  // Same API and primary/backup URLs as v2rayNG 1.9.46. The native core
+  // performs two requests with keep-alive and returns their minimum duration.
+  long result=-1;
+  for(String url:new String[]{"https://www.gstatic.com/generate_204","https://www.google.com/generate_204"}){
+   if(Thread.currentThread().isInterrupted()||service.cancelled||epoch!=service.connectionEpoch||controller!=service.core)throw new InterruptedIOException();
+   try{result=controller.measureDelay(url);if(result>=0)break;}catch(Exception unavailable){result=-1;}
+  }
+  if(result<0||service.cancelled||epoch!=service.connectionEpoch||controller!=service.core||!state.equals("connected"))throw new IOException("延迟测试失败");
+  return result;
+ }
  private void fail(String reason){cancelled=true;cleanup();status("error",reason);stopSelf();}
  private void cleanup(){
   if(reporter!=null){reporter.close();reporter=null;}reportingStatus="已断开 · 离线状态以服务端为准";
@@ -184,5 +201,5 @@ public class TunnelService extends VpnService {
   main.post(()->stopForeground(STOP_FOREGROUND_REMOVE));
  }
  @Override public void onRevoke(){cancelled=true;worker.execute(()->{cleanup();stopSelf();});}
- @Override public void onDestroy(){cancelled=true;worker.execute(this::cleanup);worker.shutdown();super.onDestroy();}
+ @Override public void onDestroy(){if(activeService==this)activeService=null;cancelled=true;worker.execute(this::cleanup);worker.shutdown();super.onDestroy();}
 }

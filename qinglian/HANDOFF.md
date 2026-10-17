@@ -1,3 +1,15 @@
+# 性能与稳定性更新（versionCode5）
+
+用户实机反馈网页/视频/下载更慢、稳定性不足、测速延迟偏高，并上传截图要求去除底部留白。此次保留同节点/同核心，不改生产入站或服务器参数。
+
+- 网络选择对齐v2rayNG1.9.46：requestNetwork请求单个最佳非VPN网络，增加普通CHANGE_NETWORK_STATE权限；处理能力更新和旧网络迟到onLost，停止后的回调无效。
+- App UDP/TCP53路由至核心DNS outbound，内部DNS使用TCP经VMess到1.1.1.1/8.8.8.8，带核心缓存，UseIPv4优先避免未确认可用的IPv6出口等待；IPv6 TUN路由保留捕获，不引入IPv6直连。没有DNS DIRECT出口。
+- 转发进程退出自动恢复，健康核心保留；核心停止则重启核心，保留TUN、分流、当前profile和累计用量。单个worker串行，去重、取消保护、连接代际校验，60秒最多3次、500/1000/2000ms退避，反复异常明确停止而非无限循环。
+- 测速延迟改用CoreController.measureDelay，主/备用URL与v2rayNG1.9.46相同。核心内部两次请求复用连接取较小值；UI明确此算法。此前三次强制冷连接中位数与之不可直接比较。没有修改延迟数值，没有DIRECT回退。
+- 底部由根布局处理系统栏insets并消费，阻止BottomNavigationView再次增加底部padding；系统导航按钮保留。覆盖非零insets及重复分发的布局回归。
+- 真服务器探测run39079192014成功：使用Java直接编译App的NodeConfig生成真实配置，经过VMess完成HTTPS204和1MiB下载；App形式UDP DNS经SOCKS入口验证，冷/热/AAAA查询22.9/0.11/0.08ms，AAAA空响应正常。运行器HTTPS56ms不是用户手机延迟，不作为提升幅度。
+- 版本1.0.4-preview/versionCode5，原签名不变。下一版至少6。手机侧实际性能、网络切换、进程恢复仍未通过实体设备复测，不能声称已与v2rayNG性能持平。
+
 # 本轮交付状态（2026-10-17）
 
 当前版本 `1.0.3-preview` / versionCode `4`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。下方原交接仅作历史，冲突以本节为准。
@@ -9,7 +21,7 @@
 - 真实在线数量每5秒、配额每60秒更新；失败/过期不伪造零，total0不限量，expire为秒。设备心跳绑定VPN服务，每10秒、断开离线、generation/sequence隔离旧会话，30秒无心跳离线。安装ID随机，不收集IMEI/浏览内容；首次使用有上报说明。
 - GitHub Actions SSH已成功。实查Ubuntu24.04 x86_64/glibc2.39、x-ui0.3.2/Xray1.4.2。部署前完整目录/原二进制/SQLite一致性数据库/服务单元已加密备份并下载校验，SQLite quick_check通过。服务器保留 `/usr/local/x-ui/x-ui.qinglian-previous` 回滚二进制。
 - x-ui覆盖层已部署（Actions39048482539成功）。原面板登录/设备页、选择列表及同ID保存、原入站未改变、计数未重置、App令牌不能读管理员明细均已在线检查。App专用11452端口严格HTTPS，仅开放四个App路由；私有CA限此API使用，保留主机名验证。原面板HTTP地址保持原样。
-- 最终APK含真实node/online/quota/telemetry/profile资产及API CA公开证书；不含root/面板密码、签名私钥或TLS私钥。私有资产和APK不提交公开Git。保留原签名，证书指纹见 verification/RELEASE_CERT_SHA256。下一版 versionCode至少5。
+- 最终APK含真实node/online/quota/telemetry/profile资产及API CA公开证书；不含root/面板密码、签名私钥或TLS私钥。私有资产和APK不提交公开Git。保留原签名，证书指纹见 verification/RELEASE_CERT_SHA256。历史v4基线；此轮已递增5。
 - 验证详情和实际限制见 [verification/ROUTING_CHECKS.md](verification/ROUTING_CHECKS.md)。没有手机覆盖安装、Android实际TUN/黑白名单出网或两台真实手机验收；不能把Robolectric或Linux探测说成手机测试。
 
 ## 原交接历史（versionCode2）

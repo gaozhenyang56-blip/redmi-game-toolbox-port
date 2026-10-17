@@ -10,7 +10,7 @@
 - 在线设备详情必须直接整合到用户现有 x-ui 面板。不要把 server/ 中的独立仪表盘原型作为最终方案。
 - 不存在订阅链接，勿再次把订阅链接当作前置要求；需要服务器只读 API。
 - 应用分流采用黑名单（所选应用直连）/白名单（仅所选应用走VPN），名单独立保存；连接页规则/全局切换，全局忽略名单，修改后重连生效。
-- 必须保留当前正式签名。不得生成新发布私钥替代；证书指纹见 verification/RELEASE_CERT_SHA256。当前版本 versionCode 为4，下一版从5起递增。
+- 必须保留当前正式签名。不得生成新发布私钥替代；证书指纹见 verification/RELEASE_CERT_SHA256。当前版本 versionCode 为5，下一版从6起递增。
 - 真实 VMess、服务器密码、面板凭据、签名私钥和密码禁止进入 Git 或公开日志。要求用户通过私密文件或 Secret 提供。
 
 ## 当前边界与验证
@@ -20,3 +20,5 @@
 - 修改根目录仅限用户要求的 `.github/workflows/qinglian-*.yml`；原Redmi工程不修改。
 - 构建JDK17/SDK35/Gradle8.9；prepare_dependencies.py验证固定依赖，再assembleRelease testReleaseUnitTest lintRelease。原签名从私有路径导入，不新建发布密钥。
 - 自动检查和真实部署记录见 verification/ROUTING_CHECKS.md。没有实机VPN/覆盖升级/两手机验证，不得夸大。
+
+最新性能/稳定性更新及底部留白修复见HANDOFF.md首节。延迟采用官方核心API，不伪造数据；DNS必须经VMess，恢复需有预算、取消及代际隔离。
