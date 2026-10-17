@@ -1,0 +1,20 @@
+Upstream versions and sources
+
+AndroidLibV2rayLite v5.54.2
+https://github.com/2dust/AndroidLibV2rayLite/releases/tag/v5.54.2
+The AAR is repackaged to retain arm64-v8a only and remove unused geo databases. No Java or native code is changed.
+
+V2Ray core v5.54.2
+https://github.com/v2fly/v2ray-core/releases/tag/v5.54.2
+
+BadVPN tun2socks binary is from v2rayNG 1.9.46 arm64-v8a release:
+https://github.com/2dust/v2rayNG/releases/tag/1.9.46
+https://github.com/XTLS/badvpn
+https://github.com/shadowsocks/libancillary
+The Android tunnel lifecycle and FD relay integration is adapted from v2rayNG under GPL-3.0.
+
+Native icon design: original repo-native Android VectorDrawable, matching SVG in design/.
+
+SHA-256
+libv2ray.aar b257744a0ba197f5f55f75e22ae17ec696f9a0598f05b0e0d996a58697531853
+libtun2socks.so 0a4f55221fce660527afbcc07ff93a34f4df61b903967595a92a48ada13e21a4

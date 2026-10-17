@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="com.gzy.qinglian.ConfigTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-17T14:59:24" hostname="a775e0e0d8ba" time="0.012">
+  <testcase name="convertsBytesPerSecondToMegabits" classname="com.gzy.qinglian.ConfigTest" time="0.002" />
+  <testcase name="rejectsUnsupportedTransport" classname="com.gzy.qinglian.ConfigTest" time="0.005" />
+  <testcase name="rejectsMalformedId" classname="com.gzy.qinglian.ConfigTest" time="0.001" />
+  <testcase name="preservesHttpCamouflageAndOneProxy" classname="com.gzy.qinglian.ConfigTest" time="0.002" />
+  <testcase name="rejectsInvalidPort" classname="com.gzy.qinglian.ConfigTest" time="0.0" />
+  </testsuite>
