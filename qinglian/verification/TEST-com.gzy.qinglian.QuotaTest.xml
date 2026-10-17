@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="com.gzy.qinglian.QuotaTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-17T14:59:24" hostname="a775e0e0d8ba" time="0.008">
+  <testcase name="exhaustedQuotaIsZero" classname="com.gzy.qinglian.QuotaTest" time="0.001" />
+  <testcase name="missingFieldIsNotZero" classname="com.gzy.qinglian.QuotaTest" time="0.0" />
+  <testcase name="negativeTrafficRejected" classname="com.gzy.qinglian.QuotaTest" time="0.0" />
+  <testcase name="noHeaderIsUnknown" classname="com.gzy.qinglian.QuotaTest" time="0.0" />
+  <testcase name="zeroTotalIsUnlimited" classname="com.gzy.qinglian.QuotaTest" time="0.0" />
+  <testcase name="computesServerRemaining" classname="com.gzy.qinglian.QuotaTest" time="0.0" />
+  </testsuite>

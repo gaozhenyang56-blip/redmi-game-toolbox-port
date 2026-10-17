@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="com.gzy.qinglian.SpeedTesterTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-17T14:59:24" hostname="a775e0e0d8ba" time="1.074">
+  <testcase name="measuresRealResponseAndReportsFailure" classname="com.gzy.qinglian.SpeedTesterTest" time="0.031" />
+  <testcase name="rejectsBadHttpResponse" classname="com.gzy.qinglian.SpeedTesterTest" time="0.011" />
+  <testcase name="cancellationDoesNotProduceCompletion" classname="com.gzy.qinglian.SpeedTesterTest" time="1.024" />
+  <testcase name="neverFallsBackToDirectWhenProxyFails" classname="com.gzy.qinglian.SpeedTesterTest" time="0.008" />
+  </testsuite>

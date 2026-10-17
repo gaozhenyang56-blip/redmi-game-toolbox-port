@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="com.gzy.qinglian.UiTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-17T14:59:26" hostname="a775e0e0d8ba" time="5.912">
+  <testcase name="opensAndNavigatesAllPages" classname="com.gzy.qinglian.UiTest" time="5.912" />
+  </testsuite>

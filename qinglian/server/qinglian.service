@@ -1,0 +1,19 @@
+[Unit]
+Description=Qinglian device presence
+After=network.target
+[Service]
+Type=simple
+User=qinglian
+Group=qinglian
+WorkingDirectory=/opt/qinglian
+EnvironmentFile=/etc/qinglian.env
+ExecStart=/usr/bin/python3 /opt/qinglian/server.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/qinglian
+[Install]
+WantedBy=multi-user.target
