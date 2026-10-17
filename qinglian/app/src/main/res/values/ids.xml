@@ -3,4 +3,5 @@
  <item type="id" name="nav_speed"/>
  <item type="id" name="nav_routing"/>
  <item type="id" name="nav_about"/>
+ <item type="id" name="menu_appearance"/>
 </resources>

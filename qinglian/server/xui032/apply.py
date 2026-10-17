@@ -9,10 +9,16 @@ if head!=BASE:raise SystemExit('Refusing unsupported upstream commit; inspect th
 if subprocess.check_output(['git','-C',str(source),'status','--porcelain'],text=True).strip():raise SystemExit('Source tree must be clean.')
 web=source/'web/web.go';text=web.read_text();needle='\ts.xui = controller.NewXUIController(g)'
 if text.count(needle)!=1:raise SystemExit('Unexpected router layout')
-text=text.replace(needle,needle+'\n\tcontroller.NewQinglianController(g)')
+text=text.replace(needle,needle+'\n\ts.qinglian = controller.NewQinglianController(g)')
+def replace_once(text,needle,replacement):
+    if text.count(needle)!=1:raise SystemExit('Unexpected server lifecycle layout')
+    return text.replace(needle,replacement)
+text=replace_once(text,'\txui    *controller.XUIController','\txui    *controller.XUIController\n\tqinglian *controller.QinglianController')
+text=replace_once(text,'\t\ts.httpServer.Serve(listener)\n\t}()','\t\ts.httpServer.Serve(listener)\n\t}()\n\tif s.qinglian != nil { if err := s.qinglian.StartTLS(engine); err != nil { logger.Warning("Qinglian TLS API unavailable") } }')
+text=replace_once(text,'\treturn common.Combine(err1, err2)','\tif s.qinglian != nil { s.qinglian.Close() }\n\treturn common.Combine(err1, err2)')
 sider=source/'web/html/xui/common_sider.html';menu=sider.read_text();needle='<a-menu-item key="{{ .base_path }}xui/setting">'
 if menu.count(needle)!=1:raise SystemExit('Unexpected menu layout')
-menu=menu.replace(needle,'<a-menu-item key="{{ .base_path }}xui/qinglian"><a-icon type="laptop"></a-icon><span>在线设备</span></a-menu-item>\n'+needle)
+menu=menu.replace(needle,'<a-menu-item key="{{ .base_path }}xui/qinglian"><a-icon type="laptop"></a-icon><span>轻连 App</span></a-menu-item>\n'+needle)
 mod=source/'go.mod';modules=mod.read_text();needle='require (\n'
 if modules.count(needle)!=1:raise SystemExit('Unexpected dependency layout')
 modules=modules.replace(needle,needle+'\tgithub.com/mattn/go-sqlite3 v1.14.5\n')

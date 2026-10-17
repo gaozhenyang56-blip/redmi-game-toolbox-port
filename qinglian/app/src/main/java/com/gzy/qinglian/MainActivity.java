@@ -22,7 +22,7 @@ public class MainActivity extends AppCompatActivity {
  private com.google.android.material.bottomnavigation.BottomNavigationView nav;
  static final int NAV_CONNECT=R.id.nav_connect,NAV_SPEED=R.id.nav_speed,NAV_ROUTING=R.id.nav_routing,NAV_ABOUT=R.id.nav_about;
  private static final int[] NAV_ITEMS={NAV_CONNECT,NAV_SPEED,NAV_ROUTING,NAV_ABOUT};
- private TextView quotaValue,quotaDetail,onlineValue,onlineDetail,reportDetail;
+ private TextView quotaValue,quotaDetail,onlineValue,onlineDetail,reportDetail,profileDetail;
  private TextView status,caption,clock,up,down,upTotal,downTotal,latencyValue,downloadValue,testDetail;
  private MaterialButton power,delayButton,downloadButton,stopButton;
  private LinearProgressIndicator progress;
@@ -33,9 +33,9 @@ public class MainActivity extends AppCompatActivity {
  private String lastState="",latency="—",download="—",detail="测速数据通过专属节点获取";
  private int testKind=0;private int testSession=0;
  private boolean testing=false;
- private final Runnable ticker=new Runnable(){public void run(){QuotaMonitor.refresh(MainActivity.this,false);OnlineMonitor.refresh(MainActivity.this,false);refresh();main.postDelayed(this,500);}};
+ private final Runnable ticker=new Runnable(){public void run(){ProfileMonitor.refresh(MainActivity.this,false);QuotaMonitor.refresh(MainActivity.this,false);OnlineMonitor.refresh(MainActivity.this,false);refresh();main.postDelayed(this,500);}};
  @Override public void onCreate(Bundle b){
-  DynamicColors.applyToActivityIfAvailable(this);super.onCreate(b);
+  AppAppearance.apply(this);DynamicColors.applyToActivityIfAvailable(this);super.onCreate(b);
   WindowCompat.setDecorFitsSystemWindows(getWindow(),false);
   if(b!=null){latency=b.getString("latency","—");download=b.getString("download","—");tab=b.getInt("tab",0);}
   root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(color(com.google.android.material.R.attr.colorSurface));
@@ -45,7 +45,9 @@ public class MainActivity extends AppCompatActivity {
   new WindowInsetsControllerCompat(getWindow(),root).setAppearanceLightStatusBars(!night);
   new WindowInsetsControllerCompat(getWindow(),root).setAppearanceLightNavigationBars(!night);
   com.google.android.material.appbar.MaterialToolbar toolbar=new com.google.android.material.appbar.MaterialToolbar(this);
-  toolbar.setTitle("轻连");toolbar.setBackgroundColor(color(com.google.android.material.R.attr.colorSurface));root.addView(toolbar,new LinearLayout.LayoutParams(-1,dp(64)));
+  toolbar.setTitle("轻连");
+  toolbar.getMenu().add(Menu.NONE,R.id.menu_appearance,0,"外观").setIcon(R.drawable.ic_theme).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+  toolbar.setOnMenuItemClickListener(item->{if(item.getItemId()==R.id.menu_appearance){appearance();return true;}return false;});toolbar.setBackgroundColor(color(com.google.android.material.R.attr.colorSurface));root.addView(toolbar,new LinearLayout.LayoutParams(-1,dp(64)));
   ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);
   body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(16),dp(12),dp(16),dp(16));scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
   nav=new com.google.android.material.bottomnavigation.BottomNavigationView(this);
@@ -69,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
   int[] icons={R.drawable.ic_nav_connect,R.drawable.ic_nav_speed,R.drawable.ic_nav_routing,R.drawable.ic_nav_info};
   for(int i=0;i<names.length;i++)nav.getMenu().add(Menu.NONE,NAV_ITEMS[i],i,names[i]).setIcon(icons[i]);
   nav.setSelectedItemId(NAV_ITEMS[tab]);
-  quotaValue=quotaDetail=onlineValue=onlineDetail=reportDetail=null;status=caption=clock=up=down=upTotal=downTotal=latencyValue=downloadValue=testDetail=null;power=delayButton=downloadButton=stopButton=null;progress=null;graph=null;
+  quotaValue=quotaDetail=onlineValue=onlineDetail=reportDetail=profileDetail=null;status=caption=clock=up=down=upTotal=downTotal=latencyValue=downloadValue=testDetail=null;power=delayButton=downloadButton=stopButton=null;progress=null;graph=null;
   if(tab==0)home();else if(tab==1)speed();else if(tab==2)routing();else about();refresh();
  }
  private void home(){
@@ -84,8 +86,8 @@ public class MainActivity extends AppCompatActivity {
   LinearLayout row=new LinearLayout(this);LinearLayout online=new LinearLayout(this),quota=new LinearLayout(this);online.setOrientation(LinearLayout.VERTICAL);quota.setOrientation(LinearLayout.VERTICAL);row.addView(online,new LinearLayout.LayoutParams(0,-2,1));row.addView(quota,new LinearLayout.LayoutParams(0,-2,1));summary.addView(row);
   online.addView(note("实时在线设备"));space(online,8);onlineValue=text("待接入",26,true);online.addView(onlineValue);space(online,6);onlineDetail=note("按在线设备统计");online.addView(onlineDetail);
   quota.addView(note("服务端剩余流量"));space(quota,8);quotaValue=text("待接入",26,true);quota.addView(quotaValue);space(quota,6);quotaDetail=note("待接入服务端配额接口");quota.addView(quotaDetail);
-  space(summary,12);MaterialButton update=button("刷新连接数据");update.setOnClickListener(v->{QuotaMonitor.refresh(this,true);OnlineMonitor.refresh(this,true);});summary.addView(update);
-  LinearLayout node=card(com.google.android.material.R.attr.colorSurfaceContainer);node.addView(text("唯一节点",18,true));space(node,6);node.addView(note("专属通道  ·  VMess / TCP\n固定内置，无需选择或导入"));
+  space(summary,12);MaterialButton update=button("刷新连接数据");update.setOnClickListener(v->{ProfileMonitor.refresh(this,true);QuotaMonitor.refresh(this,true);OnlineMonitor.refresh(this,true);});summary.addView(update);
+  LinearLayout node=card(com.google.android.material.R.attr.colorSurfaceContainer);node.addView(text("面板指定节点",18,true));space(node,6);profileDetail=note("正在同步面板配置");node.addView(profileDetail);
 
   LinearLayout stats=card(com.google.android.material.R.attr.colorSurfaceContainer);stats.addView(text("实时流量",18,true));space(stats,16);
   LinearLayout cols=new LinearLayout(this);stats.addView(cols);
@@ -106,6 +108,13 @@ public class MainActivity extends AppCompatActivity {
   testDetail=note(detail);testDetail.setTextColor(color(com.google.android.material.R.attr.colorOnSecondaryContainer));d.addView(testDetail);space(d,12);downloadButton=button("开始下载测速");downloadButton.setOnClickListener(v->new MaterialAlertDialogBuilder(this).setTitle("开始下载测速？").setMessage("通过当前节点下载测试数据，接收约 32 MB 或持续约 12 秒。网络等待可能增加耗时，随时可以停止。").setPositiveButton("开始",(dialog,which)->runDownload()).setNegativeButton("取消",null).show());d.addView(downloadButton);
   stopButton=button("停止测试");stopButton.setOnClickListener(v->{testSession++;tester.stop();testing=false;testKind=0;detail="测试已停止";refresh();});d.addView(stopButton);
   body.addView(note("测速结果受服务器、线路和测试站点影响。Mbps 为兆比特/秒，8 Mbps 约等于 1 MB/s。"));
+ }
+ private void appearance(){
+  int mode=AppAppearance.mode(this),selected=mode==androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES?1:mode==androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM?2:0;
+  new MaterialAlertDialogBuilder(this).setTitle("外观").setSingleChoiceItems(new String[]{"亮色","暗色","跟随系统"},selected,(dialog,which)->{
+   int next=which==1?androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES:which==2?androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM:androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO;
+   if(AppAppearance.select(this,next))dialog.dismiss();else toast("保存失败，请重试");
+  }).setNegativeButton("取消",null).show();
  }
  private MaterialButton modeButton(String title){
   MaterialButton button=new MaterialButton(this,null,com.google.android.material.R.attr.materialButtonOutlinedStyle);button.setText(title);button.setCornerRadius(dp(20));
@@ -171,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
  }
  private void about(){
   LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.0.3 · Preview\nARM64 · Android 8.0 及以上"));
-  LinearLayout d=card(com.google.android.material.R.attr.colorSurfaceContainer);d.addView(text("连接与隐私",19,true));space(d,12);d.addView(note("使用 V2Ray / v2fly 核心。\n连接时会请求 Android 系统 VPN 授权；关闭界面后仍可后台运行。\n通知栏显示本次上传、下载流量与实时速度，可直接断开。\n连接时每 10 秒向服务端上报随机安装标识、设备型号、系统与应用版本、本次速度和用量，供原面板显示在线设备。服务端可见来源 IP；断开后停止，30 秒无心跳即离线。不会读取 IMEI、通讯录、文件或浏览内容。\n不接入广告与统计 SDK，不提供节点编辑、导出或订阅功能。\n测速请求会访问 Google 204 测试地址与 Cloudflare 下载站点。"));
+  LinearLayout d=card(com.google.android.material.R.attr.colorSurfaceContainer);d.addView(text("连接与隐私",19,true));space(d,12);d.addView(note("使用 V2Ray / v2fly 核心。\n连接时会请求 Android 系统 VPN 授权；关闭界面后仍可后台运行。\n通知栏显示本次上传、下载流量与实时速度，可直接断开。\n连接时每 10 秒向服务端上报随机安装标识、设备型号、系统与应用版本、本次速度和用量，供原面板显示在线设备。服务端可见来源 IP；断开后停止，30 秒无心跳即离线。不会读取 IMEI、通讯录、文件或浏览内容。\n不接入广告与统计 SDK。节点由面板统一指定并自动同步，App 不提供手动添加、编辑或导出入口。\n测速请求会访问 Google 204 测试地址与 Cloudflare 下载站点。"));
   LinearLayout l=card(com.google.android.material.R.attr.colorSurfaceContainer);l.addView(text("开源许可",19,true));space(l,10);l.addView(note("本应用按 GPL-3.0 提供源码。\nV2Ray / v2fly：MIT\nAndroidLibV2rayLite：LGPL-3.0\nBadVPN tun2socks / v2rayNG：见随附第三方许可。"));
   MaterialButton license=button("查看第三方许可");license.setOnClickListener(v->{try(java.io.InputStream in=getAssets().open("THIRD_PARTY.txt")){new MaterialAlertDialogBuilder(this).setTitle("开源许可").setMessage(Io.readUtf8(in)).setPositiveButton("关闭",null).show();}catch(Exception e){toast("许可文件不可用");}});l.addView(license);
  }
@@ -199,6 +208,7 @@ public class MainActivity extends AppCompatActivity {
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==78){if(g.length>0&&g[0]!=PackageManager.PERMISSION_GRANTED)toast("通知权限未允许，可能无法在通知栏查看流量");startForegroundService(new Intent(this,TunnelService.class));}}
  @Override protected void onActivityResult(int r,int code,Intent data){super.onActivityResult(r,code,data);if(r==77){if(code==RESULT_OK)startTunnel();else toast("未获得 VPN 授权");}}
  private void refresh(){
+  if(profileDetail!=null){ProfileMonitor.Profile profile=ProfileMonitor.current;String value=profile==null?ProfileMonitor.status:profile.label+" · VMess / TCP\n"+ProfileMonitor.status;if(profile!=null&&TunnelService.state.equals("connected")&&!profile.revision.equals(TunnelService.activeProfileRevision))value+="\n面板已更新配置，断开重连后使用新节点";profileDetail.setText(value);}
   if(onlineValue!=null){onlineValue.setText(OnlineMonitor.count==null?(OnlineMonitor.status.startsWith("待接入")?"待接入":"不可用"):OnlineMonitor.fresh()?OnlineMonitor.count+" 台":"不可用");onlineDetail.setText((OnlineMonitor.count!=null&&!OnlineMonitor.fresh()?"上次 "+OnlineMonitor.count+" 台 · ":"")+OnlineMonitor.status+((OnlineMonitor.updatedAt>0)?"\n"+new java.text.SimpleDateFormat("HH:mm:ss",Locale.CHINA).format(new java.util.Date(OnlineMonitor.updatedAt)):""));}
   if(quotaValue!=null){QuotaInfo q=QuotaMonitor.current;if(q==null){quotaValue.setText(QuotaMonitor.status.startsWith("待接入")?"待接入":"不可用");quotaDetail.setText(QuotaMonitor.status);}else{quotaValue.setText(!QuotaMonitor.fresh()?"不可用":q.expired(System.currentTimeMillis())?"已过期":q.total!=0&&q.remaining()==0?"已用尽":q.total==0?"不限量":TunnelService.size(q.remaining()));String exp=q.expire==0?"无到期限制":new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.CHINA).format(new java.util.Date(q.expire*1000));String stamp=new java.text.SimpleDateFormat("HH:mm:ss",Locale.CHINA).format(new java.util.Date(QuotaMonitor.updatedAt));quotaDetail.setText((QuotaMonitor.fresh()?"":"上次数据 · ")+"已用 "+TunnelService.size(q.used())+" / "+(q.total==0?"不限量":TunnelService.size(q.total))+"\n到期："+exp+"\n"+QuotaMonitor.status+" · "+stamp);}}
   if(reportDetail!=null)reportDetail.setText(TunnelService.reportingStatus);

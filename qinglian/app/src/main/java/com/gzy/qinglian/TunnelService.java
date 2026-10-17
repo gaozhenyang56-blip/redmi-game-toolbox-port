@@ -21,6 +21,7 @@ public class TunnelService extends VpnService {
  private ScheduledExecutorService statsWorker;
  private DeviceReporter reporter;
  public static volatile String reportingStatus="设备上报未接入";
+ public static volatile String activeProfileRevision="",activeProfileLabel="专属通道";
  public static volatile String routingStatus="全局模式";
  private final ExecutorService worker=Executors.newSingleThreadExecutor();
  private volatile boolean cancelled=false;
@@ -59,8 +60,7 @@ public class TunnelService extends VpnService {
    AppRouting routing=AppRouting.load(this);routing.plan(this);
    go.Seq.setContext(getApplicationContext());
    Libv2ray.initCoreEnv(getFilesDir().getAbsolutePath(),"");
-   String node;
-   try(InputStream in=getAssets().open("node.json")){node=Io.readUtf8(in);}
+   ProfileMonitor.Profile profile=ProfileMonitor.forConnection(this);String node=profile.node;activeProfileRevision=profile.revision;activeProfileLabel=profile.label;
    String config=NodeConfig.build(node);
    core=Libv2ray.newCoreController(new CoreCallbackHandler(){public long startup(){return 0;}public long shutdown(){return 0;}public long onEmitStatus(long n,String s){return 0;}});
    core.startLoop(config);
@@ -109,7 +109,7 @@ public class TunnelService extends VpnService {
      long now=SystemClock.elapsedRealtime(),dt=Math.max(1,now-statsTick);statsTick=now;
      long up=Math.max(0,core.queryStats("proxy","uplink")),down=Math.max(0,core.queryStats("proxy","downlink"));
      uploadBytes+=up;downloadBytes+=down;uploadRate=up*1000.0/dt;downloadRate=down*1000.0/dt;
-     if(reporter!=null)reportingStatus=reporter.status;
+     if(reporter!=null)reportingStatus=reporter.status;ProfileMonitor.refresh(this,false);
      getSystemService(NotificationManager.class).notify(1,notification("已连接"));
     }catch(Exception ignored){}
    },1,1,TimeUnit.SECONDS);

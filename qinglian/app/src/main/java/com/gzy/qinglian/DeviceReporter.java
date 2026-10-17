@@ -40,6 +40,7 @@ final class DeviceReporter implements AutoCloseable {
    if(!prefs.edit().putString("installationId",id).putLong("generation",generation).commit())throw new IOException("设备会话无法保存");
    metadata.put("deviceId",id).put("generation",generation);
   }
+  metadata.put("profileRevision",TunnelService.activeProfileRevision);
   metadata.put("sessionId",UUID.randomUUID().toString()).put("deviceName",Build.MANUFACTURER+" "+Build.MODEL)
    .put("brand",Build.BRAND).put("model",Build.MODEL).put("androidVersion",Build.VERSION.RELEASE)
    .put("appVersion",context.getPackageManager().getPackageInfo(context.getPackageName(),0).versionName);

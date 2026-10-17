@@ -11,6 +11,8 @@ app/src/main/assets/node.json
 app/src/main/assets/online.json
 app/src/main/assets/quota.json
 app/src/main/assets/telemetry.json
+app/src/main/assets/api-ca.pem
+app/src/main/assets/profile.json
 app/libs/*.aar
 app/src/main/jniLibs/**/*.so
 upstream-source/

@@ -5,6 +5,15 @@
 <a-layout id="app" v-cloak>
  {{template "commonSider" .}}
  <a-layout><a-layout-content style="margin:24px 16px">
+  <a-card title="App 订阅节点" style="margin-bottom:16px">
+   <p>从现有 x-ui 节点中指定 App 使用的唯一节点。修改节点参数后 App 会自动同步，已连接设备重连后使用新配置。</p>
+   <a-alert v-if="selectionError" type="error" :message="selectionError" show-icon style="margin-bottom:12px"></a-alert>
+   <a-select v-model="selectedId" style="width:360px;max-width:100%;margin-right:12px" placeholder="选择 App 节点">
+    <a-select-option v-for="node in nodes" :key="node.id" :value="node.id" :disabled="!node.available">[[ node.name ]] · [[ node.port ]] [[ node.available?'':'（不支持或已停用）' ]]</a-select-option>
+   </a-select>
+   <a-button type="primary" :disabled="!selectedId" :loading="saving" @click="saveSelection">保存 App 节点</a-button>
+   <p style="margin-top:12px">支持已启用的单客户端 VMess TCP/HTTP 无 TLS 节点；不会修改入站配置或清零流量。配额跟随所选节点读取。</p>
+  </a-card>
   <a-card title="轻连 · 在线设备">
    <a-alert v-if="error" type="error" :message="error" show-icon style="margin-bottom:16px"></a-alert>
    <p>在线 [[ online === null ? '不可用' : online ]] 台 · 每 3 秒刷新，30 秒无心跳即离线。</p>
@@ -20,9 +29,11 @@
 </a-layout>
 {{template "js" .}}
 <script>
- const app=new Vue({el:'#app',delimiters:['[[',']]'],data:{siderDrawer,online:null,devices:[],error:'',timer:null,
+ const app=new Vue({el:'#app',delimiters:['[[',']]'],data:{siderDrawer,online:null,devices:[],error:'',timer:null,nodes:[],selectedId:null,selectionError:'',saving:false,
  columns:[{title:'状态',dataIndex:'online',scopedSlots:{customRender:'online'}},{title:'设备名称',dataIndex:'deviceName'},{title:'品牌 / 型号',dataIndex:'model'},{title:'Android',dataIndex:'androidVersion'},{title:'App',dataIndex:'appVersion'},{title:'来源 IP',dataIndex:'sourceIp'},{title:'上线时间',dataIndex:'startedAt',scopedSlots:{customRender:'time'}},{title:'最近活跃',dataIndex:'lastSeen',scopedSlots:{customRender:'time'}},{title:'上传用量',dataIndex:'uploadBytes',scopedSlots:{customRender:'bytes'}},{title:'下载用量',dataIndex:'downloadBytes',scopedSlots:{customRender:'bytes'}},{title:'上传速度',dataIndex:'uploadRate',scopedSlots:{customRender:'rate'}},{title:'下载速度',dataIndex:'downloadRate',scopedSlots:{customRender:'rate'}}]},
- mounted(){this.refresh()},beforeDestroy(){clearTimeout(this.timer)},methods:{
+ mounted(){this.loadSelection();this.refresh()},beforeDestroy(){clearTimeout(this.timer)},methods:{
+ async loadSelection(){try{const response=await axios.get('xui/qinglian/selection',{timeout:5000});this.nodes=response.data.nodes;this.selectedId=response.data.selectedId||null;this.selectionError=''}catch(error){this.selectionError='节点列表暂不可用，请检查登录权限与模块配置。'}},
+ async saveSelection(){this.saving=true;try{const saved=await fetch(basePath+'xui/qinglian/selection',{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'},body:JSON.stringify({inboundId:this.selectedId})});if(!saved.ok)throw Error();this.$message.success('已保存，App 下次连接自动同步。');this.selectionError='';await this.loadSelection()}catch(error){this.selectionError='保存失败，请确认节点已启用且符合支持的传输格式。'}finally{this.saving=false}},
  stamp(value){return value?new Date(value).toLocaleString():'—'},size(value){let n=Number(value||0),i=0;const units=['B','KB','MB','GB'];while(n>=1024&&i<3){n/=1024;i++}return n.toFixed(i?1:0)+' '+units[i]},
  async refresh(){try{const response=await axios.get('xui/qinglian/devices',{timeout:5000});if(!Array.isArray(response.data.devices)||!Number.isInteger(response.data.online))throw Error();this.online=response.data.online;this.devices=response.data.devices;this.error=''}catch(error){this.online=null;this.devices=[];this.error=error.response&&error.response.status===401?'登录已过期，请重新登录面板。':'设备数据暂不可用，请检查面板模块配置。'}finally{this.timer=setTimeout(()=>this.refresh(),3000)}}}});
 </script>

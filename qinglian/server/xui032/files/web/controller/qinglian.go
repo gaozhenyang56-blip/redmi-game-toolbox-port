@@ -2,17 +2,23 @@
 package controller
 
 import (
+	"context"
+	"crypto/sha256"
 	"crypto/subtle"
+	"crypto/tls"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
 	"math"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -28,33 +34,50 @@ import (
 var qUUID = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 var qUnavailable = errors.New("qinglian unavailable")
 
+type qTLSConfig struct {
+	Port        int    `json:"port"`
+	Certificate string `json:"certificate"`
+	PrivateKey  string `json:"privateKey"`
+}
 type qConfig struct {
-	ClientToken       string   `json:"clientToken"`
-	NodeUUID          string   `json:"nodeUuid"`
-	StatePath         string   `json:"statePath"`
-	TrustedProxyCIDRs []string `json:"trustedProxyCidrs"`
+	OwnerID           int        `json:"ownerId"`
+	ServerAddress     string     `json:"serverAddress"`
+	TLS               qTLSConfig `json:"tls"`
+	ClientToken       string     `json:"clientToken"`
+	NodeUUID          string     `json:"nodeUuid"`
+	StatePath         string     `json:"statePath"`
+	TrustedProxyCIDRs []string   `json:"trustedProxyCidrs"`
 }
 type qDevice struct {
-	DeviceID   string   `json:"deviceId"`
-	SessionID  string   `json:"sessionId"`
-	Generation int64    `json:"generation"`
-	Sequence   int64    `json:"sequence"`
-	Online     *bool    `json:"online"`
-	DeviceName string   `json:"deviceName"`
-	Brand      string   `json:"brand"`
-	Model      string   `json:"model"`
-	Android    string   `json:"androidVersion"`
-	App        string   `json:"appVersion"`
-	Up         *int64   `json:"uploadBytes"`
-	Down       *int64   `json:"downloadBytes"`
-	UpRate     *float64 `json:"uploadRate"`
-	DownRate   *float64 `json:"downloadRate"`
-	IP         string   `json:"sourceIp,omitempty"`
-	Started    int64    `json:"startedAt,omitempty"`
-	Seen       int64    `json:"lastSeen,omitempty"`
+	ProfileRevision string   `json:"profileRevision,omitempty"`
+	DeviceID        string   `json:"deviceId"`
+	SessionID       string   `json:"sessionId"`
+	Generation      int64    `json:"generation"`
+	Sequence        int64    `json:"sequence"`
+	Online          *bool    `json:"online"`
+	DeviceName      string   `json:"deviceName"`
+	Brand           string   `json:"brand"`
+	Model           string   `json:"model"`
+	Android         string   `json:"androidVersion"`
+	App             string   `json:"appVersion"`
+	Up              *int64   `json:"uploadBytes"`
+	Down            *int64   `json:"downloadBytes"`
+	UpRate          *float64 `json:"uploadRate"`
+	DownRate        *float64 `json:"downloadRate"`
+	IP              string   `json:"sourceIp,omitempty"`
+	Started         int64    `json:"startedAt,omitempty"`
+	Seen            int64    `json:"lastSeen,omitempty"`
 }
 
 func (d *qDevice) valid() bool {
+	if d.ProfileRevision != "" {
+		if len(d.ProfileRevision) != 64 {
+			return false
+		}
+		if _, err := hex.DecodeString(d.ProfileRevision); err != nil {
+			return false
+		}
+	}
 	if !qUUID.MatchString(d.DeviceID) || !qUUID.MatchString(d.SessionID) || d.Generation <= 0 || d.Sequence <= 0 || d.Online == nil || d.Up == nil || d.Down == nil || d.UpRate == nil || d.DownRate == nil {
 		return false
 	}
@@ -101,6 +124,10 @@ func qOpen(path string) (*qStore, error) {
 	}
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS devices (id TEXT PRIMARY KEY,session TEXT NOT NULL,generation INTEGER NOT NULL,sequence INTEGER NOT NULL,seen INTEGER NOT NULL,started INTEGER NOT NULL,online INTEGER NOT NULL,data BLOB)`)
 	if err != nil {
+		db.Close()
+		return nil, err
+	}
+	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS preferences (id INTEGER PRIMARY KEY,inbound INTEGER NOT NULL)`); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -199,6 +226,8 @@ func (s *qStore) snapshot(now int64) ([]qDevice, int, error) {
 }
 
 type QinglianController struct {
+	tlsServer *http.Server
+	apiPrefix string
 	BaseController
 	cfg        qConfig
 	store      *qStore
@@ -209,13 +238,13 @@ type QinglianController struct {
 }
 
 func NewQinglianController(g *gin.RouterGroup) *QinglianController {
-	a := &QinglianController{}
+	a := &QinglianController{apiPrefix: strings.TrimSuffix(g.BasePath(), "/") + "/api/v1/"}
 	path := os.Getenv("QINGLIAN_CONFIG")
 	if path == "" {
 		path = "/etc/x-ui/qinglian.json"
 	}
 	if info, err := os.Stat(path); err == nil && info.Mode().Perm()&0077 == 0 {
-		if data, err := os.ReadFile(path); err == nil && json.Unmarshal(data, &a.cfg) == nil && len(a.cfg.ClientToken) >= 32 && qUUID.MatchString(a.cfg.NodeUUID) {
+		if data, err := os.ReadFile(path); err == nil && json.Unmarshal(data, &a.cfg) == nil && len(a.cfg.ClientToken) >= 32 && qUUID.MatchString(a.cfg.NodeUUID) && a.cfg.OwnerID > 0 {
 			valid := true
 			for _, cidr := range a.cfg.TrustedProxyCIDRs {
 				_, network, err := net.ParseCIDR(cidr)
@@ -237,10 +266,13 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	api.Use(a.client)
 	api.GET("/online", a.online)
 	api.GET("/quota", a.quota)
+	api.GET("/profile", a.profile)
 	api.POST("/heartbeat", a.heartbeat)
 	panel := g.Group("/xui")
 	panel.GET("/qinglian", a.checkLogin, func(c *gin.Context) { html(c, "qinglian.html", "在线设备", nil) })
 	panel.GET("/qinglian/devices", a.devices)
+	panel.GET("/qinglian/selection", a.selection)
+	panel.POST("/qinglian/selection", a.selectNode)
 	return a
 }
 func qNoStore(c *gin.Context) {
@@ -308,12 +340,12 @@ func (a *QinglianController) online(c *gin.Context) {
 }
 
 // x-ui 0.3.2 has inbound-level counters. Only a unique, single-client inbound can be treated as this device group's quota.
-func (a *QinglianController) target() (*model.Inbound, error) {
+func (a *QinglianController) bootstrap() (*model.Inbound, error) {
 	var rows []model.Inbound
-	if err := database.GetDB().Where("protocol = ?", model.VMess).Find(&rows).Error; err != nil {
+	if err := database.GetDB().Where("protocol = ? AND user_id = ?", model.VMess, a.cfg.OwnerID).Find(&rows).Error; err != nil {
 		return nil, err
 	}
-	var match *model.Inbound
+	var found *model.Inbound
 	for _, row := range rows {
 		var settings struct {
 			Clients []struct {
@@ -325,18 +357,185 @@ func (a *QinglianController) target() (*model.Inbound, error) {
 		}
 		for _, client := range settings.Clients {
 			if strings.EqualFold(client.ID, a.cfg.NodeUUID) {
-				if match != nil || len(settings.Clients) != 1 {
+				if found != nil || len(settings.Clients) != 1 {
 					return nil, qUnavailable
 				}
 				copy := row
-				match = &copy
+				found = &copy
 			}
 		}
 	}
-	if match == nil {
+	if found == nil {
 		return nil, qUnavailable
 	}
-	return match, nil
+	return found, nil
+}
+func (a *QinglianController) target() (*model.Inbound, error) {
+	var selected int
+	err := a.store.db.QueryRow(`SELECT inbound FROM preferences WHERE id=1`).Scan(&selected)
+	if err == sql.ErrNoRows {
+		initial, err := a.bootstrap()
+		if err != nil {
+			return nil, err
+		}
+		if _, err = a.store.db.Exec(`INSERT OR IGNORE INTO preferences(id,inbound) VALUES(1,?)`, initial.Id); err != nil {
+			return nil, err
+		}
+		selected = initial.Id
+	} else if err != nil {
+		return nil, err
+	}
+	var row model.Inbound
+	if err = database.GetDB().Where("id=? AND user_id=?", selected, a.cfg.OwnerID).First(&row).Error; err != nil {
+		return nil, err
+	}
+	if _, err = a.node(&row); err != nil {
+		return nil, err
+	}
+	return &row, nil
+}
+func (a *QinglianController) node(row *model.Inbound) (map[string]interface{}, error) {
+	if row.Protocol != model.VMess || a.cfg.ServerAddress == "" {
+		return nil, qUnavailable
+	}
+	var settings struct {
+		Clients []struct {
+			ID      string `json:"id"`
+			AlterID int    `json:"alterId"`
+		} `json:"clients"`
+	}
+	var stream struct {
+		Network  string `json:"network"`
+		Security string `json:"security"`
+		TCP      struct {
+			Header struct {
+				Type    string `json:"type"`
+				Request struct {
+					Path    []string            `json:"path"`
+					Headers map[string][]string `json:"headers"`
+				} `json:"request"`
+			} `json:"header"`
+		} `json:"tcpSettings"`
+	}
+	if json.Unmarshal([]byte(row.Settings), &settings) != nil || json.Unmarshal([]byte(row.StreamSettings), &stream) != nil || len(settings.Clients) != 1 {
+		return nil, qUnavailable
+	}
+	client := settings.Clients[0]
+	if !qUUID.MatchString(client.ID) || client.AlterID != 0 || stream.Network != "tcp" || (stream.Security != "" && stream.Security != "none") || stream.TCP.Header.Type != "http" || row.Port <= 0 || row.Port > 65535 {
+		return nil, qUnavailable
+	}
+	path, host := "/", ""
+	if len(stream.TCP.Header.Request.Path) > 0 && stream.TCP.Header.Request.Path[0] != "" {
+		path = stream.TCP.Header.Request.Path[0]
+	}
+	if values := stream.TCP.Header.Request.Headers["Host"]; len(values) > 0 {
+		host = values[0]
+	}
+	return map[string]interface{}{"id": client.ID, "add": a.cfg.ServerAddress, "port": row.Port, "aid": 0, "net": "tcp", "type": "http", "host": host, "path": path, "tls": "none"}, nil
+}
+func (a *QinglianController) profile(c *gin.Context) {
+	row, err := a.target()
+	if err != nil {
+		c.JSON(503, gin.H{"error": "selected node unavailable"})
+		return
+	}
+	node, err := a.node(row)
+	if err != nil {
+		c.JSON(503, gin.H{"error": "selected node unavailable"})
+		return
+	}
+	encoded, _ := json.Marshal(node)
+	hash := sha256.Sum256(encoded)
+	label := row.Remark
+	if label == "" {
+		label = "专属节点"
+	}
+	c.JSON(200, gin.H{"node": node, "revision": hex.EncodeToString(hash[:]), "label": label})
+}
+func (a *QinglianController) panelAuth(c *gin.Context) bool {
+	qNoStore(c)
+	if !session.IsLogin(c) {
+		c.JSON(401, gin.H{"error": "panel login required"})
+		return false
+	}
+	if a.store == nil {
+		c.JSON(503, gin.H{"error": "not configured"})
+		return false
+	}
+	if session.GetLoginUser(c).Id != a.cfg.OwnerID {
+		c.JSON(403, gin.H{"error": "forbidden"})
+		return false
+	}
+	return true
+}
+func (a *QinglianController) selection(c *gin.Context) {
+	if !a.panelAuth(c) {
+		return
+	}
+	var rows []model.Inbound
+	if err := database.GetDB().Where("user_id=?", a.cfg.OwnerID).Order("id").Find(&rows).Error; err != nil {
+		c.JSON(503, gin.H{"error": "nodes unavailable"})
+		return
+	}
+	nodes := make([]gin.H, 0)
+	for _, row := range rows {
+		_, err := a.node(&row)
+		available := err == nil && row.Enable
+		label := row.Remark
+		if label == "" {
+			label = "节点"
+		}
+		reason := ""
+		if !available {
+			reason = "需要已启用的单客户端 VMess TCP/HTTP 无TLS节点"
+		}
+		nodes = append(nodes, gin.H{"id": row.Id, "name": label, "port": row.Port, "available": available, "reason": reason})
+	}
+	selected := 0
+	if row, err := a.target(); err == nil {
+		selected = row.Id
+	}
+	c.JSON(200, gin.H{"nodes": nodes, "selectedId": selected})
+}
+func (a *QinglianController) selectNode(c *gin.Context) {
+	if !a.panelAuth(c) {
+		return
+	}
+	if c.GetHeader("X-Requested-With") != "XMLHttpRequest" {
+		c.JSON(403, gin.H{"error": "same-origin request required"})
+		return
+	}
+	if origin := c.GetHeader("Origin"); origin != "" {
+		parsed, err := url.Parse(origin)
+		if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host != c.Request.Host {
+			c.JSON(403, gin.H{"error": "origin rejected"})
+			return
+		}
+	}
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1024)
+	var choice struct {
+		InboundID int `json:"inboundId"`
+	}
+	decoder := json.NewDecoder(c.Request.Body)
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&choice) != nil || decoder.Decode(new(interface{})) != io.EOF || choice.InboundID <= 0 {
+		c.JSON(400, gin.H{"error": "invalid selection"})
+		return
+	}
+	var row model.Inbound
+	if err := database.GetDB().Where("id=? AND user_id=?", choice.InboundID, a.cfg.OwnerID).First(&row).Error; err != nil {
+		c.JSON(404, gin.H{"error": "node not found"})
+		return
+	}
+	if _, err := a.node(&row); err != nil || !row.Enable {
+		c.JSON(400, gin.H{"error": "unsupported or disabled node"})
+		return
+	}
+	if _, err := a.store.db.Exec(`INSERT OR REPLACE INTO preferences(id,inbound) VALUES(1,?)`, row.Id); err != nil {
+		c.JSON(503, gin.H{"error": "selection unavailable"})
+		return
+	}
+	c.JSON(200, gin.H{"ok": true})
 }
 func qQuota(row *model.Inbound) (gin.H, error) {
 	if row.Up < 0 || row.Down < 0 || row.Total < 0 || row.ExpiryTime < 0 || row.Up > math.MaxInt64-row.Down || row.ExpiryTime > math.MaxInt64-999 {
@@ -387,4 +586,44 @@ func (a *QinglianController) devices(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"devices": rows, "online": count, "ttl": 30})
+}
+
+// StartTLS exposes only the three App endpoints on a separate TLS listener. Existing panel HTTP stays unchanged.
+func (a *QinglianController) StartTLS(engine http.Handler) error {
+	if a.store == nil || a.cfg.TLS.Port == 0 {
+		return nil
+	}
+	if a.cfg.TLS.Port < 1024 || a.cfg.TLS.Port > 65535 || !filepath.IsAbs(a.cfg.TLS.Certificate) || !filepath.IsAbs(a.cfg.TLS.PrivateKey) {
+		return qUnavailable
+	}
+	certificate, err := tls.LoadX509KeyPair(a.cfg.TLS.Certificate, a.cfg.TLS.PrivateKey)
+	if err != nil {
+		return err
+	}
+	listener, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", strconv.Itoa(a.cfg.TLS.Port)))
+	if err != nil {
+		return err
+	}
+	a.tlsServer = &http.Server{ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case a.apiPrefix + "online", a.apiPrefix + "quota", a.apiPrefix + "heartbeat", a.apiPrefix + "profile":
+				engine.ServeHTTP(w, r)
+			default:
+				http.NotFound(w, r)
+			}
+		})}
+	transport := tls.NewListener(listener, &tls.Config{Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS12, NextProtos: []string{"http/1.1"}})
+	go a.tlsServer.Serve(transport)
+	return nil
+}
+func (a *QinglianController) Close() {
+	if a.tlsServer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		a.tlsServer.Shutdown(ctx)
+	}
+	if a.store != nil {
+		a.store.db.Close()
+	}
 }

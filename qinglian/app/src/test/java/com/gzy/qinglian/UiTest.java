@@ -7,11 +7,11 @@ public class UiTest {
  private TextView find(View v,String text){if(v instanceof TextView&&((TextView)v).getText().toString().equals(text))return (TextView)v;if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++){TextView r=find(((ViewGroup)v).getChildAt(i),text);if(r!=null)return r;}return null;}
  @Test public void opensAndNavigatesAllPages()throws Exception{
   try(var ctrl=Robolectric.buildActivity(MainActivity.class).setup()){
-   MainActivity a=ctrl.get();View v=a.getWindow().getDecorView();assertNotNull(find(v,"唯一节点"));assertNotNull(find(v,"服务端剩余流量"));assertNotNull(find(v,"实时流量"));
+   MainActivity a=ctrl.get();View v=a.getWindow().getDecorView();assertNotNull(find(v,"面板指定节点"));assertNotNull(find(v,"服务端剩余流量"));assertNotNull(find(v,"实时流量"));
    v.measure(View.MeasureSpec.makeMeasureSpec(1080,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(2340,View.MeasureSpec.EXACTLY));v.layout(0,0,1080,2340);Bitmap image=Bitmap.createBitmap(1080,2340,Bitmap.Config.ARGB_8888);v.draw(new Canvas(image));File out=new File(System.getProperty("user.dir"),"build/ui-home.png");out.getParentFile().mkdirs();try(FileOutputStream f=new FileOutputStream(out)){image.compress(Bitmap.CompressFormat.PNG,100,f);}
    a.findViewById(MainActivity.NAV_SPEED).performClick();assertNotNull(find(v,"网络测速"));assertFalse(find(v,"测试延迟").isEnabled());assertFalse(find(v,"开始下载测速").isEnabled());
    a.findViewById(MainActivity.NAV_ROUTING).performClick();assertNotNull(find(v,"黑白名单模式"));assertNotNull(find(v,"选择应用"));
-   a.findViewById(MainActivity.NAV_ABOUT).performClick();assertNotNull(find(v,"开源许可"));a.findViewById(MainActivity.NAV_CONNECT).performClick();assertNotNull(find(v,"唯一节点"));assertNotNull(find(v,"规则"));assertNotNull(find(v,"全局"));
+   a.findViewById(MainActivity.NAV_ABOUT).performClick();assertNotNull(find(v,"开源许可"));a.findViewById(MainActivity.NAV_CONNECT).performClick();assertNotNull(find(v,"面板指定节点"));assertNotNull(find(v,"规则"));assertNotNull(find(v,"全局"));
   }
  }
  @Test public void firstConnectionExplainsReportingAndCancelDoesNotConsent()throws Exception{

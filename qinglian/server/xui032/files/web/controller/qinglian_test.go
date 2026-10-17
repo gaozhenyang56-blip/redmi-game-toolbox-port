@@ -1,14 +1,20 @@
 package controller
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
+	"fmt"
 	"math"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -154,12 +160,12 @@ func TestQAPIBoundariesAndUniqueQuota(t *testing.T) {
 	if err := database.InitDB(filepath.Join(root, "panel.db")); err != nil {
 		t.Fatal(err)
 	}
-	inbound := model.Inbound{UserId: 7, Protocol: model.VMess, Settings: `{"clients":[{"id":"` + qTestID + `"}]}`, Enable: true, Up: 100, Down: 200, Total: 1000, Port: 12345, Tag: "fixture"}
+	inbound := model.Inbound{UserId: 7, Protocol: model.VMess, Settings: `{"clients":[{"id":"` + qTestID + `"}]}`, Enable: true, Up: 100, Down: 200, Total: 1000, Port: 12345, Tag: "fixture", StreamSettings: `{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"http"}}}`}
 	if err := database.GetDB().Create(&inbound).Error; err != nil {
 		t.Fatal(err)
 	}
 	token := strings.Repeat("fixture", 8)
-	config := qConfig{ClientToken: token, NodeUUID: qTestID, StatePath: filepath.Join(root, "devices.db")}
+	config := qConfig{OwnerID: 7, ServerAddress: "192.0.2.1", ClientToken: token, NodeUUID: qTestID, StatePath: filepath.Join(root, "devices.db")}
 	data, _ := json.Marshal(config)
 	path := filepath.Join(root, "config.json")
 	if err := os.WriteFile(path, data, 0600); err != nil {
@@ -224,5 +230,137 @@ func TestQAPIBoundariesAndUniqueQuota(t *testing.T) {
 	database.GetDB().Save(&inbound)
 	if r := call("GET", "/api/v1/quota", "", true, nil); r.Code != 503 {
 		t.Fatal("shared inbound misreported as client quota", r.Code)
+	}
+}
+
+func TestQSeparateTLSListenerRejectsPanelRoutes(t *testing.T) {
+	fixture := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	certificate := fixture.TLS.Certificates[0]
+	fixture.Close()
+	root := t.TempDir()
+	certPath := filepath.Join(root, "server.pem")
+	keyPath := filepath.Join(root, "server.key")
+	certData := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certificate.Certificate[0]})
+	keyData, err := x509.MarshalPKCS8PrivateKey(certificate.PrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(certPath, certData, 0600)
+	os.WriteFile(keyPath, pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyData}), 0600)
+	reservation, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := reservation.Addr().(*net.TCPAddr).Port
+	reservation.Close()
+	store, err := qOpen(filepath.Join(root, "store.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := &QinglianController{store: store, apiPrefix: "/api/v1/", cfg: qConfig{TLS: qTLSConfig{Port: port, Certificate: certPath, PrivateKey: keyPath}}}
+	defer a.Close()
+	if err = a.StartTLS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })); err != nil {
+		t.Fatal(err)
+	}
+	pool := x509.NewCertPool()
+	pool.AppendCertsFromPEM(certData)
+	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}}, Timeout: 3 * time.Second}
+	for path, want := range map[string]int{"/api/v1/online": 200, "/api/v1/quota": 200, "/api/v1/heartbeat": 200, "/xui/qinglian/devices": 404, "/assets/file": 404, "/api/v1/../xui/": 404} {
+		response, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d%s", port, path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		if response.StatusCode != want {
+			t.Fatalf("%s returned %d", path, response.StatusCode)
+		}
+	}
+}
+
+func TestQPanelSelectsAppNodeAndTracksEditedUUIDWithoutMutatingInbounds(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	root := t.TempDir()
+	if err := database.InitDB(filepath.Join(root, "panel.db")); err != nil {
+		t.Fatal(err)
+	}
+	stream := `{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"http"}}}`
+	first := model.Inbound{UserId: 7, Protocol: model.VMess, Settings: `{"clients":[{"id":"` + qTestID + `"}]}`, StreamSettings: stream, Enable: true, Up: 100, Down: 200, Total: 1000, Port: 12001, Tag: "one"}
+	second := model.Inbound{UserId: 7, Protocol: model.VMess, Settings: `{"clients":[{"id":"33333333-3333-4333-8333-333333333333"}]}`, StreamSettings: stream, Enable: true, Up: 500, Down: 600, Total: 2000, Port: 12002, Tag: "two"}
+	other := model.Inbound{UserId: 8, Protocol: model.VMess, Settings: first.Settings, StreamSettings: stream, Enable: true, Port: 12003, Tag: "other"}
+	for _, row := range []*model.Inbound{&first, &second, &other} {
+		if err := database.GetDB().Create(row).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	token := strings.Repeat("fixture", 8)
+	cfg := qConfig{OwnerID: 7, ServerAddress: "192.0.2.1", ClientToken: token, NodeUUID: qTestID, StatePath: filepath.Join(root, "devices.db")}
+	data, _ := json.Marshal(cfg)
+	path := filepath.Join(root, "config.json")
+	os.WriteFile(path, data, 0600)
+	t.Setenv("QINGLIAN_CONFIG", path)
+	engine := gin.New()
+	engine.Use(sessions.Sessions("session", cookie.NewStore([]byte(strings.Repeat("k", 32)))))
+	engine.GET("/login-fixture", func(c *gin.Context) { session.SetLoginUser(c, &model.User{Id: 7}); c.Status(200) })
+	controller := NewQinglianController(engine.Group("/"))
+	if controller.store == nil {
+		t.Fatal("missing store")
+	}
+	defer controller.Close()
+	call := func(method, path, body string, cookies []*http.Cookie, xhr, evil bool) *httptest.ResponseRecorder {
+		request := httptest.NewRequest(method, path, strings.NewReader(body))
+		request.Header.Set("Authorization", "Bearer "+token)
+		request.Header.Set("Content-Type", "application/json")
+		if xhr {
+			request.Header.Set("X-Requested-With", "XMLHttpRequest")
+		}
+		if evil {
+			request.Header.Set("Origin", "https://evil.invalid")
+		}
+		for _, cookie := range cookies {
+			request.AddCookie(cookie)
+		}
+		recorder := httptest.NewRecorder()
+		engine.ServeHTTP(recorder, request)
+		return recorder
+	}
+	login := call("GET", "/login-fixture", "", nil, false, false)
+	cookies := login.Result().Cookies()
+	if r := call("GET", "/xui/qinglian/selection", "", nil, false, false); r.Code != 401 {
+		t.Fatal("bearer read node selection")
+	}
+	if r := call("POST", "/xui/qinglian/selection", fmt.Sprintf(`{"inboundId":%d}`, second.Id), cookies, false, false); r.Code != 403 {
+		t.Fatal("missing CSRF header accepted")
+	}
+	if r := call("POST", "/xui/qinglian/selection", fmt.Sprintf(`{"inboundId":%d}`, second.Id), cookies, true, true); r.Code != 403 {
+		t.Fatal("cross-origin selection accepted")
+	}
+	if r := call("POST", "/xui/qinglian/selection", fmt.Sprintf(`{"inboundId":%d}`, other.Id), cookies, true, false); r.Code != 404 {
+		t.Fatal("selected another panel user's node")
+	}
+	profile := call("GET", "/api/v1/profile", "", nil, false, false)
+	if profile.Code != 200 || !strings.Contains(profile.Body.String(), qTestID) {
+		t.Fatal(profile.Code, profile.Body.String())
+	}
+	if r := call("POST", "/xui/qinglian/selection", fmt.Sprintf(`{"inboundId":%d}`, second.Id), cookies, true, false); r.Code != 200 {
+		t.Fatal(r.Code, r.Body.String())
+	}
+	selected := call("GET", "/api/v1/profile", "", nil, false, false)
+	if selected.Code != 200 || !strings.Contains(selected.Body.String(), "33333333-3333-4333-8333-333333333333") {
+		t.Fatal("App profile did not follow selection")
+	}
+	quota := call("GET", "/api/v1/quota", "", nil, false, false)
+	if quota.Code != 200 || !strings.Contains(quota.Body.String(), `"total":2000`) {
+		t.Fatal("quota did not follow selected node")
+	}
+	second.Settings = `{"clients":[{"id":"44444444-4444-4444-8444-444444444444"}]}`
+	database.GetDB().Save(&second)
+	updated := call("GET", "/api/v1/profile", "", nil, false, false)
+	if updated.Code != 200 || !strings.Contains(updated.Body.String(), "44444444-4444-4444-8444-444444444444") {
+		t.Fatal("edited UUID required reselection")
+	}
+	var saved model.Inbound
+	database.GetDB().First(&saved, first.Id)
+	if saved.Settings != first.Settings || saved.Up != 100 || saved.Down != 200 {
+		t.Fatal("selection modified the original inbound/counters")
 	}
 }
