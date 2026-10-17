@@ -1,13 +1,9 @@
-先读 AGENTS.md 和 HANDOFF.md 最新进展，继续本分支 qinglian/，不要修改仓库原 Redmi 项目。
+先读 AGENTS.md、HANDOFF.md 与 verification/ROUTING_CHECKS.md。仅继续本分支 qinglian/，不改原Redmi项目。
 
-当前 App 1.0.3-preview/versionCode4（标准Material3）：已加入 Surfboard 风格黑/白名单（两份独立保存），连接页规则/全局切换，Android VPN 按应用应用规则；修改后重连生效。白名单为空或全卸载时阻止规则模式连接，不回退全局。
+当前版本1.0.3-preview/versionCode4，下一版至少5，必须沿用原签名。标准Material3、亮色默认/亮色图标、深浅色与系统切换、应用黑白名单、规则/全局、面板指定节点及真实流量/在线API均已完成。
 
-设备心跳已绑定服务，首次说明、10秒心跳、断开离线、安装ID/generation/sequence隔离；JSON只读配额取代订阅依赖，缓存过期不再冒充实时。真实后端尚未部署，APK不含API私有配置，卡片仍待接入。
+GitHub Actions已通过SSH连接、完成加密一致性备份并部署现有x-ui0.3.2扩展。不要重跑首次部署脚本覆盖生产，它会拒绝已有配置；后续维护先备份并设计升级/回滚。原面板“轻连 App”页管理设备与App节点；App API专用11452HTTPS，私有CA限API使用，不绕过主机名验证。
 
-本轮已通过面板登录只读获取版本线索和唯一节点资料，已在仓库外恢复原签名且证书匹配；不得要求用户重复提供已在当前私有会话保存的资料。私有备份不会进 Git，下次更换环境时再通过安全渠道恢复。
+私有API资产、节点、CA私钥、签名和服务器资料不在Git。当前会话私有文件在仓库外，勿要求用户重复提供已有资料。新环境再安全恢复。APK只交付用户，不上传公开仓库。
 
-server/xui032/ 是针对 vaxilu/x-ui 0.3.2 精确上游提交的面板内扩展：原菜单、原cookie鉴权、设备页、App API、单客户端入站只读配额；已做本地验证，未部署。完整数据库/二进制备份尚未完成。环境指定TCP代理连接被拒绝，尚未进行SSH认证；恢复支持的TCP访问后，实查服务器版本/架构/路径、完整备份、匹配构建和可回滚部署，然后配置HTTPS和App固定API，双设备与手机实测。
-
-不要将未部署模块、HTTP面板读取、本地测试或Robolectric绘图称为实机VPN联网、面板部署或最终验收。
-
-用户最后要求整体UI从Expressive改回标准Material3：已使用Theme.Material3.DayNight、标准Toolbar/BottomNavigationView和常规卡片/按钮/字号，保留功能与动态配色。GitHub只读SSH工作流已推送，首次运行因缺Secrets停止；当前集成Secrets API返回403，需要仓库管理者配置HOST/PASSWORD后重跑，尚未通过Actions连接服务器。
+手机覆盖安装、Android实际分流出网和两台真机在线仍未验证。自动测试、Robolectric绘图、Linux节点测试均不能替代手机验收。

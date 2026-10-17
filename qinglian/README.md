@@ -2,13 +2,11 @@
 
 **先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.0.3-preview`，versionCode `4`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
 
-已实现唯一内置 VMess TCP/HTTP 节点连接、延迟/下载测速、通知栏每秒上下行速度与本次用量、标准 Material 3、动态配色、深浅色与原生自适应图标。连接页已显示在线数量与剩余流量卡片。
+已完成标准 Material 3、默认亮色和亮色自适应图标；支持浅色/深色/跟随系统切换。包含延迟/下载测速、每秒通知栏速度与本次用量、Surfboard风格黑白名单及规则/全局模式。
 
-UI按用户最新要求恢复标准Material3主题、Toolbar、BottomNavigationView和常规卡片/按钮尺寸；保留动态配色与深浅色。
+真实服务器已通过GitHub SSH完成加密一致性备份，并部署原x-ui内的“轻连 App”页面，沿用原面板登录。管理员从现有兼容入站选择App节点；App自动获取，重连生效，不提供节点/API编辑入口。在线数量、真实配额和设备心跳通过专用HTTPS API接入。
 
-新增 Surfboard 风格黑白名单，连接页切换规则/全局，名单独立保存，修改后重连生效。已加入绑定服务的10秒设备心跳和带鉴权的JSON配额读取。
-
-**尚未完成服务器部署接入**：当前APK未配置API资产，卡片仍显示“待接入”；本轮已登录用户面板做只读检查，面板内扩展源码在 `server/xui032/`，未部署。用户明确要求直接扩展现有 x-ui，不要独立管理后台，也不要 App 接口配置入口。用户没有订阅链接。
+最终私有APK使用原发布签名，包含构建固定的API资产和API专用CA；私有资产与APK不上传公开Git。手机安装和实际应用分流尚无实机验证，详见验证记录。
 
 ## 快速验证
 
@@ -20,7 +18,7 @@ python3 scripts/prepare_dependencies.py
 ./gradlew assembleDebug testReleaseUnitTest lintRelease
 ```
 
-真实节点资产已从 Git 中移除；UI/测试可以不含凭据构建，连接前必须安全恢复 `app/src/main/assets/node.json`。`node.example.json` 只是保留地址段示例，不能用于联网。
+真实节点资产已从 Git 中移除；UI/测试可以不含凭据构建，交付前必须安全恢复 `app/src/main/assets/` 的 `node.json`、`profile.json`、`online.json`、`quota.json`、`telemetry.json` 和 `api-ca.pem`。`node.example.json` 只是保留地址段示例，不能用于联网。
 
 大体积上游 AAR 和隧道库由准备脚本按固定版本下载并校验哈希，不重复提交二进制。脚本只保留 ARM64，移除未使用 Geo 数据库；上游链接与许可证见 `third_party/`。
 
@@ -39,9 +37,9 @@ python3 scripts/verify_release_signature.py app/build/outputs/apk/release/app-re
 
 ## 交接材料
 
-- [HANDOFF.md](HANDOFF.md)：完整需求、当前边界、关键文件、部署待办及验收。
+- [HANDOFF.md](HANDOFF.md)：最新交付状态、需求与历史交接。
 - [CODEX_START.md](CODEX_START.md)：可直接用于下一次 Codex 任务。
 - `verification/ROUTING_CHECKS.md`：本轮验证；目录内原16项结果及旧预览保留作历史。
-- `server/xui032/`：按对应版本准备的原面板内扩展，尚未部署；`server.py` 和独立仪表盘仅作旧参考。
+- `server/xui032/`：已部署的对应版本原面板内扩展；`server.py` 和独立仪表盘仅作旧参考。
 
 源码 GPL-3.0；第三方许可证见 LICENSE 与 third_party/。

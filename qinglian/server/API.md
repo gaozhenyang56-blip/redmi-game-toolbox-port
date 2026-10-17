@@ -1,14 +1,14 @@
-# 待部署的 App / x-ui 接口合同
+# App / x-ui 接口合同（已部署）
 
-本文件是待实现面板适配的合同，不表示已连接真实服务器。最终设备页面必须位于用户现有 x-ui 面板、使用面板登录权限；`dashboard.html` 和 Basic 管理入口仅是旧原型，不能作为交付方案。
+对应现有x-ui0.3.2覆盖层，已部署并通过真实HTTPS与管理员权限边界检查。设备页面在原面板“轻连 App”，沿用原cookie登录；旧Python原型不作为生产后台。
 
 ## 固定配置与权限
 
-构建前私下恢复 assets 中的 `online.json`、`quota.json`、`telemetry.json`；三者格式均为 `{"url":"https://主机/完整接口路径","clientToken":"私有客户端令牌"}`。示例文件不参与连接。没有订阅链接，也不读取或导入订阅节点。
+构建前私下恢复 assets 中的 `online.json`、`quota.json`、`telemetry.json`、`profile.json`；四者格式均为 `{"url":"https://主机/完整接口路径","clientToken":"私有客户端令牌"}`。示例文件不参与连接。可选caAsset指定App API专用CA资产（生产为api-ca.pem），仍校验主机名。没有外部订阅链接，节点由原面板选择现有兼容入站。
 
 App 只接受 HTTPS，正常验证证书，不跟随重定向，Bearer 令牌不放入查询串。心跳、数量和配额都不携带面板/root 凭据。可对读与写分别发令牌，但每个令牌仅允许相应 App API；设备明细只能由面板登录会话访问。APK 内客户端令牌可提取，不是可靠设备身份。
 
-三个端点均使用 `Authorization: Bearer <clientToken>`，响应 `Cache-Control: no-store`。响应体上限 8 KiB，非 200、字段缺失或类型错误均为不可用，不能转成零。禁止把 302 登录页面误当成功；鉴权失败应返回 401/403。
+四个端点均使用 `Authorization: Bearer <clientToken>`，响应 `Cache-Control: no-store`。响应体上限 8 KiB，非 200、字段缺失或类型错误均为不可用，不能转成零。禁止把 302 登录页面误当成功；鉴权失败应返回 401/403。
 
 ## GET /api/v1/online
 
@@ -26,9 +26,9 @@ App 只接受 HTTPS，正常验证证书，不跟随重定向，Bearer 令牌不
 
 四项必填，为非负 64 位整数；流量单位字节，expire 为 Unix 秒，0 表示无到期限制，total=0 表示不限量。upload+download 不得溢出；到期时间转换为毫秒不得溢出。App 每 60 秒刷新，120 秒后缓存过期。失败时仅在详情保留标明“上次”的用量，主值显示不可用。配额用尽、到期和无限额分别显示。
 
-服务器必须在匹配该固定 UUID 的唯一客户端实体上读取真实计数；不同 x-ui 版本的 schema 和字段单位须实查。UUID 仅留在服务端配置，不作为 App 任意查询参数。查不到、匹配多个客户端、来源故障返回 503，不能返回全零，更不能使用手机本次用量估算。
+服务器从面板选择的入站ID读取唯一客户端真实计数；初次启用才用引导UUID定位入站；不同 x-ui 版本的 schema 和字段单位须实查。UUID 仅留在服务端配置，不作为 App 任意查询参数。查不到、匹配多个客户端、来源故障返回 503，不能返回全零，更不能使用手机本次用量估算。
 
-旧 Python 参考 `server.py` 的配额路由固定返回 503。`xui032/` 已实现对应版本的只读配额适配，但尚未部署到真实服务器。
+旧 Python 参考 `server.py` 的配额路由固定返回 503。`xui032/` 已实现并部署对应版本的只读配额适配。
 
 ## POST /api/v1/heartbeat
 
@@ -38,7 +38,7 @@ App 只接受 HTTPS，正常验证证书，不跟随重定向，Bearer 令牌不
   "sessionId":"22222222-2222-4222-8222-222222222222",
   "generation":3,"sequence":1,"online":true,
   "deviceName":"Example Android","brand":"Example","model":"Example",
-  "androidVersion":"12","appVersion":"1.0.2-preview",
+  "androidVersion":"12","appVersion":"1.0.3-preview",
   "uploadBytes":1024,"downloadBytes":2048,"uploadRate":128.5,"downloadRate":256
 }
 ```
@@ -57,8 +57,19 @@ App 只接受 HTTPS，正常验证证书，不跟随重定向，Bearer 令牌不
 
 来源 IP 从可信连接获取；反代必须覆盖来源头，不能信任公网任意 X-Forwarded-For。设备名称等仅客户端自报，可伪造；不作为身份或计费依据。无 IMEI、通讯录、文件或浏览内容。旧原型在新请求时清除超过 7 天的设备明细，但保留最小安装 ID / generation 墓碑以拒绝旧消息；生产实现仍需结合限流、存储上限和清理任务确定保留策略。
 
-## 面板集成待办
+## GET /api/v1/profile
 
-先实查 x-ui/3x-ui 版本、URL base path、部署方式和登录中间件，再备份二进制/数据库/配置。设备详情应包括名称、型号、系统/App版本、来源IP、上线与最近活跃时间、本次用量与速度。在面板认证路由组中提供页面和明细 API；未登录或 App Bearer 令牌均不能读取明细。若 UI 嵌入 Go 二进制，应使用匹配版本源码重新构建，保留原入站参数和计数。部署后验证两台设备、重连、断网、崩溃、鉴权失败和回滚。
+返回 `{"node":{...},"revision":"64位小写sha256","label":"面板入站备注"}`。node字段与node.example.json一致；只允许单客户端VMess TCP/HTTP、alterId0、无TLS。revision是node JSON摘要。入站被删除/禁用/不兼容时返回503，不静默选其他节点。
 
-本地参考检查：`python3 -m unittest discover -s server -p 'test_*.py' -v`。这不是 x-ui 集成、真实配额或实机 VPN 验证。
+App每15秒刷新状态，每次连接重新请求；失败阻止该次连接，不回退旧UUID。已连接时提示配置变化，重连应用。心跳可含profileRevision供面板查看设备配置版本。
+
+## 原面板管理员接口
+
+- GET /xui/qinglian：页面，原cookie登录且限定配置ownerId。
+- GET /xui/qinglian/devices：设备详情，名称/型号/版本/来源IP/时间/用量/速度。
+- GET /xui/qinglian/selection：兼容入站和当前selectedId。
+- POST /xui/qinglian/selection：JSON inboundId，同源Origin、X-Requested-With: XMLHttpRequest、原登录与所有者检查；仅写独立preferences，不改入站。
+
+App Bearer不能读管理员接口。TLS端口11452仅开放四个App路由，管理员路径404。原HTTP管理端口不变。
+
+设备ID和自报字段可伪造，用于本App在线观测，不作为身份或计费。真实双手机在线与Android出网仍需实机验证。
