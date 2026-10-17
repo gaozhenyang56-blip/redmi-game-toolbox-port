@@ -1,8 +1,10 @@
 # 轻连 — Android 单节点 VPN，Codex 交接工程
 
-**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.0.2-preview`，versionCode `3`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
+**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.0.3-preview`，versionCode `4`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
 
-已实现唯一内置 VMess TCP/HTTP 节点连接、延迟/下载测速、通知栏每秒上下行速度与本次用量、Material 3 Expressive、动态配色、深浅色与原生自适应图标。连接页已显示在线数量与剩余流量卡片。
+已实现唯一内置 VMess TCP/HTTP 节点连接、延迟/下载测速、通知栏每秒上下行速度与本次用量、标准 Material 3、动态配色、深浅色与原生自适应图标。连接页已显示在线数量与剩余流量卡片。
+
+UI按用户最新要求恢复标准Material3主题、Toolbar、BottomNavigationView和常规卡片/按钮尺寸；保留动态配色与深浅色。
 
 新增 Surfboard 风格黑白名单，连接页切换规则/全局，名单独立保存，修改后重连生效。已加入绑定服务的10秒设备心跳和带鉴权的JSON配额读取。
 
@@ -31,7 +33,7 @@ python3 scripts/prepare_dependencies.py
 python3 scripts/verify_release_signature.py app/build/outputs/apk/release/app-release.apk --apksigner /path/to/apksigner
 ```
 
-外部属性包含 `storeFile`（推荐绝对路径）、`storePassword`、`keyAlias`、`keyPassword`。也可通过 `QINGLIAN_STORE_PASSWORD` / `QINGLIAN_KEY_PASSWORD` 提供密码。没有原私钥时 release 构建为未签名，**不得生成新发布私钥冒充同签名更新**。`assembleDebug` 仅供开发，不能覆盖原发布版。本轮 versionCode 为3，下一次更新继续递增。
+外部属性包含 `storeFile`（推荐绝对路径）、`storePassword`、`keyAlias`、`keyPassword`。也可通过 `QINGLIAN_STORE_PASSWORD` / `QINGLIAN_KEY_PASSWORD` 提供密码。没有原私钥时 release 构建为未签名，**不得生成新发布私钥冒充同签名更新**。`assembleDebug` 仅供开发，不能覆盖原发布版。本轮 versionCode 为4，下一次更新继续递增。
 
 原证书 SHA-256：`2e90d97183fbe26c05a8bd67454b0a5d0f5c01633609a335fdff693a4774a870`。公开证书在 `verification/release-certificate.der`，不含私钥。
 

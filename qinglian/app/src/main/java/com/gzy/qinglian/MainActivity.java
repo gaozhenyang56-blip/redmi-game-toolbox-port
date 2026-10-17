@@ -18,7 +18,10 @@ import com.google.android.material.progressindicator.LinearProgressIndicator;
 import java.util.*;
 
 public class MainActivity extends AppCompatActivity {
- private LinearLayout root,body,nav;
+ private LinearLayout root,body;
+ private com.google.android.material.bottomnavigation.BottomNavigationView nav;
+ static final int NAV_CONNECT=R.id.nav_connect,NAV_SPEED=R.id.nav_speed,NAV_ROUTING=R.id.nav_routing,NAV_ABOUT=R.id.nav_about;
+ private static final int[] NAV_ITEMS={NAV_CONNECT,NAV_SPEED,NAV_ROUTING,NAV_ABOUT};
  private TextView quotaValue,quotaDetail,onlineValue,onlineDetail,reportDetail;
  private TextView status,caption,clock,up,down,upTotal,downTotal,latencyValue,downloadValue,testDetail;
  private MaterialButton power,delayButton,downloadButton,stopButton;
@@ -41,12 +44,14 @@ public class MainActivity extends AppCompatActivity {
   boolean night=(getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK)==android.content.res.Configuration.UI_MODE_NIGHT_YES;
   new WindowInsetsControllerCompat(getWindow(),root).setAppearanceLightStatusBars(!night);
   new WindowInsetsControllerCompat(getWindow(),root).setAppearanceLightNavigationBars(!night);
-  LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);header.setPadding(dp(24),dp(18),dp(24),dp(10));
-  TextView title=text("轻连",30,true);header.addView(title,new LinearLayout.LayoutParams(0,-2,1));
-  TextView badge=text("PRIVATE / 01",11,true);badge.setTextColor(color(androidx.appcompat.R.attr.colorPrimary));header.addView(badge);root.addView(header);
+  com.google.android.material.appbar.MaterialToolbar toolbar=new com.google.android.material.appbar.MaterialToolbar(this);
+  toolbar.setTitle("轻连");toolbar.setBackgroundColor(color(com.google.android.material.R.attr.colorSurface));root.addView(toolbar,new LinearLayout.LayoutParams(-1,dp(64)));
   ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);
-  body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(20),dp(12),dp(20),dp(22));scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-  nav=new LinearLayout(this);nav.setPadding(dp(16),dp(8),dp(16),dp(8));root.addView(nav);build();
+  body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(16),dp(12),dp(16),dp(16));scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+  nav=new com.google.android.material.bottomnavigation.BottomNavigationView(this);
+  nav.setLabelVisibilityMode(com.google.android.material.navigation.NavigationBarView.LABEL_VISIBILITY_LABELED);
+  root.addView(nav,new LinearLayout.LayoutParams(-1,-2));
+  nav.setOnItemSelectedListener(item->{int next=item.getItemId()==NAV_CONNECT?0:item.getItemId()==NAV_SPEED?1:item.getItemId()==NAV_ROUTING?2:3;if(next!=tab){tab=next;build();}return true;});build();
  }
  @Override protected void onResume(){super.onResume();main.post(ticker);}
  @Override protected void onPause(){main.removeCallbacks(ticker);super.onPause();}
@@ -57,20 +62,22 @@ public class MainActivity extends AppCompatActivity {
  private TextView text(String t,int sp,boolean bold){TextView v=new TextView(this);v.setText(t);v.setTextSize(sp);v.setTextColor(color(com.google.android.material.R.attr.colorOnSurface));if(bold)v.setTypeface(android.graphics.Typeface.DEFAULT,android.graphics.Typeface.BOLD);v.setFontFeatureSettings("tnum");return v;}
  private TextView note(String t){TextView v=text(t,13,false);v.setTextColor(color(com.google.android.material.R.attr.colorOnSurfaceVariant));v.setLineSpacing(dp(3),1);return v;}
  private void space(LinearLayout box,int h){View v=new View(this);box.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
- private LinearLayout card(int tint){MaterialCardView c=new MaterialCardView(this);c.setRadius(dp(28));c.setCardElevation(0);c.setStrokeWidth(0);c.setCardBackgroundColor(color(tint));LinearLayout p=new LinearLayout(this);p.setOrientation(LinearLayout.VERTICAL);p.setPadding(dp(22),dp(22),dp(22),dp(22));c.addView(p);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(14);body.addView(c,lp);return p;}
- private MaterialButton button(String title){MaterialButton b=new MaterialButton(this);b.setText(title);b.setTextSize(15);b.setCornerRadius(dp(28));b.setMinHeight(dp(54));return b;}
+ private LinearLayout card(int tint){MaterialCardView c=new MaterialCardView(this);c.setRadius(dp(12));c.setCardElevation(0);c.setStrokeWidth(0);c.setCardBackgroundColor(color(tint));LinearLayout p=new LinearLayout(this);p.setOrientation(LinearLayout.VERTICAL);p.setPadding(dp(16),dp(16),dp(16),dp(16));c.addView(p);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(12);body.addView(c,lp);return p;}
+ private MaterialButton button(String title){MaterialButton b=new MaterialButton(this);b.setText(title);b.setTextSize(15);b.setCornerRadius(dp(20));b.setMinHeight(dp(48));return b;}
  private void build(){
-  body.removeAllViews();nav.removeAllViews();String[] names={"连接","测速","分流","关于"};
-  for(int i=0;i<names.length;i++){final int index=i;MaterialButton b=new MaterialButton(this,null,com.google.android.material.R.attr.materialButtonOutlinedStyle);b.setText(names[i]);b.setCornerRadius(dp(24));if(tab==i){b.setBackgroundTintList(android.content.res.ColorStateList.valueOf(color(com.google.android.material.R.attr.colorSecondaryContainer)));b.setTextColor(color(com.google.android.material.R.attr.colorOnSecondaryContainer));b.setStrokeWidth(0);}b.setOnClickListener(v->{tab=index;build();});LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(54),1);lp.setMargins(dp(4),0,dp(4),0);nav.addView(b,lp);}
+  body.removeAllViews();nav.getMenu().clear();String[] names={"连接","测速","分流","关于"};
+  int[] icons={R.drawable.ic_nav_connect,R.drawable.ic_nav_speed,R.drawable.ic_nav_routing,R.drawable.ic_nav_info};
+  for(int i=0;i<names.length;i++)nav.getMenu().add(Menu.NONE,NAV_ITEMS[i],i,names[i]).setIcon(icons[i]);
+  nav.setSelectedItemId(NAV_ITEMS[tab]);
   quotaValue=quotaDetail=onlineValue=onlineDetail=reportDetail=null;status=caption=clock=up=down=upTotal=downTotal=latencyValue=downloadValue=testDetail=null;power=delayButton=downloadButton=stopButton=null;progress=null;graph=null;
   if(tab==0)home();else if(tab==1)speed();else if(tab==2)routing();else about();refresh();
  }
  private void home(){
   LinearLayout hero=card(com.google.android.material.R.attr.colorPrimaryContainer);hero.setGravity(Gravity.CENTER_HORIZONTAL);
   TextView label=text("专属连接",14,true);label.setGravity(Gravity.CENTER);label.setTextColor(color(com.google.android.material.R.attr.colorOnPrimaryContainer));hero.addView(label);space(hero,16);
-  PowerGlyph glyph=new PowerGlyph(this);hero.addView(glyph,new LinearLayout.LayoutParams(dp(88),dp(88)));space(hero,14);
-  status=text("未连接",30,true);status.setGravity(Gravity.CENTER);status.setTextColor(color(com.google.android.material.R.attr.colorOnPrimaryContainer));hero.addView(status);space(hero,8);caption=note("");caption.setGravity(Gravity.CENTER);caption.setTextColor(color(com.google.android.material.R.attr.colorOnPrimaryContainer));hero.addView(caption);space(hero,16);
-  power=button("连接");hero.addView(power,new LinearLayout.LayoutParams(-1,dp(62)));power.setOnClickListener(v->toggle());space(hero,8);
+  PowerGlyph glyph=new PowerGlyph(this);hero.addView(glyph,new LinearLayout.LayoutParams(dp(56),dp(56)));space(hero,14);
+  status=text("未连接",24,true);status.setGravity(Gravity.CENTER);status.setTextColor(color(com.google.android.material.R.attr.colorOnPrimaryContainer));hero.addView(status);space(hero,8);caption=note("");caption.setGravity(Gravity.CENTER);caption.setTextColor(color(com.google.android.material.R.attr.colorOnPrimaryContainer));hero.addView(caption);space(hero,16);
+  power=button("连接");hero.addView(power,new LinearLayout.LayoutParams(-1,dp(48)));power.setOnClickListener(v->toggle());space(hero,8);
   clock=note("00:00:00");clock.setGravity(Gravity.CENTER);clock.setTextColor(color(com.google.android.material.R.attr.colorOnPrimaryContainer));hero.addView(clock);
   connectionModes();
   LinearLayout summary=card(com.google.android.material.R.attr.colorSurfaceContainer);summary.addView(text("连接概览",18,true));space(summary,18);
@@ -90,21 +97,28 @@ public class MainActivity extends AppCompatActivity {
   MaterialButton go=button("前往网络测速");go.setOnClickListener(v->{tab=1;build();});body.addView(go);
  }
  private void speed(){
-  body.addView(text("看看连接表现",28,true));space(body,8);body.addView(note("所有测试都通过唯一节点进行"));space(body,20);
-  LinearLayout c=card(com.google.android.material.R.attr.colorSurfaceContainer);c.addView(note("连接延迟 / 三次中位数"));space(c,8);latencyValue=text(latency,36,true);c.addView(latencyValue);space(c,8);c.addView(note("包含代理连接与 HTTPS 握手时间"));space(c,12);
+  body.addView(text("网络测速",24,true));space(body,8);body.addView(note("所有测试都通过唯一节点进行"));space(body,20);
+  LinearLayout c=card(com.google.android.material.R.attr.colorSurfaceContainer);c.addView(note("连接延迟 / 三次中位数"));space(c,8);latencyValue=text(latency,32,true);c.addView(latencyValue);space(c,8);c.addView(note("包含代理连接与 HTTPS 握手时间"));space(c,12);
   delayButton=button("测试延迟");delayButton.setOnClickListener(v->runDelay());c.addView(delayButton);
-  LinearLayout d=card(com.google.android.material.R.attr.colorSecondaryContainer);d.addView(note("下载速度"));space(d,8);downloadValue=text(download,34,true);downloadValue.setTextColor(color(com.google.android.material.R.attr.colorOnSecondaryContainer));d.addView(downloadValue);space(d,12);
+  LinearLayout d=card(com.google.android.material.R.attr.colorSecondaryContainer);d.addView(note("下载速度"));space(d,8);downloadValue=text(download,32,true);downloadValue.setTextColor(color(com.google.android.material.R.attr.colorOnSecondaryContainer));d.addView(downloadValue);space(d,12);
   graph=new Graph(this);d.addView(graph,new LinearLayout.LayoutParams(-1,dp(100)));space(d,12);
   progress=new LinearProgressIndicator(this);progress.setMax(100);progress.setTrackThickness(dp(6));progress.setTrackCornerRadius(dp(3));d.addView(progress,new LinearLayout.LayoutParams(-1,dp(8)));space(d,12);
   testDetail=note(detail);testDetail.setTextColor(color(com.google.android.material.R.attr.colorOnSecondaryContainer));d.addView(testDetail);space(d,12);downloadButton=button("开始下载测速");downloadButton.setOnClickListener(v->new MaterialAlertDialogBuilder(this).setTitle("开始下载测速？").setMessage("通过当前节点下载测试数据，接收约 32 MB 或持续约 12 秒。网络等待可能增加耗时，随时可以停止。").setPositiveButton("开始",(dialog,which)->runDownload()).setNegativeButton("取消",null).show());d.addView(downloadButton);
   stopButton=button("停止测试");stopButton.setOnClickListener(v->{testSession++;tester.stop();testing=false;testKind=0;detail="测试已停止";refresh();});d.addView(stopButton);
   body.addView(note("测速结果受服务器、线路和测试站点影响。Mbps 为兆比特/秒，8 Mbps 约等于 1 MB/s。"));
  }
+ private MaterialButton modeButton(String title){
+  MaterialButton button=new MaterialButton(this,null,com.google.android.material.R.attr.materialButtonOutlinedStyle);button.setText(title);button.setCornerRadius(dp(20));
+  int[][] states={new int[]{android.R.attr.state_checked},new int[]{}};
+  button.setBackgroundTintList(new android.content.res.ColorStateList(states,new int[]{color(com.google.android.material.R.attr.colorSecondaryContainer),color(com.google.android.material.R.attr.colorSurfaceContainer)}));
+  button.setTextColor(new android.content.res.ColorStateList(states,new int[]{color(com.google.android.material.R.attr.colorOnSecondaryContainer),color(com.google.android.material.R.attr.colorOnSurface)}));
+  button.setStrokeColor(android.content.res.ColorStateList.valueOf(color(com.google.android.material.R.attr.colorOutline)));return button;
+ }
  private void connectionModes(){
   AppRouting rules;try{rules=AppRouting.load(this);}catch(Exception invalid){return;}
   LinearLayout card=card(com.google.android.material.R.attr.colorSurfaceContainer);card.addView(text("连接模式",18,true));space(card,10);
   com.google.android.material.button.MaterialButtonToggleGroup group=new com.google.android.material.button.MaterialButtonToggleGroup(this);group.setSingleSelection(true);group.setSelectionRequired(true);
-  MaterialButton rule=button("规则"),global=button("全局");rule.setId(View.generateViewId());global.setId(View.generateViewId());
+  MaterialButton rule=modeButton("规则"),global=modeButton("全局");rule.setId(View.generateViewId());global.setId(View.generateViewId());
   group.addView(rule,new LinearLayout.LayoutParams(0,dp(52),1));group.addView(global,new LinearLayout.LayoutParams(0,dp(52),1));card.addView(group);group.check(rules.global?global.getId():rule.getId());
   group.addOnButtonCheckedListener((buttons,id,checked)->{if(!checked)return;
    AppRouting next=AppRouting.load(this).withGlobal(id==global.getId());
@@ -118,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
   AppRouting rules;
   try{rules=AppRouting.load(this);}catch(Exception invalid){rules=new AppRouting(true,AppRouting.Mode.BLACKLIST,Collections.emptySet());body.addView(note("已保存的分流规则无效，请重新选择模式并保存。"));}
   final AppRouting saved=rules;
-  body.addView(text("应用分流",28,true));space(body,8);body.addView(note("黑名单应用直连；白名单应用走 VPN。连接页选择规则模式时生效，全局模式忽略名单。"));space(body,20);
+  body.addView(text("应用分流",24,true));space(body,8);body.addView(note("黑名单应用直连；白名单应用走 VPN。连接页选择规则模式时生效，全局模式忽略名单。"));space(body,20);
   LinearLayout mode=card(com.google.android.material.R.attr.colorPrimaryContainer);mode.addView(text(saved.mode==AppRouting.Mode.WHITELIST?"白名单模式":"黑名单模式",21,true));space(mode,10);
   mode.addView(note(saved.mode==AppRouting.Mode.WHITELIST?"名单内的应用走 VPN，其余应用直连。":"名单内的应用直连，其余应用走 VPN。"));space(mode,12);
   MaterialButton change=button("黑白名单模式");mode.addView(change);
@@ -156,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
   }));dialog.show();
  }
  private void about(){
-  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",36,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.0.2 · Preview\nARM64 · Android 8.0 及以上"));
+  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.0.3 · Preview\nARM64 · Android 8.0 及以上"));
   LinearLayout d=card(com.google.android.material.R.attr.colorSurfaceContainer);d.addView(text("连接与隐私",19,true));space(d,12);d.addView(note("使用 V2Ray / v2fly 核心。\n连接时会请求 Android 系统 VPN 授权；关闭界面后仍可后台运行。\n通知栏显示本次上传、下载流量与实时速度，可直接断开。\n连接时每 10 秒向服务端上报随机安装标识、设备型号、系统与应用版本、本次速度和用量，供原面板显示在线设备。服务端可见来源 IP；断开后停止，30 秒无心跳即离线。不会读取 IMEI、通讯录、文件或浏览内容。\n不接入广告与统计 SDK，不提供节点编辑、导出或订阅功能。\n测速请求会访问 Google 204 测试地址与 Cloudflare 下载站点。"));
   LinearLayout l=card(com.google.android.material.R.attr.colorSurfaceContainer);l.addView(text("开源许可",19,true));space(l,10);l.addView(note("本应用按 GPL-3.0 提供源码。\nV2Ray / v2fly：MIT\nAndroidLibV2rayLite：LGPL-3.0\nBadVPN tun2socks / v2rayNG：见随附第三方许可。"));
   MaterialButton license=button("查看第三方许可");license.setOnClickListener(v->{try(java.io.InputStream in=getAssets().open("THIRD_PARTY.txt")){new MaterialAlertDialogBuilder(this).setTitle("开源许可").setMessage(Io.readUtf8(in)).setPositiveButton("关闭",null).show();}catch(Exception e){toast("许可文件不可用");}});l.addView(license);

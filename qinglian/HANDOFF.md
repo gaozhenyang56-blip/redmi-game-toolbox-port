@@ -1,13 +1,15 @@
 # 本轮续开发进展（2026-10-17）
 
-当前版本 `1.0.2-preview` / versionCode `3`。下方“原交接历史”保留旧基线，遇到冲突以本节为准。验证记录见 [verification/ROUTING_CHECKS.md](verification/ROUTING_CHECKS.md)。
+当前版本 `1.0.3-preview` / versionCode `4`。下方“原交接历史”保留旧基线，遇到冲突以本节为准。验证记录见 [verification/ROUTING_CHECKS.md](verification/ROUTING_CHECKS.md)。
 
+- 用户最新UI要求：从Expressive恢复标准Material3，已替换为Theme.Material3.DayNight、MaterialToolbar、BottomNavigationView，收敛圆角/按钮/字号，保留动态配色和深浅色。
 - 用户新增：Surfboard 风格黑/白名单，名单分别保存；连接页规则/全局切换，全局不应用名单。规则模式黑名单=所选直连，白名单=仅所选走VPN。使用系统 VpnService 应用规则；轻连自身保持直连以避免核心循环。名单修改和模式切换重连生效，界面明确提示；白名单为空或仅含已卸载/停用应用时禁止规则模式连接。
 - 分流页支持搜索名称/包名、多选和取消，显示可启动应用及已有保存项；应用名单不上传。使用 launcher queries，不请求 QUERY_ALL_PACKAGES，不新增节点/API编辑入口。
 - `DeviceReporter` 已实现首次说明、随机安装ID、每连接新sessionId、持久递增generation、逐请求sequence、10秒心跳、串行离线与最后计数。绑定TunnelService，不依赖Activity可见性；API配置缺失时不发请求，不影响VPN。旧会话排序在服务端参考和面板扩展均已实现。
 - `QuotaMonitor` 改为带Bearer的JSON接口，四个必填非负整数字段 upload/download/total/expire；expire为秒。保留旧header解析函数仅供兼容测试，运行路径不再需要订阅链接。支持无限、用尽、到期、未知；在线失败/15秒过期，配额失败/120秒过期，主值显示不可用，缓存只在详情标注“上次”。所有App API严格HTTPS、正常证书验证、不重定向，响应限制8KiB。
 - 已使用本会话提供的资料成功登录面板，**仅做HTTP只读检查**：静态资源版本0.3.2、上游vaxilu/x-ui、Xray1.4.2，唯一VMess入站包含一个客户端，TCP/HTTP、无TLS。真实节点已私下恢复到本地忽略资产；任何地址、UUID、面板凭据、SSH密码均未写入仓库。HTTP导出不是完整数据库备份。
 - `server/xui032/` 按上游 tag0.3.2/commit f335c8d39a7191883b88aac56fbaf2a6f02656be 提供可审查覆盖层，原菜单在线设备页、原cookie登录与目标入站所有者检查、App心跳/计数/配额；配额只读原Gorm数据库的唯一单客户端入站，expiryTime毫秒转秒；不修改原表、计数或VMess。包含精确版本应用脚本、测试及部署/回滚前置步骤。**仅在本地构建验证，未部署。**
+- 用户要求GitHub连接服务器后，新增只读Actions工作流（根目录唯一相关workflow，用户请求授权所需例外），已推到开发分支；首次执行因未配置HOST/PASSWORD Secrets停止。当前GitHub集成Secrets API返回403，无法代为配置，需仓库管理者设置后重跑。**尚未通过Actions连接服务器。**
 - 开发环境的TCP CONNECT代理在连接阶段拒绝连接，未进行SSH认证；不能据此判断服务器SSH或密码失效。尚未实查服务器文件、架构/发行版、真实二进制版本和数据库；没有完整备份、没有重启或修改面板。需恢复受支持的TCP访问，不能绕过环境策略。
 - 用户已上传原签名备份，已在仓库外私有目录恢复，证书SHA256与原交接一致，不生成替代密钥。最终APK包含真实节点，不上传公开Git；服务器API尚未部署，**当前APK不含online/quota/telemetry私有配置，卡片仍待接入，设备心跳不发送**。恢复SSH、完整备份、匹配构建部署与HTTPS后，再固定真实API资产并同签名递增版本发布。
 - 尚无手机VPN联网、黑白名单实际出网、两设备在线或覆盖安装验证；自动测试和绘图不能代替这些验收。

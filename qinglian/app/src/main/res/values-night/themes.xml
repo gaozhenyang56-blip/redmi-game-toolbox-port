@@ -1,4 +1,4 @@
-<resources><style name="Theme.Qinglian" parent="Theme.Material3Expressive.DayNight.NoActionBar">
+<resources><style name="Theme.Qinglian" parent="Theme.Material3.DayNight.NoActionBar">
  <item name="colorPrimary">#AACEAC</item><item name="colorOnPrimary">#17391D</item>
  <item name="colorPrimaryContainer">#2E4F32</item><item name="colorOnPrimaryContainer">#C7EBC8</item>
  <item name="android:fontFamily">sans</item><item name="android:windowLightStatusBar">false</item>
