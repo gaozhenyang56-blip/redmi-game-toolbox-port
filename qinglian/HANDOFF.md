@@ -6,7 +6,7 @@
 - 有限8MiB/路下载，服务器单路262Mbps、4路714Mbps；首次16MiB请求HTTPError，后续8MiB正常。是服务器出站下载，不能证明到手机的1Gbps下行。
 - run39098913648已应用可回滚优化：仅core rmem_max/wmem_max和tcp rmem/wmem最后一个上限提高到33554432；最小与默认分配保留，不预分配32MiB/连接、不改BBR/fq/MTU、不重启服务或改节点。
 - 持久配置/etc/sysctl.d/99-zz-qinglian-buffers.conf；原值备份/etc/x-ui/qinglian/network-tuning-backup.json，root0600。qinglian-network-tune.yml支持mode=rollback，恢复原值并移除自己的配置；状态与预期不符拒绝覆盖他人修改。写入/本机服务检查失败会立即恢复原值。
-- 调整后服务器单路347Mbps/4路755Mbps，流量短、测试时刻不同，不能把差额归因于调参。原BBR/fq仍正常。实际App配置转换+官方固定核心的运行器VMess基线102.29Mbps，非手机结果。
+- 调整后服务器单路347Mbps/4路755Mbps，流量短、测试时刻不同，不能把差额归因于调参。原BBR/fq仍正常。实际App配置转换+官方固定核心的运行器VMess基线102.29Mbps，非手机结果。另一运行器复测56.33Mbps/204请求212ms，低于基线102.29Mbps/151ms；两次网络路径/时刻并未受控，因此没有证明实际提速，也不能仅凭这组短样本归因缓冲调整。
 - App仍v8、原签名；无需新包，重连VPN再测同一网络/下载源。若仍慢，下一步采样运营商/高低峰/有线WiFi对比并选路由合适的节点；不能承诺单靠App跑满跨境1Gbps。
 
 # 更新误报修复（versionCode8，2026-10-18）
