@@ -80,14 +80,15 @@ for pid,value in process_after.items():
 delta=[a-b for a,b in zip(cpu_after,cpu_before)];total=sum(delta[:8]);steal=round(delta[7]/total*100,2) if total else 0
 xray=Path('/usr/local/x-ui/bin/xray-linux-amd64');version=command([str(xray),'version']).splitlines()[:1] if xray.exists() else []
 config_path=Path('/usr/local/x-ui/bin/config.json');config=json.loads(config_path.read_text()) if config_path.exists() else {}
-policy=config.get('policy',{});safe_policy={key:policy.get(key,{}) for key in ['system','levels']}
+policy=config.get('policy') or {};safe_policy={key:policy.get(key,{}) for key in ['system','levels']}
 flags=set(next((line.split(':',1)[1].split() for line in Path('/proc/cpuinfo').read_text().splitlines() if line.startswith('flags')),[]))
-extra={'tcpSamples':samples,'sampleSeconds':round(span,2),'processLoad':process_load,'cpuStealPercent':steal,'cpuCrypto':{key:key in flags for key in ['aes','avx','avx2']},'xrayVersion':version,'xrayPolicy':safe_policy,'sniffingEnabledCount':sum(bool(i.get('sniffing',{}).get('enabled',False)) for i in config.get('inbounds',[])),'qdiscStatistics':command(['tc','-s','qdisc','show']),'interfaceCounters':{key:int(Path('/sys/class/net/eth0/statistics/'+key).read_text()) for key in ['rx_dropped','tx_dropped','rx_errors','tx_errors'] if Path('/sys/class/net/eth0/statistics/'+key).exists()}}
+extra={'tcpSamples':samples,'sampleSeconds':round(span,2),'processLoad':process_load,'cpuStealPercent':steal,'cpuCrypto':{key:key in flags for key in ['aes','avx','avx2']},'xrayVersion':version,'xrayPolicy':safe_policy,'sniffingEnabledCount':sum(bool((i.get('sniffing') or {}).get('enabled',False)) for i in config.get('inbounds',[])),'qdiscStatistics':command(['tc','-s','qdisc','show']),'interfaceCounters':{key:int(Path('/sys/class/net/eth0/statistics/'+key).read_text()) for key in ['rx_dropped','tx_dropped','rx_errors','tx_errors'] if Path('/sys/class/net/eth0/statistics/'+key).exists()}}
 
 print(json.dumps({'deep':extra,'cpuCount':os.cpu_count(),'load':list(os.getloadavg()),'kernel':os.uname().release,'sysctl':settings,'qdisc':command(['tc','qdisc','show']),'selectedInboundTCP':flows,'selectedInboundTCPAfter':sockets(),'serverDownloadSingle':single,'serverDownloadParallel':{'streams':parallel,'aggregateMbps':round(sum(p.get('bytes',0) for p in parallel)*8/elapsed/1e6,2)},'tcpCounterDelta':{k:after[k]-before.get(k,0) for k in after},'xuiActive':command(['systemctl','is-active','x-ui']),'availableMemoryKiB':next((int(line.split()[1]) for line in Path('/proc/meminfo').read_text().splitlines() if line.startswith('MemAvailable:')),None)}))
 '''
 try:
- with connection() as ssh:result=remote_json(ssh,SCRIPT,timeout=150)
+ with connection() as ssh:result=remote_json(ssh,"import json,traceback\ntry:\n exec(compile("+repr(SCRIPT)+",'diagnostic','exec'))\nexcept Exception as error:\n print(json.dumps({'diagnosticError':type(error).__name__,'line':traceback.extract_tb(error.__traceback__)[-1].lineno}))",timeout=150)
+ if 'diagnosticError' in result:print(json.dumps(result));sys.exit(1)
  print(json.dumps(result))
 except Exception as error:
  print('Performance diagnostic failed:',type(error).__name__,'; private details suppressed.',file=sys.stderr);sys.exit(1)
