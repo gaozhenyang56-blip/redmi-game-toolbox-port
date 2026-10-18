@@ -30,3 +30,5 @@ qinglian-network-tune.yml由tune_network.py将动态缓冲上限提高至32MiB�
 qinglian-hy2-check.yml手动调度后，runner读取可信HTTPS profile.acceleration，验证官方核心经HY2完成HTTPS下载及DNS，无直连回退。旧node探测仍检查兼容通道。服务器单元可独立停止/禁用；面板开关也可停止加速，不改变原VMess。
 
 本地真实协议矩阵：`python3 qinglian/server/protocol_matrix.py`。HY2真实本地QUIC/记账/额度断开：设置QINGLIAN_TEST_HY2_BINARY为已校验的Linux官方binary后运行unittest discover -s qinglian/server -p test_hy2_integration.py。仅测试子类允许loopback目标，生产ACL禁止私网。
+
+- qinglian-exports-deploy.yml：先完成面板升级，再加密备份并部署隔离账号/导出worker，原节点保留。控制11456只loopback，公共节点22000..23999 TCP/UDP。手动verify_only=true仅检查公网测试账号，不重启服务；测试五协议及主连接使用App实际NodeConfig、严格CA并清理随机fixture。详见../ACCOUNT_API.md。
