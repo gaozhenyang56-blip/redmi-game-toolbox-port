@@ -1,3 +1,11 @@
+# v16 默认高性能与续租选择验证（2026-10-18，已发布）
+
+- 1.1.7-preview/versionCode16，assembleRelease/testReleaseUnitTest/lintRelease通过，92项Android测试0失败/错误，lint0错误/39警告。默认高性能脱离旧实验开关；明确保守持久化、兼容通道不申请高性能、服务器响应/节点标记双重确认与不匹配拒绝通过。
+- 运行中的Selection不随UI待重连偏好变化；高性能→保守/兼容及保守→高性能、恢复期间均保持原请求选项。profile网络请求串行化，旧Service返回检查、访客固化options复用同一选择。UI正式页面高性能/保守入口及实验室只剩两个测速开关通过。
+- Hy2Client.configuration仅迁移helper并重命名局部变量，aggressive、8/32MiB流窗口和16/64MiB连接窗口与v14/v15一致；ProtocolTest原数值/TLS断言通过，固定HY2 Android ARM64二进制SHA256仍 `13d5b85cd45e11cf02847dc2b6229d6f9a20b3cb87a00b9356cf244e3bd8db84`。不改服务端、系统参数或共享节点，复用v15真实1GiB基线39169753935，不将旧基线冒称本次手机实测。
+- APK 28,347,618字节，SHA256 `6b419316e6afc8f67a516808f0350319435fefb262a81c28b76fa26512c7c84c`。包名com.gzy.qinglian、version16/1.1.7-preview，原证书SHA256 `2e90d97183fbe26c05a8bd67454b0a5d0f5c01633609a335fdff693a4774a870`；无私钥文件入包，面板revision24发布。线上[39171117919](https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39171117919)核验HTTPS下载、大小/哈希、原签名及包名/版本。
+- 用户当前网络反馈提速且稳定，功能按原参数提升为默认；没有新增实体手机安装覆盖、跨网络稳定性或参数/并发/分流因素的独立AB验收，不能据此保证所有网络相同收益。
+
 # v15 大容量测速验证（2026-10-18，已发布）
 
 - 1.1.6-preview/versionCode15，原签名；Android构建/86项测试/lint通过（0错误/39警告）。新回归验证第一方4路精确总量、502后可重测、800MB超时提示不误报VPN断开，以及阻塞式disconnect不会阻塞UI停止；既有TLS/取消/代际/代理失败不直连仍覆盖。
