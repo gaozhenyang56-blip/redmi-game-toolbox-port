@@ -11,7 +11,7 @@ public final class LabsActivity extends AppCompatActivity {
  private LinearLayout body;
  @Override public void onCreate(Bundle state){AppAppearance.apply(this);DynamicColors.applyToActivityIfAvailable(this);super.onCreate(state);
   LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);MaterialToolbar bar=new MaterialToolbar(this);bar.setTitle("速度实验室");bar.setNavigationIcon(androidx.appcompat.R.drawable.abc_ic_ab_back_material);bar.setNavigationContentDescription("返回");bar.setNavigationOnClickListener(v->finish());root.addView(bar);ScrollView scroll=new ScrollView(this);body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);int pad=dp(20);body.setPadding(pad,pad,pad,pad);scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);
-  note("实验功能默认关闭。性能受Wi-Fi、跨境线路、服务器和目标站点共同限制，参数加大不保证更快。HY2设置需断开VPN后修改，再使用加速通道连接。");
+  note("实验功能默认关闭，测速选项在下次测试生效。性能受Wi-Fi、跨境线路、服务器和目标站点共同限制，参数加大不保证更快。HY2设置需断开VPN后修改，再使用加速通道连接。");
   option("hy2","HY2 激进性能模式","为本设备申请独立HY2节点；客户端与服务端使用最高激进档BBR aggressive，接收窗口扩展至单流32MiB、连接64MiB，不设置固定带宽上限。保留限额、证书校验和服务兼容分流。可能增加耗电、内存和拥塞；线路差时反而变慢。",true);
   option("parallel","四路并行下载测速","测速页用4路请求测合计吞吐，总下载大小保持不变，仍计入流量额度。适合与单路比较；不会改变其他App下载方式。",false);
   option("raw","原始速度曲线","显示约250毫秒采样速度，替代近1秒平滑曲线；全程平均算法不变。更容易观察波动，不会提高连接速度。",false);

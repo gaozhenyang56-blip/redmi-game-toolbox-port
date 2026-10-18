@@ -1,3 +1,12 @@
+# v14 速度实验室验证（2026-10-18，已发布）
+
+- 最终1.1.5-preview/versionCode14，83项Android测试0失败；assembleRelease/testReleaseUnitTest/lintRelease通过。实验默认关闭、仅加速请求、独立Activity、连接中不可改变HY2设置、原签名和TLS验证保留。首次lint发现两个方向常量用裸数字，改为LinearLayout.VERTICAL；未抑制lint错误。
+- 四路本地真实HTTP测试观察4条同时在途请求，选1MiB总接收恰为1MiB；单/四路取消不回调完成，代理失败不回退直连。原始图表约250ms，默认1秒窗口，平均都使用完整墙钟时间含连接等待。未将并行吞吐当单连接吞吐。
+- Go race controller/web通过；实验选项无效类型400，普通兼容节点/周导出预算不变。四组原生测试通过，五协议外新增aggressive HY2真实1.4MB传输、参数检查、计数/到期/用尽停止，普通HY2仍conservative。
+- 升级[39145013500](https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39145013500)和引擎[39145319338](https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39145319338)先加密备份后部署；公网原生检查读取真实worker配置确认aggressive、64MiB连接窗口及无固定带宽；App相同参数的客户端实际512KiB传输成功。另一个同账号设备仍获得原端口/凭据；同设备续租不旋转，关闭实验恢复原节点并观察实验worker关闭。访客实验也实传且原64GiB合计用尽停止、无域名记录、新手动会话重置通过；只清理随机测试数据。
+- 面板revision20发布APK 28,344,594字节，SHA256 `dbbd98eaaa3ca28175264a78b0f74e49eff2ec83a1db9886fb6599b1034d8f0a`。证书仍为 `2e90d97183fbe26c05a8bd67454b0a5d0f5c01633609a335fdff693a4774a870`；无私钥文件，固定规则/HY2二进制摘要保留。线上下载[39168272789](https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39168272789)验证HTTPS、字节/哈希、原签名和包名/版本。
+- highest仅指当前固定核心的最高激进BBR档，不是无限参数或保证1Gbps；接收窗口有界，物理资源共享。没有用户手机实测速度收益、耗电/内存、Wi-Fi拥塞变化或覆盖安装验收，不能宣称波动已解决。
+
 # v13 访客限额、可选大陆分流与滚动玻璃（2026-10-18，已发布）
 
 - 版本1.1.4-preview/versionCode13，原签名。assembleRelease、testReleaseUnitTest、lintRelease通过；78项Android测试，0失败/错误；lint0错误/37警告（含既有兼容/字符串/Android ID告警）。Robolectric TLS测试需JDK17测试进程 `--add-opens=java.base/java.net=ALL-UNNAMED`，只修测试反射环境，不修改生产TLS验证。

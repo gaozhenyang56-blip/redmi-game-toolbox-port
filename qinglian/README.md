@@ -1,6 +1,6 @@
 # 轻连 — 统一面板管理 Android VPN，Codex 交接工程
 
-**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.1.4-preview`，versionCode `13`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
+**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.1.5-preview`，versionCode `14`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
 
 已完成标准 Material 3、默认亮色和亮色自适应图标；支持浅色/深色/跟随系统切换。包含延迟/下载测速、每秒通知栏速度与本次用量、可选Surfboard风格黑白名单及规则/全局模式。关闭应用分流后规则模式自动绕过大陆/私网。账号为独立页面，免登录每次手动连接64GiB，自动恢复不重置；面板分六页管理。
 
@@ -69,3 +69,5 @@ python3 scripts/verify_release_signature.py app/build/outputs/apk/release/app-re
 同一个原x-ui面板管理VMess、VLESS、Trojan、Shadowsocks与Hysteria2。App连接页可切换兼容/加速，需重连；加速为Hysteria2（Android10+），兼容协议Android8+。新协议需先安装v9，默认保持原VMess节点。支持TCP/WS和安全TLS，不支持Reality/XTLS/SS2022。加速配额、到期和启停与绑定原入站联动。速度需手机同网络实测，协议支持不代表保证提速。
 
 固定上游Hysteria2 app/v2.13.0，摘要见scripts/prepare_dependencies.py；MIT许可证随App资产分发。
+
+关于页含速度实验室：可选HY2激进性能（仅本设备独立节点）、四路并行测速和原始速度曲线，默认全关。线路与物理带宽仍限制吞吐，不保证更快。

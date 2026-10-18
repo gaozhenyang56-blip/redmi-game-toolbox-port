@@ -1,4 +1,4 @@
-# 账号、主连接、访客与节点导出（v13）
+# 账号、主连接、访客与节点导出（v14）
 
 App 从连接页“账号 / 节点导出”进入独立账号页面注册或登录，自定义用户名（3..32字符，不含空白）和密码（8..72 UTF-8字节）。密码仅存 bcrypt cost12 摘要；设备会话凭据随机生成，服务器只存 SHA256 摘要，90天有效。同一账号支持多设备登录，额度与用量合并；同一设备仅可注册一个账号。Android ID 经应用范围 SHA256 后用于绑定，不是认证凭据，也不是不可伪造的硬件证明。恢复出厂设置等可能改变该标识。
 
@@ -58,3 +58,11 @@ VMess/VLESS/Trojan 使用可验证 TLS，SS 使用 AEAD，HY2 使用可验证 QU
 POST `/api/v1/exports/logout` 撤销当前设备会话；其他设备会话不受影响。退出前App要求停止VPN，账号页状态和错误在登录/已登录区均可见。
 
 面板路由：`/xui/qinglian` 概览，`/xui/qinglian/manage/{accounts,nodes,history,updates,devices}`。原API路径、登录、同源检查保持；不能把页面路径与API混用。
+
+## 速度实验室：设备隔离HY2（v14）
+
+主连接/访客profile可提交 `{"labHy2":true}`，只接受布尔值，设备摘要仍必须通过原会话认证。仅HY2生成独立request key（kind/parent/protocol加lab及设备摘要），兼容节点不变；普通请求仍复用原账号节点，不能改其他设备的实验或保守参数。响应labHy2确认生效、acceleration.node.hy2Performance=aggressive-v1，独立revision/凭据/端口。App只在加速模式请求，未确认则拒绝把普通模式误报为实验成功。
+
+账号监督引擎只对kind=main/guest且服务器保存标记匹配的HY2开启BBR aggressive、ignoreClientBandwidth=true和8/32MiB流窗口、16/64MiB连接窗口。原共享HY2、普通节点、独立导出节点不改；未修改系统级sysctl或全部用户带宽。现有每账号8条/全局16条及768MiB限制仍在，资源满返回不可用，不挤占/删除已有节点来创建实验节点。物理资源与带宽仍共享，不能承诺完全无相互竞争。
+
+同设备labHy2=false请求恢复普通HY2并将自己的旧实验租约过期；其他设备节点不受此更新影响。自动恢复/15秒续租复用原实验key，180秒失联停止。实验流量仍计入账号及原父配额；访客实验与普通访客行合并64GiB，不重置预算且不记录域名。没有因开实验解除到期/总量、TLS校验、管理端口loopback或私网出站限制。

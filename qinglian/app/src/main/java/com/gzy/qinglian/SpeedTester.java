@@ -24,7 +24,7 @@ public final class SpeedTester {
  private HttpURLConnection open(String url,int run)throws IOException{
   if(cancelled(run))throw new InterruptedIOException();
   HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection(proxy);
-  if(cancelled(run)){c.disconnect();throw new InterruptedIOException();}active=c;connections.add(c);c.setConnectTimeout(8000);c.setReadTimeout(4000);c.setUseCaches(false);c.setInstanceFollowRedirects(false);
+  if(cancelled(run)){c.disconnect();throw new InterruptedIOException();}active=c;connections.add(c);if(cancelled(run)){release(c);throw new InterruptedIOException();}c.setConnectTimeout(8000);c.setReadTimeout(4000);c.setUseCaches(false);c.setInstanceFollowRedirects(false);
   c.setRequestProperty("Connection","close");c.setRequestProperty("User-Agent","Qinglian/1.0 Android");c.setRequestProperty("Cache-Control","no-cache");c.setRequestProperty("Accept-Encoding","identity");return c;
  }
  public synchronized void latency(Listener l){
