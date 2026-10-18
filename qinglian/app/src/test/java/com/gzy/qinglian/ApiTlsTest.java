@@ -38,7 +38,7 @@ public class ApiTlsTest {
     while((line=input.readLine())!=null&&!line.isEmpty()){}
     byte[] body="{\"online\":2}".getBytes(StandardCharsets.UTF_8);
     OutputStream out=socket.getOutputStream();out.write(("HTTP/1.1 200 OK\r\nContent-Length: "+body.length+"\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));out.write(body);out.flush();
-   }catch(Exception expectedHandshakeFailure){}
+   }catch(Exception expectedHandshakeFailure){expectedHandshakeFailure.printStackTrace();} // Keep fixture diagnostics, including expected negative trust/hostname probes.
   }
   int port(){return listener.getLocalPort();}
   @Override public void close()throws Exception{closed=true;listener.close();connections.shutdownNow();connections.awaitTermination(3,TimeUnit.SECONDS);}

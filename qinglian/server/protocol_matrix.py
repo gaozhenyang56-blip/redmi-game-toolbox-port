@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Real, isolated core tests; test-only certificates and credentials, loopback targets."""
-import hashlib,json,os,socket,subprocess,tempfile,threading,time,urllib.request,zipfile
+import hashlib,json,os,socket,ssl,struct,subprocess,tempfile,threading,time,urllib.request,zipfile
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
 ROOT=Path(__file__).parents[1];CACHE=Path(os.environ.get('QINGLIAN_TEST_CACHE','/tmp/qinglian-core-tests'));CACHE.mkdir(parents=True,exist_ok=True)
@@ -74,7 +74,27 @@ try:
     result=subprocess.run(['curl','-fsS','--max-time','3','--noproxy','','--proxy','socks5://127.0.0.1:'+str(socks_port),'-H','Host: '+host,'http://127.0.0.1:'+str(origin.server_port)],capture_output=True,timeout=5)
     assert (result.returncode==0)==success,host+' unexpected hybrid route: '+result.stderr.decode()
     if success:assert result.stdout==b'qinglian-end-to-end-protocol-matrix\n'*2048
-   results.append({'protocol':'hybrid-hy2','ipDestinationSniffing':True,'compatibleServices':True,'ordinaryTrafficNeverFallsBack':True})
+   # Verify TLS SNI on an IP-destination SOCKS stream, with full hostname/CA validation.
+   cert=root/'test-cert.pem';key=root/'test-key.pem'
+   subprocess.run(['openssl','req','-x509','-newkey','rsa:2048','-nodes','-days','1','-subj','/CN=chatgpt.com','-addext','subjectAltName=DNS:chatgpt.com','-keyout',str(key),'-out',str(cert)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+   secure=ThreadingHTTPServer(('127.0.0.1',0),Origin);tls_context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);tls_context.load_cert_chain(cert,key);secure.socket=tls_context.wrap_socket(secure.socket,server_side=True);threading.Thread(target=secure.serve_forever,daemon=True).start()
+   try:
+    with socket.create_connection(('127.0.0.1',socks_port),3) as tcp:
+     tcp.settimeout(4);tcp.sendall(b'\x05\x01\x00');assert tcp.recv(2)==b'\x05\x00'
+     tcp.sendall(b'\x05\x01\x00\x01\x7f\x00\x00\x01'+struct.pack('!H',secure.server_port))
+     reply=b''
+     while len(reply)<10:
+      part=tcp.recv(10-len(reply));assert part;reply+=part
+     assert reply[:2]==b'\x05\x00'
+     with ssl.create_default_context(cafile=str(cert)).wrap_socket(tcp,server_hostname='chatgpt.com') as tls_socket:
+      tls_socket.sendall(b'GET / HTTP/1.0\r\nHost: chatgpt.com\r\n\r\n');response=b''
+      while True:
+       data=tls_socket.recv(65536)
+       if not data:break
+       response+=data
+      assert response.split(b'\r\n\r\n',1)[1]==b'qinglian-end-to-end-protocol-matrix\n'*2048
+   finally:secure.shutdown();secure.server_close()
+   results.append({'protocol':'hybrid-hy2','ipDestinationSniffing':True,'compatibleServices':True,'tlsSniVerified':True,'ordinaryTrafficNeverFallsBack':True})
   finally:
    if client:client.terminate();client.wait(timeout=5)
    server.terminate();server.wait(timeout=5)
