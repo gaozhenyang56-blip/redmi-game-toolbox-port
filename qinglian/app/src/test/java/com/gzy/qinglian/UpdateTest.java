@@ -32,13 +32,27 @@ public class UpdateTest {
   JSONObject apk=new JSONObject().put("versionCode",8).put("versionName","fixture").put("sha256","0".repeat(64)).put("size",100).put("notes","");assertEquals(8,UpdateMonitor.parseAPK(apk).versionCode);
   apk.put("url","https://untrusted.invalid/app.apk");assertThrows(Exception.class,()->UpdateMonitor.parseAPK(apk));apk.remove("url");apk.put("size",67108865);assertThrows(Exception.class,()->UpdateMonitor.parseAPK(apk));
  }
+ @Test public void rejectedUIStillAllowsVerifiedPackageUpdates()throws Exception{
+  Context c=context();JSONObject manifest=new JSONObject().put("schema",1).put("revision",5).put("ui",UiTuning.defaults().json()).put("apk",JSONObject.NULL);
+  UpdateMonitor.accept(c,manifest);UiTuning.reset(c);
+  JSONObject apk=new JSONObject().put("versionCode",BuildConfig.VERSION_CODE+1).put("versionName","fixture").put("sha256","0".repeat(64)).put("size",100).put("notes","");
+  manifest.put("apk",apk);UpdateMonitor.accept(c,manifest);
+  assertEquals(0,UiTuning.get(c).revision);assertNotNull(UpdateMonitor.available);assertTrue(UpdateMonitor.status.contains("保留本机界面"));
+  manifest.put("revision",6);UpdateMonitor.accept(c,manifest);assertEquals(6,UiTuning.get(c).revision);
+ }
+ @Test public void failedRenderStillAllowsPackageUpdateWithoutReapplyingBadUI()throws Exception{
+  Context c=context();JSONObject manifest=new JSONObject().put("schema",1).put("revision",5).put("ui",UiTuning.defaults().json()).put("apk",JSONObject.NULL);
+  UpdateMonitor.accept(c,manifest);UiTuning.beginRender(c);UiTuning.beginRender(c);
+  manifest.put("apk",new JSONObject().put("versionCode",BuildConfig.VERSION_CODE+1).put("versionName","fixture").put("sha256","0".repeat(64)).put("size",100).put("notes",""));
+  UpdateMonitor.accept(c,manifest);assertEquals(0,UiTuning.get(c).revision);assertNotNull(UpdateMonitor.available);assertTrue(UpdateMonitor.status.contains("保留本机界面"));
+ }
  @Test public void originalCertificatePackageVersionAndHashMustAllMatch()throws Exception{
   Context c=context();File file=new File(c.getCacheDir(),"archive-fixture.apk");byte[] data="framework archive fixture".getBytes(java.nio.charset.StandardCharsets.UTF_8);try(FileOutputStream out=new FileOutputStream(file)){out.write(data);}
-  String hash=ApiEndpoint.hex(MessageDigest.getInstance("SHA-256").digest(data));UpdateMonitor.APK apk=new UpdateMonitor.APK(8,data.length,"fixture",hash,"");
-  PackageInfo info=new PackageInfo();info.packageName=c.getPackageName();info.setLongVersionCode(8);info.applicationInfo=new ApplicationInfo();info.applicationInfo.minSdkVersion=26;
+  String hash=ApiEndpoint.hex(MessageDigest.getInstance("SHA-256").digest(data));UpdateMonitor.APK apk=new UpdateMonitor.APK(BuildConfig.VERSION_CODE+1,data.length,"fixture",hash,"");
+  PackageInfo info=new PackageInfo();info.packageName=c.getPackageName();info.setLongVersionCode(BuildConfig.VERSION_CODE+1);info.applicationInfo=new ApplicationInfo();info.applicationInfo.minSdkVersion=26;
   info.signingInfo=ReflectionHelpers.callConstructor(SigningInfo.class);byte[] cert;try(InputStream in=getClass().getResourceAsStream("/original-release-cert.der")){cert=in.readAllBytes();}
   Shadows.shadowOf(info.signingInfo).setSignatures(new android.content.pm.Signature[]{new android.content.pm.Signature(cert)});Shadows.shadowOf(c.getPackageManager()).setPackageArchiveInfo(file.getPath(),info);
-  UpdateMonitor.verify(c,file,apk);info.packageName="example.wrong";assertThrows(Exception.class,()->UpdateMonitor.verify(c,file,apk));info.packageName=c.getPackageName();info.setLongVersionCode(9);assertThrows(Exception.class,()->UpdateMonitor.verify(c,file,apk));info.setLongVersionCode(8);
+  UpdateMonitor.verify(c,file,apk);info.packageName="example.wrong";assertThrows(Exception.class,()->UpdateMonitor.verify(c,file,apk));info.packageName=c.getPackageName();info.setLongVersionCode(BuildConfig.VERSION_CODE+2);assertThrows(Exception.class,()->UpdateMonitor.verify(c,file,apk));info.setLongVersionCode(BuildConfig.VERSION_CODE+1);
   Shadows.shadowOf(info.signingInfo).setSignatures(new android.content.pm.Signature[]{new android.content.pm.Signature(new byte[]{1,2,3})});assertThrows(Exception.class,()->UpdateMonitor.verify(c,file,apk));
   try(FileOutputStream out=new FileOutputStream(file)){out.write(new byte[data.length]);}assertThrows(Exception.class,()->UpdateMonitor.verify(c,file,apk));
  }

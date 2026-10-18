@@ -1,3 +1,13 @@
+# 更新误报修复（versionCode8）
+
+- 原缺陷回归先在v7代码上失败：恢复默认界面后接受相同发布抛出IOException（保存修复失败），导致更新状态误报且不检查APK。
+- v8将被拒绝的UI配置与APK更新检查分开；相同UI不再次应用，合法新APK仍能显示，较新的UI revision仍可应用。增加恢复默认与失败启动回退两条回归；签名测试的目标版本改为当前版本+1。
+- 更新失败文案区分超时、TLS/证书、DNS、连接失败、HTTP状态、本地资产缺失和配置格式；不输出原始异常内容或凭据。
+- 现有生产更新服务复查Actions39098407422通过。仅修改App，不部署服务器二进制，不改变节点或VPN行为。
+- 初轮全套测试的本地TLS fixture出现EOF，服务端读等待由3秒改为15秒后重跑；生产客户端的3秒超时与信任策略未改变。
+- 最终assembleRelease/testReleaseUnitTest/lintRelease成功，57项测试0失败，lint0错误/23警告。面板发布v8为revision6，默认图文间距2dp。
+- v8 APK SHA256：ae5ed875b7518eae5ec3cb22bf9cbe4800acedb0099b858b538f584eedf72e71，19,511,022字节。原签名、版本/包名、ZIP及私钥/密码边界校验通过。
+
 # 导航对齐与更新通道（versionCode7）
 
 - 1.0.6-preview/versionCode7，原签名，ARM64/Android8+。底部图文整体居中，默认间距2dp，原生绘图已检查，未实体手机验收。

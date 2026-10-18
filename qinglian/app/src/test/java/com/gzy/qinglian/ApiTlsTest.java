@@ -34,7 +34,7 @@ public class ApiTlsTest {
    Thread accept=new Thread(()->{while(!closed)try{SSLSocket connection=(SSLSocket)listener.accept();connections.execute(()->handle(connection));}catch(Exception ignored){}});accept.setDaemon(true);accept.start();
   }
   void handle(SSLSocket connection){
-   try(SSLSocket socket=connection){socket.setSoTimeout(3000);socket.startHandshake();BufferedReader input=new BufferedReader(new InputStreamReader(socket.getInputStream(),StandardCharsets.US_ASCII));String line;
+   try(SSLSocket socket=connection){socket.setSoTimeout(15000);socket.startHandshake();BufferedReader input=new BufferedReader(new InputStreamReader(socket.getInputStream(),StandardCharsets.US_ASCII));String line;
     while((line=input.readLine())!=null&&!line.isEmpty()){}
     byte[] body="{\"online\":2}".getBytes(StandardCharsets.UTF_8);
     OutputStream out=socket.getOutputStream();out.write(("HTTP/1.1 200 OK\r\nContent-Length: "+body.length+"\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));out.write(body);out.flush();

@@ -1,3 +1,11 @@
+# 更新误报修复（versionCode8，2026-10-18）
+
+当前1.0.7-preview/versionCode8，下一版至少9，原签名。
+
+用户反馈在线/配额正常但更新不可用，并确认恢复默认界面场景。v7在UiTuning.reset后把当前revision加入rejected保护，UpdateMonitor.accept却将save拒绝误判成连接失败，且提前终止APK检查。v8保留这一保护，明确跳过被拒绝的UI，继续检查已验证的APK；新revision仍可应用。恢复失败界面的自动回退同样覆盖。网络/证书/HTTP/格式失败改用安全分类文案，不输出URL、令牌或原始异常。
+
+生产更新接口和真实APK下载复查Actions39098407422成功，故此案例不是面板服务中断。最新构建与发布验证记录见verification/ROUTING_CHECKS.md。实体手机仍需安装新版确认。
+
 # 导航对齐与面板更新（versionCode7，2026-10-18）
 
 当前1.0.6-preview/versionCode7，下一版至少8，沿用原签名。下方为历史记录，冲突以本节为准。

@@ -11,6 +11,7 @@ import java.security.cert.*;
 
 /** Fixed build-time API configuration. Never redirects a bearer token. */
 final class ApiEndpoint {
+ static final class HttpFailure extends IOException {final int code;HttpFailure(int code){super("服务端接口暂不可用");this.code=code;}}
  private final URL url;
  private final String token;
  private final SSLSocketFactory tlsFactory;
@@ -55,7 +56,7 @@ final class ApiEndpoint {
     c.setRequestMethod("POST");c.setDoOutput(true);c.setRequestProperty("Content-Type","application/json; charset=utf-8");c.setFixedLengthStreamingMode(bytes.length);
     try(OutputStream out=c.getOutputStream()){out.write(bytes);}
    }else c.setRequestMethod("GET");
-   if(c.getResponseCode()!=200)throw new IOException("服务端接口暂不可用");
+   int code=c.getResponseCode();if(code!=200)throw new HttpFailure(code);
    byte[] bytes=new byte[8193];int total=0,n;
    try(InputStream in=c.getInputStream()){while(total<bytes.length&&(n=in.read(bytes,total,bytes.length-total))!=-1)total+=n;}
    if(total==bytes.length)throw new IOException("接口响应过大");

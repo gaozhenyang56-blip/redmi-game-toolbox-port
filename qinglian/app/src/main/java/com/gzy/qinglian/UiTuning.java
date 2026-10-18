@@ -21,9 +21,10 @@ final class UiTuning {
  static UiTuning get(Context context){try{
   JSONObject cached=new JSONObject(context.getSharedPreferences(PREFS,0).getString("active","{}"));return parse(ApiEndpoint.nonnegativeLong(cached,"revision"),cached.getJSONObject("ui"));
  }catch(Exception invalid){return defaults();}}
+ static boolean rejected(Context context,long revision){return revision<=context.getSharedPreferences(PREFS,0).getLong("rejected",-1);}
  static boolean save(Context context,UiTuning next)throws Exception{
   parse(next.revision,next.json());
-  if(next.revision<=get(context).revision||next.revision<=context.getSharedPreferences(PREFS,0).getLong("rejected",-1))return false;
+  if(next.revision<=get(context).revision||rejected(context,next.revision))return false;
   String data=new JSONObject().put("revision",next.revision).put("ui",next.json()).toString();return context.getSharedPreferences(PREFS,0).edit().putString("previous",context.getSharedPreferences(PREFS,0).getString("active","{}" )).putString("active",data).commit();
  }
  static void beginRender(Context context){

@@ -1,6 +1,6 @@
 # 轻连 — Android 单节点 VPN，Codex 交接工程
 
-**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.0.6-preview`，versionCode `7`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
+**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.0.7-preview`，versionCode `8`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
 
 已完成标准 Material 3、默认亮色和亮色自适应图标；支持浅色/深色/跟随系统切换。包含延迟/下载测速、每秒通知栏速度与本次用量、Surfboard风格黑白名单及规则/全局模式。
 

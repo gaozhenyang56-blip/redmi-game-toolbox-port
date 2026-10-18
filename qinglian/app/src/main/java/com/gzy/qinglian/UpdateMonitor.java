@@ -31,12 +31,25 @@ final class UpdateMonitor {
   long revision=ApiEndpoint.nonnegativeLong(value,"revision");UiTuning ui=UiTuning.parse(revision,value.getJSONObject("ui"));
   APK apk=value.isNull("apk")?null:parseAPK(value.getJSONObject("apk"));
   UiTuning current=UiTuning.get(context);if(revision<current.revision)throw new IOException("旧发布已忽略");
-  if(revision>current.revision&&!UiTuning.save(context,ui))throw new IOException("保存修复失败");
-  available=apk!=null&&apk.versionCode>BuildConfig.VERSION_CODE?apk:null;status="已同步面板 · 修复序号 "+revision+(available==null?" · 无新版本":" · 可更新 "+available.name);
+  boolean retained=revision>current.revision&&UiTuning.rejected(context,revision);
+  if(revision>current.revision&&!retained&&!UiTuning.save(context,ui))throw new IOException("保存修复失败");
+  available=apk!=null&&apk.versionCode>BuildConfig.VERSION_CODE?apk:null;status="已同步面板 · 修复序号 "+revision+(retained?" · 保留本机界面":"")+(available==null?" · 无新版本":" · 可更新 "+available.name);
  }
  static synchronized void refresh(Context context,boolean force){
   long now=SystemClock.elapsedRealtime();if(busy||(!force&&attempted!=0&&now-attempted<30000))return;busy=true;attempted=now;Context app=context.getApplicationContext();
-  worker.execute(()->{try{accept(app,ApiEndpoint.load(app,"updates.json").request(null));}catch(Exception unavailable){status="面板更新暂不可用 · 保留已验证配置";}finally{synchronized(UpdateMonitor.class){busy=false;}}});
+  worker.execute(()->{try{accept(app,ApiEndpoint.load(app,"updates.json").request(null));}catch(Exception unavailable){status=failureStatus(unavailable);}finally{synchronized(UpdateMonitor.class){busy=false;}}});
+ }
+ static String failureStatus(Exception error){
+  String reason;
+  if(error instanceof java.net.SocketTimeoutException)reason="连接超时";
+  else if(error instanceof javax.net.ssl.SSLException||error instanceof java.security.cert.CertificateException)reason="证书或安全连接失败";
+  else if(error instanceof java.net.UnknownHostException)reason="服务器地址无法解析";
+  else if(error instanceof java.net.ConnectException)reason="无法连接更新服务";
+  else if(error instanceof ApiEndpoint.HttpFailure)reason="更新服务返回 HTTP "+((ApiEndpoint.HttpFailure)error).code;
+  else if(error instanceof java.io.FileNotFoundException)reason="本机更新配置缺失";
+  else if(error instanceof JSONException)reason="更新配置格式不兼容";
+  else reason="请求或配置处理失败";
+  return "面板更新："+reason+" · 保留已验证配置";
  }
  static File file(Context context,APK apk){File directory=new File(context.getCacheDir(),"updates");directory.mkdirs();return new File(directory,"app-"+apk.sha+".apk");}
  static void verify(Context context,File file,APK apk)throws Exception{
