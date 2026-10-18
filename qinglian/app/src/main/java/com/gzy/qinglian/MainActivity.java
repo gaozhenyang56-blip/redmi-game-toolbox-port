@@ -18,7 +18,9 @@ import com.google.android.material.progressindicator.LinearProgressIndicator;
 import java.util.*;
 
 public class MainActivity extends AppCompatActivity {
- private LinearLayout root,body;
+ private FrameLayout root;
+ private LinearLayout body;
+ private FrostedBar topGlass,bottomGlass;
  private com.google.android.material.bottomnavigation.BottomNavigationView nav;
  static final int NAV_CONNECT=R.id.nav_connect,NAV_SPEED=R.id.nav_speed,NAV_ROUTING=R.id.nav_routing,NAV_ABOUT=R.id.nav_about;
  private static final int[] NAV_ITEMS={NAV_CONNECT,NAV_SPEED,NAV_ROUTING,NAV_ABOUT};
@@ -38,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
   AppAppearance.apply(this);DynamicColors.applyToActivityIfAvailable(this);super.onCreate(b);
   WindowCompat.setDecorFitsSystemWindows(getWindow(),false);
   if(b!=null){latency=b.getString("latency","—");download=b.getString("download","—");tab=b.getInt("tab",0);}
-  root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(color(com.google.android.material.R.attr.colorSurface));
+  root=new FrameLayout(this);root.setBackgroundColor(color(com.google.android.material.R.attr.colorSurface));
   ViewCompat.setOnApplyWindowInsetsListener(root,(v,insets)->{androidx.core.graphics.Insets s=insets.getInsets(WindowInsetsCompat.Type.systemBars());v.setPadding(s.left,s.top,s.right,s.bottom);return WindowInsetsCompat.CONSUMED;});
   setContentView(root);
   boolean night=(getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK)==android.content.res.Configuration.UI_MODE_NIGHT_YES;
@@ -47,16 +49,23 @@ public class MainActivity extends AppCompatActivity {
   com.google.android.material.appbar.MaterialToolbar toolbar=new com.google.android.material.appbar.MaterialToolbar(this);
   toolbar.setTitle("轻连");
   toolbar.getMenu().add(Menu.NONE,R.id.menu_appearance,0,"外观").setIcon(R.drawable.ic_theme).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-  toolbar.setOnMenuItemClickListener(item->{if(item.getItemId()==R.id.menu_appearance){appearance();return true;}return false;});toolbar.setBackgroundColor(color(com.google.android.material.R.attr.colorSurface));root.addView(toolbar,new LinearLayout.LayoutParams(-1,dp(64)));
-  ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);
-  body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(16),dp(12),dp(16),dp(16));scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+  toolbar.setOnMenuItemClickListener(item->{if(item.getItemId()==R.id.menu_appearance){appearance();return true;}return false;});toolbar.setBackgroundColor(Color.TRANSPARENT);
+  ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPadding(0,dp(80),0,dp(96));
+  body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(16),dp(12),dp(16),dp(16));scroll.addView(body);root.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
+  topGlass=new FrostedBar(this,color(com.google.android.material.R.attr.colorSurface),night,28);topGlass.addView(toolbar,new FrameLayout.LayoutParams(-1,-1));topGlass.setSource(scroll);
+  FrameLayout.LayoutParams topGlassLayout=new FrameLayout.LayoutParams(-1,dp(64),Gravity.TOP);topGlassLayout.setMargins(dp(12),dp(8),dp(12),0);root.addView(topGlass,topGlassLayout);
   nav=new com.google.android.material.bottomnavigation.BottomNavigationView(this);
   nav.setLabelVisibilityMode(com.google.android.material.navigation.NavigationBarView.LABEL_VISIBILITY_LABELED);
-  root.addView(nav,new LinearLayout.LayoutParams(-1,-2));
+  nav.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.TRANSPARENT));nav.setElevation(0);
+  bottomGlass=new FrostedBar(this,color(com.google.android.material.R.attr.colorSurfaceContainer),night,36);bottomGlass.addView(nav,new FrameLayout.LayoutParams(-1,-2));bottomGlass.setSource(scroll);
+  FrameLayout.LayoutParams bottomGlassLayout=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);bottomGlassLayout.setMargins(dp(12),0,dp(12),dp(8));root.addView(bottomGlass,bottomGlassLayout);
+  bottomGlass.addOnLayoutChangeListener((v,l,t,r,bottom,ol,ot,or,ob)->{if(scroll.getPaddingBottom()!=bottom-t+dp(16))scroll.setPadding(0,dp(80),0,bottom-t+dp(16));});
+  scroll.setOnScrollChangeListener((v,x,y,oldX,oldY)->{topGlass.requestBackdrop();bottomGlass.requestBackdrop();});
+  body.addOnLayoutChangeListener((v,l,t,r,bottom,ol,ot,or,ob)->{topGlass.requestBackdrop();bottomGlass.requestBackdrop();});
   nav.setOnItemSelectedListener(item->{int next=item.getItemId()==NAV_CONNECT?0:item.getItemId()==NAV_SPEED?1:item.getItemId()==NAV_ROUTING?2:3;if(next!=tab){tab=next;build();}return true;});build();
  }
- @Override protected void onResume(){super.onResume();main.post(ticker);}
- @Override protected void onPause(){main.removeCallbacks(ticker);super.onPause();}
+ @Override protected void onResume(){super.onResume();topGlass.setActive(true);bottomGlass.setActive(true);main.post(ticker);}
+ @Override protected void onPause(){main.removeCallbacks(ticker);topGlass.setActive(false);bottomGlass.setActive(false);super.onPause();}
  @Override protected void onDestroy(){tester.close();main.removeCallbacksAndMessages(null);super.onDestroy();}
  @Override protected void onSaveInstanceState(Bundle out){out.putString("latency",testing&&testKind==1?"已停止":latency);out.putString("download",testing&&testKind==2?"已停止":download);out.putInt("tab",tab);super.onSaveInstanceState(out);}
  private int dp(float n){return (int)(getResources().getDisplayMetrics().density*n+.5f);}
@@ -179,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
   }));dialog.show();
  }
  private void about(){
-  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.0.4 · Preview\nARM64 · Android 8.0 及以上"));
+  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.0.5 · Preview\nARM64 · Android 8.0 及以上"));
   LinearLayout d=card(com.google.android.material.R.attr.colorSurfaceContainer);d.addView(text("连接与隐私",19,true));space(d,12);d.addView(note("使用 V2Ray / v2fly 核心。\n连接时会请求 Android 系统 VPN 授权；关闭界面后仍可后台运行。\n通知栏显示本次上传、下载流量与实时速度，可直接断开。\n连接时每 10 秒向服务端上报随机安装标识、设备型号、系统与应用版本、本次速度和用量，供原面板显示在线设备。服务端可见来源 IP；断开后停止，30 秒无心跳即离线。不会读取 IMEI、通讯录、文件或浏览内容。\n不接入广告与统计 SDK。节点由面板统一指定并自动同步，App 不提供手动添加、编辑或导出入口。\n测速请求会访问 Google 204 测试地址与 Cloudflare 下载站点。"));
   LinearLayout l=card(com.google.android.material.R.attr.colorSurfaceContainer);l.addView(text("开源许可",19,true));space(l,10);l.addView(note("本应用按 GPL-3.0 提供源码。\nV2Ray / v2fly：MIT\nAndroidLibV2rayLite：LGPL-3.0\nBadVPN tun2socks / v2rayNG：见随附第三方许可。"));
   MaterialButton license=button("查看第三方许可");license.setOnClickListener(v->{try(java.io.InputStream in=getAssets().open("THIRD_PARTY.txt")){new MaterialAlertDialogBuilder(this).setTitle("开源许可").setMessage(Io.readUtf8(in)).setPositiveButton("关闭",null).show();}catch(Exception e){toast("许可文件不可用");}});l.addView(license);

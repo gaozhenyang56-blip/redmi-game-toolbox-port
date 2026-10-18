@@ -20,7 +20,7 @@ public class InsetsTest {
     assertTrue(ViewCompat.dispatchApplyWindowInsets(root,insets).isConsumed());
     root.measure(View.MeasureSpec.makeMeasureSpec(1080,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(2340,View.MeasureSpec.EXACTLY));root.layout(0,0,1080,2340);
     assertEquals(144,root.getPaddingBottom());assertEquals(0,nav.getPaddingBottom());
-    assertEquals(2340-144,nav.getBottom());
+    assertEquals(2340-144-Math.round(8*a.getResources().getDisplayMetrics().density),nav.getBottom());
     assertTrue(nav.getHeight()<=96*a.getResources().getDisplayMetrics().density);
    }
   }

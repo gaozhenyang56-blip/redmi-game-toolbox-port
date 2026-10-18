@@ -1,3 +1,16 @@
+# 苹果风格玻璃界面（versionCode6）
+
+- 1.0.5-preview / versionCode6，沿用原签名，仅App界面变化，不修改服务器/隧道配置。
+- 最终assembleRelease/testReleaseUnitTest/lintRelease成功，47项测试0失败，0 errors, 14 warnings。
+- 最终APK SHA256：ac04c7bc5e417e563cab1cc573f6d612aca5dfde9c0643667e40e94b517a8bca；ZIP/私有资产边界/原证书核对通过。
+- 顶部与底部悬浮玻璃，圆角/细边缘/渐变高光/柔和阴影；M3动态配色与亮暗主题保留。API31+ RenderEffect只模糊背景ImageView，标题/图标不模糊；低版本半透明兼容。
+- 只截取自己ScrollView的条带并缩小到1/8，40ms合并刷新请求；滚动/布局变化触发，后台取消任务与释放快照，不做持续全屏截图。
+- 47项Android检查（含新增快照尺寸/更新合并/后台停止/恢复测试），底部insets回归保留，悬浮底部只额外8dp，避免重复系统间距。
+- 本地TLS fixture曾出现一次意外EOF；未更改生产信任或重试策略，完整重跑通过。最终构建与签名结果记录如下。
+- 已检查Robolectric原生绘图；真实Android GPU观感与帧率尚未实机验证，不把绘图当作手机截图。
+
+## versionCode5历史验证
+
 # 性能与稳定性更新验证（versionCode5）
 
 - 1.0.4-preview，原签名，minSdk26/targetSdk35/ARM64。
