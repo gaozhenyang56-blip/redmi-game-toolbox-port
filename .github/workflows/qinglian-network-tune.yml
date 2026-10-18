@@ -1,0 +1,42 @@
+name: Qinglian reversible TCP buffer tuning
+on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['.github/workflows/qinglian-network-tune.yml','qinglian/server/github/tune_network.py']
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Apply or restore saved original buffer ceilings
+        type: choice
+        options: [apply, rollback]
+        default: apply
+permissions:
+  contents: read
+concurrency:
+  group: qinglian-server-maintenance
+  cancel-in-progress: false
+jobs:
+  tune:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian/server
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - name: Save original values and apply bounded dynamic buffer ceilings
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+          QINGLIAN_NETWORK_MODE: ${{ inputs.mode || 'apply' }}
+        run: python3 qinglian/server/github/tune_network.py
+      - name: Verify live state and bounded server throughput
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/server/performance_probe.py
