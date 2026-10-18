@@ -104,8 +104,8 @@ public class MainActivity extends AppCompatActivity {
   MaterialButton go=button("前往网络测速");go.setOnClickListener(v->{tab=1;build();});body.addView(go);
  }
  private void speed(){
-  body.addView(text("网络测速",24,true));space(body,8);body.addView(note("所有测试都通过唯一节点进行"));space(body,20);
-  LinearLayout c=card(com.google.android.material.R.attr.colorSurfaceContainer);c.addView(note("核心延迟 / 连接复用"));space(c,8);latencyValue=text(latency,32,true);c.addView(latencyValue);space(c,8);c.addView(note("与 v2rayNG 使用相同核心测试；两次请求取较小值"));space(c,12);
+  body.addView(text("网络测速",24,true));space(body,8);body.addView(note("测速通过当前连接通道进行"));space(body,20);
+  LinearLayout c=card(com.google.android.material.R.attr.colorSurfaceContainer);c.addView(note("核心延迟 / 连接复用"));space(c,8);latencyValue=text(latency,32,true);c.addView(latencyValue);space(c,8);c.addView(note("通过当前通道测试 HTTPS；两次请求取较小值"));space(c,12);
   delayButton=button("测试延迟");delayButton.setOnClickListener(v->runDelay());c.addView(delayButton);
   LinearLayout d=card(com.google.android.material.R.attr.colorSecondaryContainer);d.addView(note("下载速度"));space(d,8);downloadValue=text(download,32,true);downloadValue.setTextColor(color(com.google.android.material.R.attr.colorOnSecondaryContainer));d.addView(downloadValue);space(d,12);
   graph=new Graph(this);d.addView(graph,new LinearLayout.LayoutParams(-1,dp(100)));space(d,12);
@@ -187,8 +187,8 @@ public class MainActivity extends AppCompatActivity {
  }
  private void about(){
   LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.0.6 · Preview\nARM64 · Android 8.0 及以上"));
-  LinearLayout d=card(com.google.android.material.R.attr.colorSurfaceContainer);d.addView(text("连接与隐私",19,true));space(d,12);d.addView(note("使用 V2Ray / v2fly 核心。\n连接时会请求 Android 系统 VPN 授权；关闭界面后仍可后台运行。\n通知栏显示本次上传、下载流量与实时速度，可直接断开。\n连接时每 10 秒向服务端上报随机安装标识、设备型号、系统与应用版本、本次速度和用量，供原面板显示在线设备。服务端可见来源 IP；断开后停止，30 秒无心跳即离线。不会读取 IMEI、通讯录、文件或浏览内容。\n不接入广告与统计 SDK。节点由面板统一指定并自动同步，App 不提供手动添加、编辑或导出入口。\n测速请求会访问 Google 204 测试地址与 Cloudflare 下载站点。"));
-  LinearLayout l=card(com.google.android.material.R.attr.colorSurfaceContainer);l.addView(text("开源许可",19,true));space(l,10);l.addView(note("本应用按 GPL-3.0 提供源码。\nV2Ray / v2fly：MIT\nAndroidLibV2rayLite：LGPL-3.0\nBadVPN tun2socks / v2rayNG：见随附第三方许可。"));
+  LinearLayout d=card(com.google.android.material.R.attr.colorSurfaceContainer);d.addView(text("连接与隐私",19,true));space(d,12);d.addView(note("使用 V2Ray / v2fly 与 Hysteria2 核心。\n连接时会请求 Android 系统 VPN 授权；关闭界面后仍可后台运行。\n通知栏显示本次上传、下载流量与实时速度，可直接断开。\n连接时每 10 秒向服务端上报随机安装标识、设备型号、系统与应用版本、本次速度和用量，供原面板显示在线设备。服务端可见来源 IP；断开后停止，30 秒无心跳即离线。不会读取 IMEI、通讯录、文件或浏览内容。\n不接入广告与统计 SDK。节点由面板统一指定并自动同步，App 不提供手动添加、编辑或导出入口。\n测速请求会访问 Google 204 测试地址与 Cloudflare 下载站点。"));
+  LinearLayout l=card(com.google.android.material.R.attr.colorSurfaceContainer);l.addView(text("开源许可",19,true));space(l,10);l.addView(note("本应用按 GPL-3.0 提供源码。\nV2Ray / v2fly：MIT\nHysteria2：MIT\nAndroidLibV2rayLite：LGPL-3.0\nBadVPN tun2socks / v2rayNG：见随附第三方许可。"));
   LinearLayout updates=card(com.google.android.material.R.attr.colorSurfaceContainer);updates.addView(text("面板更新",19,true));space(updates,8);updateDetail=note(UpdateMonitor.status);updates.addView(updateDetail);
   MaterialButton check=button("检查更新 / 安装新版");updates.addView(check);check.setOnClickListener(v->{if(UpdateMonitor.available!=null)showUpdate();else{UpdateMonitor.refresh(this,true);toast("正在检查面板发布");}});
   MaterialButton reset=button("恢复默认界面");updates.addView(reset);reset.setOnClickListener(v->{UiTuning.reset(this);recreate();});
@@ -227,7 +227,7 @@ public class MainActivity extends AppCompatActivity {
  }
  private void refresh(){
   if(updateDetail!=null)updateDetail.setText(UpdateMonitor.status);
-  if(profileDetail!=null){ProfileMonitor.Profile profile=ProfileMonitor.current;String value=profile==null?ProfileMonitor.status:profile.label+" · VMess / TCP\n"+ProfileMonitor.status;if(profile!=null&&TunnelService.state.equals("connected")&&!profile.revision.equals(TunnelService.activeProfileRevision))value+="\n面板已更新配置，断开重连后使用新节点";profileDetail.setText(value);}
+  if(profileDetail!=null){ProfileMonitor.Profile profile=ProfileMonitor.current;String value=profile==null?ProfileMonitor.status:profile.label+" · "+profile.protocolLabel+"\n"+ProfileMonitor.status;if(profile!=null&&TunnelService.state.equals("connected")&&!profile.revision.equals(TunnelService.activeProfileRevision))value+="\n面板已更新配置，断开重连后使用新节点";profileDetail.setText(value);}
   if(onlineValue!=null){onlineValue.setText(OnlineMonitor.count==null?(OnlineMonitor.status.startsWith("待接入")?"待接入":"不可用"):OnlineMonitor.fresh()?OnlineMonitor.count+" 台":"不可用");onlineDetail.setText((OnlineMonitor.count!=null&&!OnlineMonitor.fresh()?"上次 "+OnlineMonitor.count+" 台 · ":"")+OnlineMonitor.status+((OnlineMonitor.updatedAt>0)?"\n"+new java.text.SimpleDateFormat("HH:mm:ss",Locale.CHINA).format(new java.util.Date(OnlineMonitor.updatedAt)):""));}
   if(quotaValue!=null){QuotaInfo q=QuotaMonitor.current;if(q==null){quotaValue.setText(QuotaMonitor.status.startsWith("待接入")?"待接入":"不可用");quotaDetail.setText(QuotaMonitor.status);}else{quotaValue.setText(!QuotaMonitor.fresh()?"不可用":q.expired(System.currentTimeMillis())?"已过期":q.total!=0&&q.remaining()==0?"已用尽":q.total==0?"不限量":TunnelService.size(q.remaining()));String exp=q.expire==0?"无到期限制":new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.CHINA).format(new java.util.Date(q.expire*1000));String stamp=new java.text.SimpleDateFormat("HH:mm:ss",Locale.CHINA).format(new java.util.Date(QuotaMonitor.updatedAt));quotaDetail.setText((QuotaMonitor.fresh()?"":"上次数据 · ")+"已用 "+TunnelService.size(q.used())+" / "+(q.total==0?"不限量":TunnelService.size(q.total))+"\n到期："+exp+"\n"+QuotaMonitor.status+" · "+stamp);}}
   if(reportDetail!=null)reportDetail.setText(TunnelService.reportingStatus);

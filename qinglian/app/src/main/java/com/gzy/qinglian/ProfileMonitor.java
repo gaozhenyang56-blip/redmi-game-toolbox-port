@@ -8,8 +8,10 @@ import org.json.*;
 /** The panel selects one profile; no profile editor or subscription URL is exposed in the App. */
 final class ProfileMonitor {
  static final class Profile {
-  final String node,label,revision;
-  Profile(String node,String label,String revision){this.node=node;this.label=label;this.revision=revision;}
+  final String node,label,revision,protocolLabel;
+  Profile(String node,String label,String revision){this.node=node;this.label=label;this.revision=revision;String display;
+   try{JSONObject n=new JSONObject(node);String p=NodeConfig.protocol(n);display=p.toUpperCase(java.util.Locale.ROOT)+" / "+(p.equals("hysteria2")?"QUIC":n.optString("net","tcp").toUpperCase(java.util.Locale.ROOT));}catch(Exception invalid){display="节点配置待同步";}protocolLabel=display;
+  }
  }
  static volatile Profile current;
  static volatile String status="正在同步面板配置";

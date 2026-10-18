@@ -1,6 +1,6 @@
 先读 AGENTS.md、HANDOFF.md 与 verification/ROUTING_CHECKS.md。仅继续本分支 qinglian/，不改原Redmi项目。
 
-当前版本1.0.7-preview/versionCode8，下一版至少9，必须沿用原签名。标准Material3、亮色默认/亮色图标、深浅色与系统切换、应用黑白名单、规则/全局、面板指定节点及真实流量/在线API均已完成。
+当前版本1.1.0-preview/versionCode9，下一版至少10，必须沿用原签名。标准Material3、亮色默认/亮色图标、深浅色与系统切换、应用黑白名单、规则/全局、面板指定节点及真实流量/在线API均已完成。
 
 GitHub Actions已通过SSH连接、完成加密一致性备份并部署现有x-ui0.3.2扩展。不要重跑首次部署脚本覆盖生产，它会拒绝已有配置；后续维护先备份并设计升级/回滚。原面板“轻连 App”页管理设备与App节点；App API专用11452HTTPS，私有CA限API使用，不绕过主机名验证。
 

@@ -87,3 +87,13 @@ apk非空时字段为versionCode、versionName、sha256（64位小写hex）、si
 GET `/api/v1/apk/:digest`：同一Bearer/专用TLS，下载已发布历史内的APK，64MiB上限；此二进制路由不适用JSON8KiB上限。客户端不接受外部下载URL，不跟随重定向。
 
 管理员GET/POST `/xui/qinglian/updates`、POST `/xui/qinglian/updates/rollback`、POST `/xui/qinglian/updates/apk`。写操作要求原面板cookie、Origin同主机及X-Requested-With: XMLHttpRequest。发布使用当前revision作比较并递增；回滚也生成新revision。上传multipart字段apk/versionCode/versionName/notes，大小与hash由服务端计算；App最终核验签名，面板上传不代表已通过签名验证。以上管理员路由不暴露在专用App TLS端口。
+
+## 多协议与加速（v9）
+
+profile.node现在可包含protocol（省略仍为vmess）：vmess/vless/trojan/shadowsocks。VMess/VLESS用id；Trojan/SS用password；SS另需method。共同字段add、port、net(tcp/ws)、tls(none/tls)、type(none/http，仅TCP)、host、path、sni(TLS校验名)。Trojan必须TLS。拒绝Reality、XTLS flow、SS2022、旧VMess alterId和不支持的传输。原面板入站管理创建/编辑，轻连App页选择兼容节点。老App不支持非VMess节点，先安装v9。
+
+profile响应额外有acceleration（不可用为null），非空时为同样的{node,revision,label}；node包含protocol=hysteria2、add、port、auth、sni、caPem（仅公开根证书）。只对当前App配额入站绑定匹配且HY2服务运行有效时返回。旧App忽略额外字段仍用原node。App手动选择兼容/加速，切换需重连，加速不可用明确失败，不静默直连或切回旧节点。
+
+管理员GET/POST `/xui/qinglian/acceleration`：沿用原登录与同源检查。GET返回installed/enabled/running/boundInbound/port/protocol/error，不含私有令牌；POST为{enabled:布尔,boundInbound:原面板有权管理的兼容入站ID}。配额取该原入站，HY2字节事务累计到其up/down，每秒检查额度/到期/停用，记账故障关闭加速服务。管理器只监听loopback11453，统计API只监听loopback11454，两者有独立私有认证；公网只需UDP443。
+
+Hysteria2认证、管理、统计密钥仅在服务器hy2.json；App只获取建立加速连接必需的认证及公开CA。进程异常可能丢失最后未采样窗口，额度停止可有约一秒及缓冲的超量，不宣称严格计费。设备在线API仍按App心跳，不把Hysteria连接数冒充设备数。

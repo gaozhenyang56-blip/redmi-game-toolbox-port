@@ -1,3 +1,16 @@
+# 多协议、统一面板与Hysteria2（versionCode9）
+
+- 1.1.0-preview/versionCode9，原签名，ARM64。其它协议Android8+，Hysteria2因官方Android binary ABI需Android10+。61项Android测试0失败，lint0错误/23警告；10项Go race测试通过。
+- 六组真实Linux V2Ray5.54.2端到端传输：VMess TCP/HTTP、VMess WS/TLS、VLESS TCP、VLESS WS/TLS、Trojan TLS、Shadowsocks AEAD；测试TLS使用公开fixture CA，未开启insecure。转换使用App实际NodeConfig.java。没有DIRECT回退。
+- 4项HY2管理器单测：认证/启停/所有权/到期/限额、累计差值幂等、上传TX/下载RX方向、异常及溢出计数拒绝。另有真实HY2 v2.13.0 QUIC+SOCKS+本地HTTP下载、事务记账及额度耗尽停止集成测试通过。只有测试子类允许loopback目标。
+- 原面板升级39100328172成功，原配置/入站/counters保留，原登录与权限边界通过。HY2前两次因原/etc/x-ui目录mode000、服务裁减能力后无法读配置而回滚；增加受限CAP_DAC_OVERRIDE后39100713900部署成功，保持目录原权限，不给其他用户开放权限，原VMess不替换。
+- 加密部署前备份39100312617已下载，RSA/AES-GCM认证、hash、原二进制及两份SQLite一致性快照quick_check验证通过。新备份脚本也纳入HY2单元及二进制/管理器。HY2独立unit可停止/禁用回滚；面板可关闭加速。
+- 真实公网HY2 run39100833176：经UDP443完成App转换配置的HTTPS204、8MiB下载和UDP DNS进入核心后经HY2的TCP DNS，拒绝AAAA返回地址；运行器100.57Mbps/299ms，不是手机结果。原兼容通道39100833192同样通过（112.1Mbps/77ms）。不同运行器/路径不作性能A/B或提速证据。
+- 原面板登录后多协议页/加速运行与当前配额绑定均通过；匿名管理员接口401。管理/认证仅127.0.0.1:11453，流量API仅127.0.0.1:11454且私有secret，公网只UDP443；生产ACL禁止代理访问loopback/私网。
+- App在兼容/加速之间手动切换，修改需重连；具体兼容协议在同一个原x-ui面板选择。加速未启用或不可用时明确失败，没有静默直连。分流、通知用量、设备上报、恢复预算及安装更新校验保留。
+- 最终APK 27,587,568字节，SHA256：992ff411b2cc4ade6684f4b5c134920d9f9f7f2f52b0588574f0244fe58d1e33；ZIP、原证书、固定HY2 binary摘要、许可及无服务器密码/私钥检查通过。已在面板发布revision9，公网真实APK下载/字节摘要/原签名/包版本检查39100970367成功。部署后完整加密备份39100869776成功（含HY2单元、管理器、二进制与私有配置）。
+- 没有实体Android HY2原生启动/TUN/网络切换/覆盖安装或手机速度对比，不能把Robolectric、Linux或GitHub运行器验证说成手机验收。
+
 # 服务器性能排查与窗口优化（App仍v8）
 
 - 同节点v2rayNG同速，用户反馈下载峰值约5MB/s，不能认定App独有瓶颈。

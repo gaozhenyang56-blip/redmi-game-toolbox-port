@@ -1,6 +1,6 @@
 # 轻连 — Android 单节点 VPN，Codex 交接工程
 
-**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.0.7-preview`，versionCode `8`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
+**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.1.0-preview`，versionCode `9`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
 
 已完成标准 Material 3、默认亮色和亮色自适应图标；支持浅色/深色/跟随系统切换。包含延迟/下载测速、每秒通知栏速度与本次用量、Surfboard风格黑白名单及规则/全局模式。
 
@@ -55,3 +55,9 @@ python3 scripts/verify_release_signature.py app/build/outputs/apk/release/app-re
 原面板“轻连 App → App 热修复与版本发布”可调整导航高度、图标/文字大小、图文间距、玻璃边距及开关，支持回滚。App前台每30秒读取已认证HTTPS配置，校验后刷新界面；连接保持。默认底部图文间距2dp，图标与文字整体居中。
 
 安装v7后可接收面板上传的后续APK。下载仅限固定HTTPS来源，核对大小、SHA256、包名、更高版本号和原签名，交给Android系统确认安装。界面热修复不执行脚本或DEX；原生功能修复需完整APK更新。首次需手动安装v7。
+
+## 多协议（v9）
+
+同一个原x-ui面板管理VMess、VLESS、Trojan、Shadowsocks与Hysteria2。App连接页可切换兼容/加速，需重连；加速为Hysteria2（Android10+），兼容协议Android8+。新协议需先安装v9，默认保持原VMess节点。支持TCP/WS和安全TLS，不支持Reality/XTLS/SS2022。加速配额、到期和启停与绑定原入站联动。速度需手机同网络实测，协议支持不代表保证提速。
+
+固定上游Hysteria2 app/v2.13.0，摘要见scripts/prepare_dependencies.py；MIT许可证随App资产分发。

@@ -22,3 +22,11 @@ API专用11452HTTPS保留主机名验证；server.pem有效825天、CA10年，�
 performance_probe.py只读采样公开sysctl、匿名化TCP数值和有限40MiB服务器下载。不会返回IP/UUID/端口/凭据。TCP统计为已有流历史，不代表实时丢包率；服务器出站测速不代表到手机带宽。
 
 qinglian-network-tune.yml由tune_network.py将动态缓冲上限提高至32MiB，保留原默认值、BBR、qdisc与业务进程；先备份至/etc/x-ui/qinglian/network-tuning-backup.json。workflow_dispatch mode=rollback可恢复原值。不得把每次8MiB测速差异宣传为手机性能提升；仍需同一手机/网络/下载源复测。
+
+## 多协议部署（v9）
+
+先运行原qinglian-server-upgrade.yml升级覆盖层（保留旧二进制自动回滚），再部署qinglian-hy2-deploy.yml。Hysteria2官方版本app/v2.13.0固定SHA256，部署前执行原加密备份。hy2_manager.py+独立systemd单元，无需替换Xray。配置/令牌root0600，认证及管理只监听loopback，统计API另有独立secret；公网UDP443。已存在的UDP443服务会阻止新安装，不覆盖其他服务。
+
+qinglian-hy2-check.yml手动调度后，runner读取可信HTTPS profile.acceleration，验证官方核心经HY2完成HTTPS下载及DNS，无直连回退。旧node探测仍检查兼容通道。服务器单元可独立停止/禁用；面板开关也可停止加速，不改变原VMess。
+
+本地真实协议矩阵：`python3 qinglian/server/protocol_matrix.py`。HY2真实本地QUIC/记账/额度断开：设置QINGLIAN_TEST_HY2_BINARY为已校验的Linux官方binary后运行unittest discover -s qinglian/server -p test_hy2_integration.py。仅测试子类允许loopback目标，生产ACL禁止私网。

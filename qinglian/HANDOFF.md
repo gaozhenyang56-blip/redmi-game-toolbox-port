@@ -1,3 +1,15 @@
+# 多协议与统一面板（versionCode9，2026-10-18）
+
+当前1.1.0-preview/versionCode9，下一版至少10，必须保留原签名。用户明确授权App支持多协议、同一个现有x-ui面板统一管理，不建立第二套用户面板。
+
+- 兼容通道：VMess/VLESS/Trojan/Shadowsocks，TCP原生/HTTP伪装与WS，可校验证书的TLS。VLESS encryption=none、无XTLS流控；VMess AEAD/alterId0；SS仅AES-GCM/ChaCha20 AEAD，不支持SS2022、Reality/XTLS/gRPC。Trojan必须TLS，不允许insecure。
+- 加速通道：Hysteria2 v2.13.0官方固定摘要Android ARM64二进制，通过仅loopback SOCKS交给原核心统一DNS/统计/延迟/TUN转发。官方Android二进制最低Android29，App其它协议仍Android26+。保留根证书/主机名校验，进程日志丢弃，配置和CA放应用私有文件，停止删除，恢复沿用原预算。没有静默直连回退。
+- 原x-ui“轻连 App”选择各协议现有入站，配置与计数保留；新增Hysteria2卡管理启停与绑定当前配额入站。App只有兼容/加速通道切换，具体节点参数仍由面板指定。非VMess节点需先安装v9；保持原VMess默认，不强制切换。
+- Hysteria2服务由hy2_manager.py监督，管理/认证只监听127.0.0.1:11453，流量API只监听127.0.0.1:11454并验证独立令牌；管理HTTP需私有Bearer。公网仅UDP443。独立systemd单元，原服务不替换；原/etc/x-ui目录mode000，需要CAP_DAC_OVERRIDE访问，保留原目录权限；原API私有CA用于加速TLS，App仍验证主机名。
+- 加速通道与绑定入站共用原SQLite流量/到期/启用状态；Hysteria TX=上传、RX=下载，累计计数取差，事务原子增加原计数，每秒检查。限额/到期/停用立即进入停止流程，数据库或记账异常关闭服务。新进程清空游标，不复用旧计数。未写入的最后采样窗口可能在进程崩溃时丢失，额度可有约一秒及缓冲的超量，不宣称严格零误差计费。
+- hy2.json在/etc/x-ui/qinglian/中root0600，独立随机认证、管理、统计令牌，不改原API配置。unit为qinglian-hy2.service。加速访问私网/loopback/链路本地由ACL阻断。禁用可在面板保存；systemctl stop/disable该单元可单独回滚，不影响VMess。
+- 已通过61项Android测试、10项Go race测试、6组真实V2Ray协议/传输矩阵、4项管理器测试及真实本地QUIC下载/记账/限额断开测试。面板升级39100328172及HY2部署39100713900成功；公网HY2 39100833176、兼容39100833192通过。APK已发布面板revision9。最终部署/公网与安装包详情见verification/ROUTING_CHECKS.md；无实体手机QUIC/TUN/安装覆盖验证。
+
 # 服务器吞吐诊断与缓冲优化（2026-10-18，无App版本变更）
 
 用户反馈不装BBR不到1MB/s、装后峰值约5MB/s，并确认同节点v2rayNG同速。不能将问题归因为轻连独有开销，手机运营商/网络类型尚未确认。
