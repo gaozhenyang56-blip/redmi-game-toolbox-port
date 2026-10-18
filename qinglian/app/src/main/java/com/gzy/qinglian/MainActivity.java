@@ -61,10 +61,10 @@ public class MainActivity extends AppCompatActivity {
   bottomGlass.addOnLayoutChangeListener((v,l,t,r,bottom,ol,ot,or,ob)->{if(scroll.getPaddingBottom()!=bottom-t+dp(16))scroll.setPadding(0,dp(80),0,bottom-t+dp(16));});
   scroll.setOnScrollChangeListener((v,x,y,oldX,oldY)->{topGlass.requestBackdrop();bottomGlass.requestBackdrop();});
   body.addOnLayoutChangeListener((v,l,t,r,bottom,ol,ot,or,ob)->{topGlass.requestBackdrop();bottomGlass.requestBackdrop();});
-  nav.setListener(next->{if(next!=tab){tab=next;build();}});build();
+  nav.setListener(next->{if(next!=tab){tab=next;build(true);}});build();
  }
  @Override protected void onResume(){super.onResume();topGlass.setActive(true);bottomGlass.setActive(true);main.postDelayed(()->UiTuning.stable(this),1000);main.post(ticker);}
- @Override protected void onPause(){UiTuning.stable(this);main.removeCallbacks(ticker);topGlass.setActive(false);bottomGlass.setActive(false);super.onPause();}
+ @Override protected void onPause(){UiTuning.stable(this);main.removeCallbacks(ticker);topGlass.setActive(false);bottomGlass.setActive(false);finishPageMotion();super.onPause();}
  @Override protected void onDestroy(){tester.close();main.removeCallbacksAndMessages(null);super.onDestroy();}
  @Override protected void onSaveInstanceState(Bundle out){out.putString("latency",testing&&testKind==1?"已停止":latency);out.putString("download",testing&&testKind==2?"已停止":download);out.putInt("tab",tab);super.onSaveInstanceState(out);}
  private int dp(float n){return (int)(getResources().getDisplayMetrics().density*n+.5f);}
@@ -74,10 +74,18 @@ public class MainActivity extends AppCompatActivity {
  private void space(LinearLayout box,int h){View v=new View(this);box.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
  private LinearLayout card(int tint){MaterialCardView c=new MaterialCardView(this);c.setRadius(dp(12));c.setCardElevation(0);c.setStrokeWidth(0);c.setCardBackgroundColor(color(tint));LinearLayout p=new LinearLayout(this);p.setOrientation(LinearLayout.VERTICAL);p.setPadding(dp(16),dp(16),dp(16),dp(16));c.addView(p);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(12);body.addView(c,lp);return p;}
  private MaterialButton button(String title){MaterialButton b=new MaterialButton(this);b.setText(title);b.setTextSize(15);b.setCornerRadius(dp(20));b.setMinHeight(dp(48));return b;}
- private void build(){
+ private void finishPageMotion(){android.transition.TransitionManager.endTransitions(body);body.animate().cancel();body.setTranslationY(0);}
+ private void build(){build(false);}
+ private void build(boolean animate){
+  finishPageMotion();boolean motion=animate&&android.animation.ValueAnimator.areAnimatorsEnabled()&&body.isLaidOut();
+  if(motion){android.transition.TransitionSet fade=new android.transition.TransitionSet().setOrdering(android.transition.TransitionSet.ORDERING_SEQUENTIAL);
+   fade.addTransition(new android.transition.Fade(android.transition.Fade.OUT)).addTransition(new android.transition.Fade(android.transition.Fade.IN));fade.setDuration(100);
+   android.transition.TransitionManager.beginDelayedTransition(body,fade);
+  }
   body.removeAllViews();nav.setSelected(tab,false);
   updateDetail=null;quotaValue=quotaDetail=onlineValue=onlineDetail=reportDetail=profileDetail=null;status=caption=clock=up=down=upTotal=downTotal=latencyValue=downloadValue=testDetail=null;power=delayButton=downloadButton=stopButton=null;progress=null;graph=null;
   if(tab==0)home();else if(tab==1)speed();else if(tab==2)routing();else about();refresh();
+  if(motion){body.setTranslationY(dp(6));body.animate().translationY(0).setDuration(220).setInterpolator(new android.view.animation.PathInterpolator(.2f,0,0,1)).start();}
  }
  private void home(){
   LinearLayout hero=card(com.google.android.material.R.attr.colorPrimaryContainer);hero.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -191,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
   }));dialog.show();
  }
  private void about(){
-  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.1.1 · Preview\nARM64 · Android 8.0 及以上"));
+  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.1.2 · Preview\nARM64 · Android 8.0 及以上"));
   LinearLayout d=card(com.google.android.material.R.attr.colorSurfaceContainer);d.addView(text("连接与隐私",19,true));space(d,12);d.addView(note("使用 V2Ray / v2fly 与 Hysteria2 核心。\n连接时会请求 Android 系统 VPN 授权；关闭界面后仍可后台运行。\n通知栏显示本次上传、下载流量与实时速度，可直接断开。\n连接时每 10 秒向服务端上报随机安装标识、设备型号、系统与应用版本、本次速度和用量，供原面板显示在线设备。服务端可见来源 IP；断开后停止，30 秒无心跳即离线。不会读取 IMEI、通讯录、文件或浏览内容。\n不接入广告与统计 SDK。节点由面板统一指定并自动同步，App 不提供手动添加、编辑或导出入口。\n测速请求会访问 Google 204 测试地址与 Cloudflare 下载站点。"));
   LinearLayout l=card(com.google.android.material.R.attr.colorSurfaceContainer);l.addView(text("开源许可",19,true));space(l,10);l.addView(note("本应用按 GPL-3.0 提供源码。\nV2Ray / v2fly：MIT\nHysteria2：MIT\nAndroidLibV2rayLite：LGPL-3.0\nBadVPN tun2socks / v2rayNG：见随附第三方许可。"));
   LinearLayout updates=card(com.google.android.material.R.attr.colorSurfaceContainer);updates.addView(text("面板更新",19,true));space(updates,8);updateDetail=note(UpdateMonitor.status);updates.addView(updateDetail);

@@ -61,4 +61,15 @@ public class UiTest {
    assertEquals(java.util.Set.of("example.direct"),AppRouting.forMode(a,true,AppRouting.Mode.BLACKLIST).selected);
   }
  }
+ @Test public void rapidPageSwitchesSettleOnLatestPageAndLeaveNavigationInPlace()throws Exception{
+  try(var ctrl=Robolectric.buildActivity(MainActivity.class).setup()){
+   MainActivity a=ctrl.get();View decor=a.getWindow().getDecorView();decor.measure(View.MeasureSpec.makeMeasureSpec(1080,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(2340,View.MeasureSpec.EXACTLY));decor.layout(0,0,1080,2340);
+   View navigation=(View)a.findViewById(MainActivity.NAV_ABOUT).getParent().getParent().getParent();int top=navigation.getTop();
+   a.findViewById(MainActivity.NAV_SPEED).performClick();a.findViewById(MainActivity.NAV_ROUTING).performClick();a.findViewById(MainActivity.NAV_ABOUT).performClick();
+   Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(400));
+   assertNotNull(find(decor,"开源许可"));assertNull(find(decor,"网络测速"));assertTrue(((RadioButton)a.findViewById(MainActivity.NAV_ABOUT)).isChecked());assertEquals(top,navigation.getTop());
+   // Pausing and resuming an interrupted motion must keep the latest page.
+   ctrl.pause();ctrl.resume();Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(300));assertNotNull(find(decor,"开源许可"));
+  }
+ }
 }
