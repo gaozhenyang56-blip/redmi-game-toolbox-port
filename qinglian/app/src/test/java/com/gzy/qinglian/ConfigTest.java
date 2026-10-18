@@ -12,7 +12,7 @@ public class ConfigTest {
   assertTrue(c.getJSONObject("policy").getJSONObject("system").getBoolean("statsOutboundUplink"));assertTrue(c.getJSONObject("policy").getJSONObject("system").getBoolean("statsOutboundDownlink"));
  }
  @Test(expected=Exception.class)public void rejectsInvalidPort()throws Exception{NodeConfig.build(fixture().replace("443","70000"));}
- @Test(expected=Exception.class)public void rejectsUnsupportedTransport()throws Exception{NodeConfig.build(fixture().replace("tcp","ws"));}
+ @Test(expected=Exception.class)public void rejectsUnsupportedTransport()throws Exception{NodeConfig.build(fixture().replace("tcp","grpc"));}
  @Test(expected=Exception.class)public void rejectsMalformedId()throws Exception{NodeConfig.build(fixture().replace("11111111-1111-4111-8111-111111111111","bad"));}
  @Test public void convertsBytesPerSecondToMegabits(){assertEquals(8,SpeedTester.mbps(1000000,1000000000L),.0001);assertEquals(0,SpeedTester.mbps(1,0),0);}
 }

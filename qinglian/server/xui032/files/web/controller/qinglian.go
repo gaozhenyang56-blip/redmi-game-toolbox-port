@@ -284,6 +284,8 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	panel.GET("/qinglian/devices", a.devices)
 	panel.GET("/qinglian/selection", a.selection)
 	panel.POST("/qinglian/selection", a.selectNode)
+	panel.GET("/qinglian/acceleration", a.hyStatus)
+	panel.POST("/qinglian/acceleration", a.hyConfigure)
 	panel.GET("/qinglian/updates", a.adminUpdates)
 	panel.POST("/qinglian/updates", a.saveUpdates)
 	panel.POST("/qinglian/updates/rollback", a.rollbackUpdates)
@@ -410,43 +412,7 @@ func (a *QinglianController) target() (*model.Inbound, error) {
 	return &row, nil
 }
 func (a *QinglianController) node(row *model.Inbound) (map[string]interface{}, error) {
-	if row.Protocol != model.VMess || a.cfg.ServerAddress == "" {
-		return nil, qUnavailable
-	}
-	var settings struct {
-		Clients []struct {
-			ID      string `json:"id"`
-			AlterID int    `json:"alterId"`
-		} `json:"clients"`
-	}
-	var stream struct {
-		Network  string `json:"network"`
-		Security string `json:"security"`
-		TCP      struct {
-			Header struct {
-				Type    string `json:"type"`
-				Request struct {
-					Path    []string            `json:"path"`
-					Headers map[string][]string `json:"headers"`
-				} `json:"request"`
-			} `json:"header"`
-		} `json:"tcpSettings"`
-	}
-	if json.Unmarshal([]byte(row.Settings), &settings) != nil || json.Unmarshal([]byte(row.StreamSettings), &stream) != nil || len(settings.Clients) != 1 {
-		return nil, qUnavailable
-	}
-	client := settings.Clients[0]
-	if !qUUID.MatchString(client.ID) || client.AlterID != 0 || stream.Network != "tcp" || (stream.Security != "" && stream.Security != "none") || stream.TCP.Header.Type != "http" || row.Port <= 0 || row.Port > 65535 {
-		return nil, qUnavailable
-	}
-	path, host := "/", ""
-	if len(stream.TCP.Header.Request.Path) > 0 && stream.TCP.Header.Request.Path[0] != "" {
-		path = stream.TCP.Header.Request.Path[0]
-	}
-	if values := stream.TCP.Header.Request.Headers["Host"]; len(values) > 0 {
-		host = values[0]
-	}
-	return map[string]interface{}{"id": client.ID, "add": a.cfg.ServerAddress, "port": row.Port, "aid": 0, "net": "tcp", "type": "http", "host": host, "path": path, "tls": "none"}, nil
+	return a.protocolNode(row)
 }
 func (a *QinglianController) profile(c *gin.Context) {
 	row, err := a.target()
@@ -465,7 +431,7 @@ func (a *QinglianController) profile(c *gin.Context) {
 	if label == "" {
 		label = "专属节点"
 	}
-	c.JSON(200, gin.H{"node": node, "revision": hex.EncodeToString(hash[:]), "label": label})
+	c.JSON(200, gin.H{"node": node, "revision": hex.EncodeToString(hash[:]), "label": label, "acceleration": a.acceleration(row.Id)})
 }
 func (a *QinglianController) panelAuth(c *gin.Context) bool {
 	qNoStore(c)
@@ -502,9 +468,9 @@ func (a *QinglianController) selection(c *gin.Context) {
 		}
 		reason := ""
 		if !available {
-			reason = "需要已启用的单客户端 VMess TCP/HTTP 无TLS节点"
+			reason = "需启用的单客户端VMess/VLESS/Trojan或单密码Shadowsocks；TCP/WS，安全TLS，非Reality/XTLS"
 		}
-		nodes = append(nodes, gin.H{"id": row.Id, "name": label, "port": row.Port, "available": available, "reason": reason})
+		nodes = append(nodes, gin.H{"id": row.Id, "name": label, "port": row.Port, "protocol": string(row.Protocol), "available": available, "reason": reason})
 	}
 	selected := 0
 	if row, err := a.target(); err == nil {

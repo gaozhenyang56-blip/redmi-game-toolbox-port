@@ -18,7 +18,10 @@ final class ProfileMonitor {
  static boolean configured(Context context)throws IOException{
   try(InputStream in=context.getAssets().open("profile.json")){return true;}catch(FileNotFoundException missing){return false;}
  }
- static Profile parse(JSONObject json)throws Exception{
+ static boolean accelerated(Context context){return context.getSharedPreferences("transport",0).getBoolean("accelerated",false);}
+ static Profile parse(JSONObject json)throws Exception{return parse(json,false);}
+ static Profile parse(JSONObject json,boolean accelerated)throws Exception{
+  if(accelerated){if(!json.has("acceleration")||json.isNull("acceleration"))throw new IOException("面板未启用加速通道");json=json.getJSONObject("acceleration");}
   JSONObject node=json.getJSONObject("node");NodeConfig.build(node.toString());
   String revision=json.getString("revision");if(!revision.matches("[0-9a-f]{64}"))throw new IOException("无效的面板配置版本");
   String label=json.getString("label").replaceAll("\\p{Cntrl}"," ");if(label.length()>128)label=label.substring(0,128);
@@ -26,7 +29,7 @@ final class ProfileMonitor {
   return new Profile(node.toString(),label,revision);
  }
  private static Profile fetch(Context context)throws Exception{
-  Profile profile=parse(ApiEndpoint.load(context,"profile.json").request(null));current=profile;status="已同步面板指定节点";return profile;
+  Profile profile=parse(ApiEndpoint.load(context,"profile.json").request(null),accelerated(context));current=profile;status="已同步面板 · "+NodeConfig.protocol(new JSONObject(profile.node)).toUpperCase(java.util.Locale.ROOT);return profile;
  }
  static Profile forConnection(Context context)throws Exception{
   if(configured(context))return fetch(context); // A configured endpoint failure never falls back to an obsolete embedded UUID.

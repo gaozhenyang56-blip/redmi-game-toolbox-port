@@ -33,7 +33,9 @@ public class TunnelService extends VpnService {
  private final Object coreLock=new Object();
  private final java.util.concurrent.atomic.AtomicBoolean recovering=new java.util.concurrent.atomic.AtomicBoolean();
  private final RecoveryBudget recoveryBudget=new RecoveryBudget();
- private String runningConfig;
+ private String runningConfig,runningNode;
+ private Hy2Client hy2;
+ public static volatile String activeProtocol="VMess";
  private volatile Network underlying;
  private volatile long connectionEpoch;
  private ConnectivityManager cm;
@@ -57,7 +59,7 @@ public class TunnelService extends VpnService {
   String up="↑ 上传  "+size(uploadRate)+"/s   ·   已用 "+size(uploadBytes);
   String down="↓ 下载  "+size(downloadRate)+"/s   ·   已用 "+size(downloadBytes);
   boolean online=state.equals("connected");
-  return new Notification.Builder(this,"vpn").setStyle(new Notification.BigTextStyle().bigText(online?up+"\n"+down:text)).setSubText(online?"本次连接流量":"VMess")
+  return new Notification.Builder(this,"vpn").setStyle(new Notification.BigTextStyle().bigText(online?up+"\n"+down:text)).setSubText(online?"本次连接流量":activeProtocol)
    .setOnlyAlertOnce(true).setShowWhen(false).setContentTitle("轻连 · 专属节点").setContentText(online?"↑ "+size(uploadRate)+"/s   ↓ "+size(downloadRate)+"/s · 用量 "+size(uploadBytes+downloadBytes):text).setSmallIcon(R.drawable.ic_vpn)
    .setContentIntent(open).setOngoing(true).setCategory(Notification.CATEGORY_SERVICE)
    .addAction(new Notification.Action.Builder(null,"断开",stop).build()).build();
@@ -70,7 +72,7 @@ public class TunnelService extends VpnService {
    Libv2ray.initCoreEnv(getFilesDir().getAbsolutePath(),"");
    ProfileMonitor.Profile profile=ProfileMonitor.forConnection(this);String node=profile.node;activeProfileRevision=profile.revision;activeProfileLabel=profile.label;
    String config=NodeConfig.build(node);
-   runningConfig=config;startCore();
+   runningConfig=config;runningNode=node;activeProtocol=NodeConfig.protocol(new org.json.JSONObject(node)).toUpperCase(java.util.Locale.ROOT);startCore();
    if(cancelled){cleanup();return;}
    trackNetwork();
    Builder b=new Builder().setSession("轻连 · 专属节点").setMtu(1500)
@@ -84,7 +86,7 @@ public class TunnelService extends VpnService {
    if(cancelled){cleanup();return;}
    uploadBytes=0;downloadBytes=0;uploadRate=0;downloadRate=0;statsTick=SystemClock.elapsedRealtime();
    connectedAt=SystemClock.elapsedRealtime();status("connected","通道已建立 · 请测速确认网络可用");
-   getSystemService(NotificationManager.class).notify(1,notification("已连接 · VMess"));
+   getSystemService(NotificationManager.class).notify(1,notification("已连接 · "+activeProtocol));
    try{
     reporter=DeviceReporter.create(this,()->new DeviceReporter.Sample(uploadBytes,downloadBytes,uploadRate,downloadRate));
     if(reporter!=null){reporter.start();reportingStatus="设备上报准备中";}else reportingStatus="设备上报未接入";
@@ -96,7 +98,7 @@ public class TunnelService extends VpnService {
      long now=SystemClock.elapsedRealtime(),dt=Math.max(1,now-statsTick);statsTick=now;
      synchronized(coreLock){
       if(core==null)return;
-      if(!core.getIsRunning()||relay==null||!relay.isAlive()){requestRecovery();return;}
+      if(!core.getIsRunning()||(hy2!=null&&!hy2.alive())||relay==null||!relay.isAlive()){requestRecovery();return;}
       long up=Math.max(0,core.queryStats("proxy","uplink")),down=Math.max(0,core.queryStats("proxy","downlink"));
       uploadBytes+=up;downloadBytes+=down;uploadRate=up*1000.0/dt;downloadRate=down*1000.0/dt;
      }
@@ -120,15 +122,17 @@ public class TunnelService extends VpnService {
    cm.requestNetwork(new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN).addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED).build(),callback);
  }
- boolean coreHealthy(){synchronized(coreLock){return core!=null&&core.getIsRunning();}}
+ boolean coreHealthy(){synchronized(coreLock){return core!=null&&core.getIsRunning()&&(hy2==null||hy2.alive());}}
  void startCore()throws Exception{
   synchronized(coreLock){
+   if(NodeConfig.protocol(new org.json.JSONObject(runningNode)).equals("hysteria2")){hy2=new Hy2Client(this);hy2.start(runningNode);}
    core=Libv2ray.newCoreController(new CoreCallbackHandler(){public long startup(){return 0;}public long shutdown(){return 0;}public long onEmitStatus(long n,String s){return 0;}});
    core.startLoop(runningConfig);if(!core.getIsRunning())throw new IOException("核心启动失败");
   }
  }
  void stopCore(){synchronized(coreLock){
   if(core!=null){try{core.stopLoop();}catch(Exception ignored){}core=null;}
+  if(hy2!=null){hy2.close();hy2=null;}
  }}
  void startRelay()throws Exception{
   File sock=new File(getFilesDir(),"relay.sock");sock.delete();

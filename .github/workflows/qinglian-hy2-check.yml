@@ -1,0 +1,35 @@
+name: Qinglian real Hysteria2 verification
+on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['.github/workflows/qinglian-hy2-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            qinglian/server
+            qinglian/app/src/main/java
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - name: Compile exact Android node-config converter
+        run: |
+          curl -fsSL https://repo.maven.apache.org/maven2/org/json/json/20240303/json-20240303.jar -o "$RUNNER_TEMP/json.jar"
+          printf '%s  %s\n' '3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed' "$RUNNER_TEMP/json.jar" | sha256sum -c -
+          mkdir "$RUNNER_TEMP/qinglian-config"
+          javac -cp "$RUNNER_TEMP/json.jar" -d "$RUNNER_TEMP/qinglian-config" qinglian/app/src/main/java/com/gzy/qinglian/NodeConfig.java qinglian/server/NodeConfigCli.java
+      - name: Verify selected node via explicit proxy without direct fallback
+        env:
+          QINGLIAN_PROBE_CHANNEL: accelerated
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/server/probe.py

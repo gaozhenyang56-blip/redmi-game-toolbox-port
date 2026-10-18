@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).parent/'github'))
 from ssh_common import connection,remote_json
 os.umask(0o077)
+hy2=None
 try:
  with tempfile.TemporaryDirectory() as tmp:
   root=Path(tmp)
@@ -20,7 +21,19 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
   ca=root/'ca.pem';ca.write_text(settings['ca'])
   opener=urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=str(ca))))
   url='https://'+os.environ['QINGLIAN_SSH_HOST']+':11452'+settings['base']+'api/v1/profile'
-  with opener.open(urllib.request.Request(url,headers={'Authorization':'Bearer '+settings['token']}),timeout=15) as response:n=json.load(response)['node']
+  with opener.open(urllib.request.Request(url,headers={'Authorization':'Bearer '+settings['token']}),timeout=15) as response:profile=json.load(response)
+  n=profile['acceleration']['node'] if os.environ.get('QINGLIAN_PROBE_CHANNEL')=='accelerated' else profile['node']
+  if n.get('protocol')=='hysteria2':
+   path=root/'hysteria'
+   with urllib.request.urlopen('https://github.com/apernet/hysteria/releases/download/app%2Fv2.13.0/hysteria-linux-amd64',timeout=90) as response:path.write_bytes(response.read())
+   assert hashlib.sha256(path.read_bytes()).hexdigest()=='907ba8c9693edb104b20582681fb7dc15639d5b64a9cbb616a7b539190a86691';path.chmod(0o700)
+   hyca=root/'hy2-ca.pem';hyca.write_text(n['caPem']);hycfg=root/'hy2.json';hycfg.write_text(json.dumps({'server':n['add']+':'+str(n['port']),'auth':n['auth'],'tls':{'sni':n['sni'],'insecure':False,'ca':str(hyca)},'lazy':True,'socks5':{'listen':'127.0.0.1:10810'}}))
+   hy2=subprocess.Popen([str(path),'client','-c',str(hycfg),'--log-level','error','--disable-update-check'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+   for attempt in range(50):
+    try:
+     with socket.create_connection(('127.0.0.1',10810),.2):break
+    except OSError:time.sleep(.1)
+
   archive=root/'core.zip'
   with urllib.request.urlopen('https://github.com/v2fly/v2ray-core/releases/download/v5.54.2/v2ray-linux-64.zip',timeout=90) as response:archive.write_bytes(response.read())
   assert hashlib.sha256(archive.read_bytes()).hexdigest()=='595f22e9f56936c8f4c471b3e81a9fe35d356dae9342fd71d1caf8dc99ac8378'
@@ -77,7 +90,7 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
      assert rid==query_id and flags&32768 and flags&15==0,'DNS response invalid'
      assert answers>0 if qtype==1 else answers==0,'DNS IPv4 policy failed'
      dns_times.append(round((time.monotonic()-start)*1000,2))
-   print(json.dumps({'vmessHttps204':True,'requestMilliseconds':elapsed,'proxiedDownloadBytes':8388608,'proxiedDownloadMbps':round(8388608*8/download_elapsed/1e6,2),'directFallback':False,
+   print(json.dumps({'proxyHttps204':True,'protocol':n.get('protocol','vmess'),'requestMilliseconds':elapsed,'proxiedDownloadBytes':8388608,'proxiedDownloadMbps':round(8388608*8/download_elapsed/1e6,2),'directFallback':False,
     'appGeneratedConfiguration':True,'udpDnsViaCore':True,'ipv6DnsNoData':True,'dnsMillisecondsColdWarmAAAA':dns_times}))
   finally:
    core.terminate()
@@ -85,3 +98,9 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
    except subprocess.TimeoutExpired:core.kill();core.wait()
 except Exception as error:
  print('Real-node probe failed:',type(error).__name__,'; private details suppressed.',file=sys.stderr);sys.exit(1)
+
+finally:
+ if hy2 is not None:
+  hy2.terminate()
+  try:hy2.wait(timeout=5)
+  except subprocess.TimeoutExpired:hy2.kill();hy2.wait()

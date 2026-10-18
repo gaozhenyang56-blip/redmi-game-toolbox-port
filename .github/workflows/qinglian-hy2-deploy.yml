@@ -1,0 +1,46 @@
+name: Qinglian panel-managed Hysteria2 deployment
+on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['.github/workflows/qinglian-hy2-deploy.yml','qinglian/server/github/deploy_hy2.py','qinglian/server/hy2_manager.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: qinglian-server-maintenance
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian/server
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - name: Back up original databases and private configuration
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/server/github/backup_server.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qinglian-before-multiprotocol-backup
+          path: private-transfer/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Download pinned official server
+        run: |
+          curl -fsSL https://github.com/apernet/hysteria/releases/download/app%2Fv2.13.0/hysteria-linux-amd64 -o "$RUNNER_TEMP/hysteria"
+          printf '%s  %s\n' '907ba8c9693edb104b20582681fb7dc15639d5b64a9cbb616a7b539190a86691' "$RUNNER_TEMP/hysteria" | sha256sum -c -
+      - name: Deploy supervised QUIC server and panel bridge
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+          QINGLIAN_HY2_BINARY: ${{ runner.temp }}/hysteria
+        run: python3 qinglian/server/github/deploy_hy2.py

@@ -86,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
   status=text("未连接",24,true);status.setGravity(Gravity.CENTER);status.setTextColor(color(com.google.android.material.R.attr.colorOnPrimaryContainer));hero.addView(status);space(hero,8);caption=note("");caption.setGravity(Gravity.CENTER);caption.setTextColor(color(com.google.android.material.R.attr.colorOnPrimaryContainer));hero.addView(caption);space(hero,16);
   power=button("连接");hero.addView(power,new LinearLayout.LayoutParams(-1,dp(48)));power.setOnClickListener(v->toggle());space(hero,8);
   clock=note("00:00:00");clock.setGravity(Gravity.CENTER);clock.setTextColor(color(com.google.android.material.R.attr.colorOnPrimaryContainer));hero.addView(clock);
-  connectionModes();
+  connectionModes();transportModes();
   LinearLayout summary=card(com.google.android.material.R.attr.colorSurfaceContainer);summary.addView(text("连接概览",18,true));space(summary,18);
   LinearLayout row=new LinearLayout(this);LinearLayout online=new LinearLayout(this),quota=new LinearLayout(this);online.setOrientation(LinearLayout.VERTICAL);quota.setOrientation(LinearLayout.VERTICAL);row.addView(online,new LinearLayout.LayoutParams(0,-2,1));row.addView(quota,new LinearLayout.LayoutParams(0,-2,1));summary.addView(row);
   online.addView(note("实时在线设备"));space(online,8);onlineValue=text("待接入",26,true);online.addView(onlineValue);space(online,6);onlineDetail=note("按在线设备统计");online.addView(onlineDetail);
@@ -133,6 +133,15 @@ public class MainActivity extends AppCompatActivity {
    description.setText(ruleDescription(next));toast(TunnelService.state.equals("connected")?"模式已保存，断开重连后生效":"连接模式已保存");
   });
   if(TunnelService.state.equals("connected")){space(card,6);card.addView(note("当前连接："+TunnelService.routingStatus+" · 修改后需重连"));}
+ }
+ private void transportModes(){
+  LinearLayout card=card(com.google.android.material.R.attr.colorSurfaceContainer);card.addView(text("传输通道",18,true));space(card,10);
+  GlassSegments group=new GlassSegments(this,new String[]{"兼容","加速"},null,null,false);group.setSelected(ProfileMonitor.accelerated(this)?1:0,false);card.addView(group,new LinearLayout.LayoutParams(-1,dp(52)));
+  space(card,8);card.addView(note("兼容：面板指定的 VMess / VLESS / Trojan / Shadowsocks。加速：Hysteria2，需面板启用，Android 10+。修改后重连生效。"));
+  if(TunnelService.state.equals("connected"))card.addView(note("当前协议："+TunnelService.activeProtocol));
+  group.setListener(index->{if(index==1&&android.os.Build.VERSION.SDK_INT<29){toast("加速通道需要Android 10或更高版本");group.setSelected(0,true);return;}
+   if(!getSharedPreferences("transport",0).edit().putBoolean("accelerated",index==1).commit()){toast("保存失败，请重试");group.setSelected(ProfileMonitor.accelerated(this)?1:0,true);return;}
+   ProfileMonitor.refresh(this,true);toast("通道已保存，重连后生效");});
  }
  private void routing(){
   AppRouting rules;

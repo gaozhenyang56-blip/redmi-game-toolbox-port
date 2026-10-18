@@ -7,6 +7,8 @@ AAR_URL='https://github.com/2dust/AndroidLibV2rayLite/releases/download/v5.54.2/
 APK_URL='https://github.com/2dust/v2rayNG/releases/download/1.9.46/v2rayNG_1.9.46_arm64-v8a.apk'
 AAR_SHA='16e8e34554dee086f3748898232f60bc96ae3229229892b21a8b7fcb4612f211'
 APK_SHA='249c6d95d1377992520b07c640c35d2844404645238a2ba6e1206e3b65fcfe9d'
+HY_URL='https://github.com/apernet/hysteria/releases/download/app%2Fv2.13.0/hysteria-android-arm64'
+HY_SHA='13d5b85cd45e11cf02847dc2b6229d6f9a20b3cb87a00b9356cf244e3bd8db84'
 TUN_SHA='0a4f55221fce660527afbcc07ff93a34f4df61b903967595a92a48ada13e21a4'
 
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -32,5 +34,7 @@ def main():
     tun=ROOT/'app/src/main/jniLibs/arm64-v8a/libtun2socks.so';tun.parent.mkdir(parents=True,exist_ok=True)
     with zipfile.ZipFile(apk) as z:tun.write_bytes(z.read('lib/arm64-v8a/libtun2socks.so'))
     if sha(tun)!=TUN_SHA:raise SystemExit('tun2socks checksum mismatch')
+    hy=cache/'hysteria-android-arm64';fetch(HY_URL,hy,HY_SHA)
+    (tun.parent/'libhysteria.so').write_bytes(hy.read_bytes())
     print('ARM64 core and tun2socks prepared; pinned upstream SHA-256 verified.')
 if __name__=='__main__':main()

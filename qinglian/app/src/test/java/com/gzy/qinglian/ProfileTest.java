@@ -5,6 +5,6 @@ public class ProfileTest {
  @Test public void acceptsPanelProfileAndPreservesActualNode()throws Exception{ProfileMonitor.Profile p=ProfileMonitor.parse(fixture());assertEquals("面板节点",p.label);assertEquals("192.0.2.1",new JSONObject(p.node).getString("add"));assertEquals("a".repeat(64),p.revision);}
  @Test public void rejectsMalformedRevisionAndUnsupportedTransport()throws Exception{
   JSONObject bad=fixture().put("revision","invalid");assertThrows(Exception.class,()->ProfileMonitor.parse(bad));
-  JSONObject unsupported=fixture();unsupported.getJSONObject("node").put("net","ws");assertThrows(Exception.class,()->ProfileMonitor.parse(unsupported));
+  JSONObject unsupported=fixture();unsupported.getJSONObject("node").put("net","grpc");assertThrows(Exception.class,()->ProfileMonitor.parse(unsupported));
  }
 }

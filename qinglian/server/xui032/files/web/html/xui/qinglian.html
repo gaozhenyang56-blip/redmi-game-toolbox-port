@@ -9,10 +9,19 @@
    <p>从现有 x-ui 节点中指定 App 使用的唯一节点。修改节点参数后 App 会自动同步，已连接设备重连后使用新配置。</p>
    <a-alert v-if="selectionError" type="error" :message="selectionError" show-icon style="margin-bottom:12px"></a-alert>
    <a-select v-model="selectedId" style="width:360px;max-width:100%;margin-right:12px" placeholder="选择 App 节点">
-    <a-select-option v-for="node in nodes" :key="node.id" :value="node.id" :disabled="!node.available">[[ node.name ]] · [[ node.port ]] [[ node.available?'':'（不支持或已停用）' ]]</a-select-option>
+    <a-select-option v-for="node in nodes" :key="node.id" :value="node.id" :disabled="!node.available">[[ node.name ]] · [[ node.protocol ]] · [[ node.port ]] [[ node.available?'':'（不支持或已停用）' ]]</a-select-option>
    </a-select>
    <a-button type="primary" :disabled="!selectedId" :loading="saving" @click="saveSelection">保存 App 节点</a-button>
-   <p style="margin-top:12px">支持已启用的单客户端 VMess TCP/HTTP 无 TLS 节点；不会修改入站配置或清零流量。配额跟随所选节点读取。</p>
+   <p style="margin-top:12px">支持单客户端 VMess / VLESS / Trojan 和单密码 Shadowsocks，TCP / WebSocket，可验证的 TLS；暂不支持 Reality、XTLS 和 SS2022。非 VMess 节点需要 App v9+。配额跟随所选节点，保存不改动入站或清零流量。</p>
+  </a-card>
+  <a-card title="多协议 · Hysteria2 加速通道" style="margin-bottom:16px">
+   <p>VMess / VLESS / Trojan / Shadowsocks 在原“入站列表”管理；此处统一管理新增的 Hysteria2。App v9+ 可在兼容与加速通道间切换，加速需要 Android 10+。</p>
+   <a-alert v-if="hyError" type="error" :message="hyError" show-icon></a-alert>
+   <p>模块：[[ hy.installed?'已安装':'尚未部署' ]] · 运行：[[ hy.running?'正常':'未运行' ]] · UDP [[ hy.port||443 ]] · 计费入站 [[ hy.boundInbound||'未绑定' ]]</p>
+   <p v-if="hy.error">[[ hy.error ]]</p>
+   <a-switch v-model="hy.enabled" :disabled="!hy.installed"></a-switch><span style="margin:0 12px">启用加速通道</span>
+   <a-button type="primary" :disabled="!hy.installed||!selectedId" :loading="hyBusy" @click="saveHy">保存并绑定当前 App 节点</a-button>
+   <p style="margin-top:12px">加速流量累计到绑定入站，与兼容通道共用额度和到期时间。额度耗尽、到期、停用或记账异常会关闭加速连接。切换 App 节点后需重新绑定；不会自动更换原节点。</p>
   </a-card>
   <a-card title="App 热修复与版本发布" style="margin-bottom:16px">
    <p>界面配置发布后，支持更新的新版本 App 在前台每30秒同步，无需重装。只允许下列界面参数，不执行脚本或远程代码。</p>
@@ -54,9 +63,11 @@
 </a-layout>
 {{template "js" .}}
 <script>
- const app=new Vue({el:'#app',delimiters:['[[',']]'],data:{siderDrawer,online:null,devices:[],error:'',timer:null,nodes:[],selectedId:null,selectionError:'',saving:false,update:{schema:1,revision:0,ui:{navHeight:80,navIcon:24,navText:12,navGap:2,glassMargin:12,glassEnabled:true},apk:null},updateBusy:false,updateError:'',apkFile:null,apkVersion:null,apkName:'',apkNotes:'',
+ const app=new Vue({el:'#app',delimiters:['[[',']]'],data:{siderDrawer,online:null,devices:[],error:'',timer:null,nodes:[],selectedId:null,selectionError:'',saving:false,hy:{installed:false,enabled:false,running:false},hyError:'',hyBusy:false,update:{schema:1,revision:0,ui:{navHeight:80,navIcon:24,navText:12,navGap:2,glassMargin:12,glassEnabled:true},apk:null},updateBusy:false,updateError:'',apkFile:null,apkVersion:null,apkName:'',apkNotes:'',
  columns:[{title:'状态',dataIndex:'online',scopedSlots:{customRender:'online'}},{title:'设备名称',dataIndex:'deviceName'},{title:'品牌 / 型号',dataIndex:'model'},{title:'Android',dataIndex:'androidVersion'},{title:'App',dataIndex:'appVersion'},{title:'来源 IP',dataIndex:'sourceIp'},{title:'上线时间',dataIndex:'startedAt',scopedSlots:{customRender:'time'}},{title:'最近活跃',dataIndex:'lastSeen',scopedSlots:{customRender:'time'}},{title:'上传用量',dataIndex:'uploadBytes',scopedSlots:{customRender:'bytes'}},{title:'下载用量',dataIndex:'downloadBytes',scopedSlots:{customRender:'bytes'}},{title:'上传速度',dataIndex:'uploadRate',scopedSlots:{customRender:'rate'}},{title:'下载速度',dataIndex:'downloadRate',scopedSlots:{customRender:'rate'}}]},
- mounted(){this.loadSelection();this.loadUpdates();this.refresh()},beforeDestroy(){clearTimeout(this.timer)},methods:{
+ mounted(){this.loadSelection();this.loadUpdates();this.loadHy();this.refresh()},beforeDestroy(){clearTimeout(this.timer)},methods:{
+ async loadHy(){try{const response=await axios.get('xui/qinglian/acceleration',{timeout:5000});this.hy=response.data;this.hyError=''}catch(error){this.hyError='加速模块暂不可用'}},
+ async saveHy(){this.hyBusy=true;try{const response=await fetch(basePath+'xui/qinglian/acceleration',{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'},body:JSON.stringify({enabled:this.hy.enabled,boundInbound:this.selectedId})});if(!response.ok)throw Error();this.hy=await response.json();this.hyError='';this.$message.success('已保存，等待服务生效后在App重连。');setTimeout(()=>this.loadHy(),2000)}catch(error){this.hyError='保存失败，请检查节点、配额与模块状态'}finally{this.hyBusy=false}},
  async loadUpdates(){try{const response=await axios.get('xui/qinglian/updates',{timeout:5000});this.update=response.data;this.updateError=''}catch(error){this.updateError='更新配置暂不可用，请检查登录与模块版本。'}},
  async updateRequest(path,body,isFile=false){const response=await fetch(basePath+'xui/qinglian/updates'+path,{method:'POST',credentials:'same-origin',headers:isFile?{'X-Requested-With':'XMLHttpRequest'}:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'},body:isFile?body:JSON.stringify(body)});if(!response.ok)throw Error();this.update=await response.json();this.updateError='';this.$message.success('已发布，App将自动同步；安装包升级仍需手机确认。')},
  async publishUI(){this.updateBusy=true;try{await this.updateRequest('',this.update)}catch(error){this.updateError='发布失败，请刷新后检查参数再重试。'}finally{this.updateBusy=false}},
