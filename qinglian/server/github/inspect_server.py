@@ -46,6 +46,8 @@ if db.is_file():
                       for table in ('inbounds','users','settings')}
     result['inboundCount']=connection.execute('SELECT count(*) FROM inbounds').fetchone()[0]
     connection.close()
+diagnostic=subprocess.run(['journalctl','-u','qinglian-hy2','-n','100','--no-pager','-o','cat'],capture_output=True,text=True,timeout=10).stdout
+result['hy2Errors']=[line.strip()[:220] for line in diagnostic.splitlines() if re.match(r'^(?:sqlite3\.)?(?:PermissionError|FileNotFoundError|OperationalError|NameError|ModuleNotFoundError|SyntaxError|ImportError):',line.strip())]
 print(json.dumps(result,ensure_ascii=False))
 PY'''
     _,out,err=client.exec_command(script,timeout=30)
