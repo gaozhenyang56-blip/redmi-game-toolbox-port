@@ -48,8 +48,10 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
    result=subprocess.run(args+['--output',str(root/'latency'),'--write-out','%{http_code}','https://www.google.com/generate_204'],capture_output=True,timeout=45)
    assert result.returncode==0 and result.stdout==b'204','VMess HTTPS request failed'
    elapsed=round((time.monotonic()-start)*1000)
-   result=subprocess.run(args+['--output',str(root/'download'),'https://speed.cloudflare.com/__down?bytes=1048576'],capture_output=True,timeout=45)
-   assert result.returncode==0 and (root/'download').stat().st_size==1048576,'VMess download failed'
+   download_start=time.monotonic()
+   result=subprocess.run(args+['--output',str(root/'download'),'https://speed.cloudflare.com/__down?bytes=8388608'],capture_output=True,timeout=45)
+   assert result.returncode==0 and (root/'download').stat().st_size==8388608,'VMess download failed'
+   download_elapsed=time.monotonic()-download_start
    # App-style UDP DNS over SOCKS, twice, exercises the exact generated DNS
    # routing, VMess TCP upstream and warm cache instead of curl's local resolver.
    def read_exact(stream,count):
@@ -75,7 +77,7 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
      assert rid==query_id and flags&32768 and flags&15==0,'DNS response invalid'
      assert answers>0 if qtype==1 else answers==0,'DNS IPv4 policy failed'
      dns_times.append(round((time.monotonic()-start)*1000,2))
-   print(json.dumps({'vmessHttps204':True,'requestMilliseconds':elapsed,'proxiedDownloadBytes':1048576,'directFallback':False,
+   print(json.dumps({'vmessHttps204':True,'requestMilliseconds':elapsed,'proxiedDownloadBytes':8388608,'proxiedDownloadMbps':round(8388608*8/download_elapsed/1e6,2),'directFallback':False,
     'appGeneratedConfiguration':True,'udpDnsViaCore':True,'ipv6DnsNoData':True,'dnsMillisecondsColdWarmAAAA':dns_times}))
   finally:
    core.terminate()
