@@ -32,7 +32,7 @@ with connection() as ssh,tempfile.TemporaryDirectory() as temp:
    if all(i in active for i in ids):break
    time.sleep(.3)
   else:raise AssertionError('exports did not activate')
-  def transfer(profile,p,target=None,headers=None,rounds=1,lanes=1,renew=None):
+  def transfer(profile,p,target=None,headers=None,rounds=1,lanes=1,renew=None,recheck=False):
    client=copy.deepcopy(profile['clientConfig']);socks=port();hy=p=='hysteria2'
    if not hy:
     converted=subprocess.run(['java','-cp',os.environ['QINGLIAN_NODECONFIG_CP'],'NodeConfigCli'],input=json.dumps(profile['node']).encode(),capture_output=True,check=True);client=json.loads(converted.stdout);client['inbounds'][1]['port']=port()
@@ -57,6 +57,7 @@ with connection() as ssh,tempfile.TemporaryDirectory() as temp:
      for _ in range(rounds):
       list(jobs.map(fetch,range(lanes)))
       if renew:renew()
+    if recheck:target=base+'speed?bytes=524288';fetch(0) # Same native client/QUIC connection, no restart or cooldown.
    finally:proc.terminate();proc.wait(timeout=5)
   for ident in ids:
    node=active[ident];profile=node["profile"];assert profile["remark"]=="Smoke "+node["protocol"];assert "inbound" not in profile;transfer(profile,node["protocol"]);transfer(profile,node["protocol"],base+"speed?bytes=524288",{"Authorization":"Bearer "+token,"X-Qinglian-Device":device})
@@ -91,7 +92,7 @@ with connection() as ssh,tempfile.TemporaryDirectory() as temp:
   template=copy.deepcopy(next(v['profile'] for v in active.values() if v['protocol']=='hysteria2'));template['node']=bn;client=template['clientConfig'];client['server']=bn['add']+':'+str(bn['port']);client['auth']=bn['auth'];client['congestion']={'type':'bbr','bbrProfile':'aggressive'};client['quic'].update({'initStreamReceiveWindow':8388608,'maxStreamReceiveWindow':33554432,'initConnReceiveWindow':16777216,'maxConnReceiveWindow':67108864});transfer(template,'hysteria2')
   before_speed=request('quota',token=token)['cumulativeTotalBytes']
   speed_url=base+'speed?bytes=33554432'
-  transfer(template,'hysteria2',speed_url,{'Authorization':'Bearer '+token,'X-Qinglian-Device':device},rounds=8,lanes=4,renew=lambda:request('profile',{'labHy2':True},token))
+  transfer(template,'hysteria2',speed_url,{'Authorization':'Bearer '+token,'X-Qinglian-Device':device},rounds=8,lanes=4,renew=lambda:request('profile',{'labHy2':True},token),recheck=True)
   # A further request must work immediately after the 1GiB four-lane transfer.
   transfer(template,'hysteria2',base+'speed?bytes=524288',{'Authorization':'Bearer '+token,'X-Qinglian-Device':device})
   for _ in range(10):
