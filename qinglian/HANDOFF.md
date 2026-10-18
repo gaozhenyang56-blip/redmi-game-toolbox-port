@@ -1,3 +1,14 @@
+# 服务器吞吐诊断与缓冲优化（2026-10-18，无App版本变更）
+
+用户反馈不装BBR不到1MB/s、装后峰值约5MB/s，并确认同节点v2rayNG同速。不能将问题归因为轻连独有开销，手机运营商/网络类型尚未确认。
+
+- 只读诊断run39098794750/39098852244：2vCPU、低负载、约1.6GiB可用内存，Linux6.8，BBR+fq实际生效。原tcp_rmem上限6MiB、tcp_wmem上限4MiB、core rmem/wmem上限212992。现有连接RTT167..229ms；一条流bytes_retrans102546/bytes_sent737426（约13.9%），这是累计字节重传比例，不能称为手机链路实时丢包率。后续未持续观察到大流，不能给出同一手机调整前后对比。
+- 有限8MiB/路下载，服务器单路262Mbps、4路714Mbps；首次16MiB请求HTTPError，后续8MiB正常。是服务器出站下载，不能证明到手机的1Gbps下行。
+- run39098913648已应用可回滚优化：仅core rmem_max/wmem_max和tcp rmem/wmem最后一个上限提高到33554432；最小与默认分配保留，不预分配32MiB/连接、不改BBR/fq/MTU、不重启服务或改节点。
+- 持久配置/etc/sysctl.d/99-zz-qinglian-buffers.conf；原值备份/etc/x-ui/qinglian/network-tuning-backup.json，root0600。qinglian-network-tune.yml支持mode=rollback，恢复原值并移除自己的配置；状态与预期不符拒绝覆盖他人修改。写入/本机服务检查失败会立即恢复原值。
+- 调整后服务器单路347Mbps/4路755Mbps，流量短、测试时刻不同，不能把差额归因于调参。原BBR/fq仍正常。实际App配置转换+官方固定核心的运行器VMess基线102.29Mbps，非手机结果。
+- App仍v8、原签名；无需新包，重连VPN再测同一网络/下载源。若仍慢，下一步采样运营商/高低峰/有线WiFi对比并选路由合适的节点；不能承诺单靠App跑满跨境1Gbps。
+
 # 更新误报修复（versionCode8，2026-10-18）
 
 当前1.0.7-preview/versionCode8，下一版至少9，原签名。

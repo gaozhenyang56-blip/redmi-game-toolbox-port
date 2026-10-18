@@ -16,3 +16,9 @@ API专用11452HTTPS保留主机名验证；server.pem有效825天、CA10年，�
 ## v7 更新通道维护
 
 已部署界面热修复/完整APK发布，见server/API.md及HANDOFF.md。qinglian-server-upgrade.yml先备份两份SQLite一致性快照、原二进制和私有配置，构建精确0.3.2覆盖层再升级，失败自动恢复旧二进制。不要用首次部署脚本更新已有集成。qinglian-update-check.yml只读验证公开TLS下载字节、原签名和包版本。已有客户端需要先安装v7。
+
+## 服务器 TCP 缓冲维护
+
+performance_probe.py只读采样公开sysctl、匿名化TCP数值和有限40MiB服务器下载。不会返回IP/UUID/端口/凭据。TCP统计为已有流历史，不代表实时丢包率；服务器出站测速不代表到手机带宽。
+
+qinglian-network-tune.yml由tune_network.py将动态缓冲上限提高至32MiB，保留原默认值、BBR、qdisc与业务进程；先备份至/etc/x-ui/qinglian/network-tuning-backup.json。workflow_dispatch mode=rollback可恢复原值。不得把每次8MiB测速差异宣传为手机性能提升；仍需同一手机/网络/下载源复测。
