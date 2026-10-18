@@ -46,7 +46,16 @@ public final class NodeConfig {
    }else{
     JSONObject ws=new JSONObject().put("path",n.optString("path","/"));if(!n.optString("host").isEmpty())ws.put("headers",new JSONObject().put("Host",n.getString("host")));stream.put("wsSettings",ws);
    }
-   if(tls.equals("tls"))stream.put("tlsSettings",new JSONObject().put("serverName",n.optString("sni",n.getString("add"))).put("allowInsecure",false));
+   if(tls.equals("tls")){
+    JSONObject security=new JSONObject().put("serverName",n.optString("sni",n.getString("add"))).put("allowInsecure",false);
+    String ca=n.optString("caPem","");if(!ca.isEmpty()){
+     if(ca.length()>16384)throw new IllegalArgumentException("CA证书过大");
+     java.security.cert.X509Certificate certificate=(java.security.cert.X509Certificate)java.security.cert.CertificateFactory.getInstance("X.509").generateCertificate(new java.io.ByteArrayInputStream(ca.getBytes(java.nio.charset.StandardCharsets.US_ASCII)));
+     if(certificate.getBasicConstraints()<0)throw new IllegalArgumentException("需要CA证书");
+     security.put("certificates",new JSONArray().put(new JSONObject().put("usage","verify").put("certificate",new JSONArray(Arrays.asList(ca.trim().split("\\r?\\n"))))));
+    }
+    stream.put("tlsSettings",security);
+   }
    outbound=new JSONObject().put("protocol",p).put("settings",settings).put("streamSettings",stream);
   }
   outbound.put("tag","proxy");

@@ -4,6 +4,11 @@ on:
     branches: [codex/qinglian-routing-and-presence]
     paths: ['.github/workflows/qinglian-exports-deploy.yml']
   workflow_dispatch:
+    inputs:
+      verify_only:
+        description: Run public account smoke without redeploying the service
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -17,22 +22,25 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
-          sparse-checkout: qinglian/server
+          sparse-checkout: qinglian
       - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
       - name: Back up live state before installing isolated workers
+        if: inputs.verify_only != true
         env: &ssh
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
           QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
           QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
         run: python3 qinglian/server/github/backup_server.py
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - if: inputs.verify_only != true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: qinglian-before-account-engine-backup
           path: private-transfer/
           retention-days: 14
           if-no-files-found: error
       - name: Deploy account supervisor without replacing original nodes
+        if: inputs.verify_only != true
         env: *ssh
         run: python3 qinglian/server/github/deploy_exports.py
       - name: Prepare pinned native clients for the public account checks
@@ -44,6 +52,10 @@ jobs:
           printf '%s  %s\n' '595f22e9f56936c8f4c471b3e81a9fe35d356dae9342fd71d1caf8dc99ac8378' "$RUNNER_TEMP/v2ray.zip" | sha256sum -c -
           unzip -p "$RUNNER_TEMP/v2ray.zip" v2ray > "$RUNNER_TEMP/v2ray"
           chmod 700 "$RUNNER_TEMP/v2ray"
+          curl -fsSL https://repo.maven.apache.org/maven2/org/json/json/20240303/json-20240303.jar -o "$RUNNER_TEMP/json.jar"
+          printf '%s  %s\n' '3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed' "$RUNNER_TEMP/json.jar" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/classes"
+          javac -cp "$RUNNER_TEMP/json.jar" -d "$RUNNER_TEMP/classes" qinglian/app/src/main/java/com/gzy/qinglian/NodeConfig.java qinglian/server/NodeConfigCli.java
       - name: Check public five-protocol account flows and remove test fixtures
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
@@ -51,5 +63,6 @@ jobs:
           QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
           QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
           QINGLIAN_HY2_BINARY: ${{ runner.temp }}/hysteria
+          QINGLIAN_NODECONFIG_CP: ${{ runner.temp }}/classes:${{ runner.temp }}/json.jar
           QINGLIAN_V2RAY_BINARY: ${{ runner.temp }}/v2ray
         run: python3 qinglian/server/github/account_smoke.py

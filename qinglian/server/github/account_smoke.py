@@ -34,6 +34,8 @@ with connection() as ssh,tempfile.TemporaryDirectory() as temp:
   else:raise AssertionError('exports did not activate')
   def transfer(profile,p):
    client=copy.deepcopy(profile['clientConfig']);socks=port();hy=p=='hysteria2'
+   if not hy:
+    converted=subprocess.run(['java','-cp',os.environ['QINGLIAN_NODECONFIG_CP'],'NodeConfigCli'],input=json.dumps(profile['node']).encode(),capture_output=True,check=True);client=json.loads(converted.stdout);client['inbounds'][1]['port']=port()
    if hy:client['socks5']['listen']='127.0.0.1:'+str(socks);client['tls']['ca']=str(root/'ca.pem');binary=os.environ['QINGLIAN_HY2_BINARY'];args=['client','--log-level','error','--disable-update-check','--config']
    else:client['inbounds'][0]['port']=socks;binary=os.environ['QINGLIAN_V2RAY_BINARY'];args=['run','-c']
    path=root/'client.json';path.write_text(json.dumps(client));proc=subprocess.Popen([binary,*args,str(path)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
@@ -62,7 +64,7 @@ with connection() as ssh,tempfile.TemporaryDirectory() as temp:
     settings=client['outbounds'][0]['settings'];entry=(settings.get('vnext') or settings.get('servers'))[0];entry['port']=n['port']
     if protocol in ('vmess','vless'):entry['users'][0]['id']=n['id']
     else:entry['password']=n['password']
-   transfer(template,protocol)
+   template["node"]=n;transfer(template,protocol)
   time.sleep(1);quota=request('quota',token=token);assert quota['allocatedBytes']==len(protocols)*2*1048576;assert quota['cumulativeTotalBytes']>=len(protocols)*524288
   history=request('history',token=token);assert history['retention']=='permanent' and any(r['domain']=='speed.cloudflare.com' for r in history['records']),'native domain capture unavailable'
   print(json.dumps({'passed':True,'protocols':protocols,'publicBytesEach':524288,'originalCAValidated':True,'deviceRegistrationLimited':True,'multiDeviceLogin':True,'idempotency':True,'remarks':True,'mainIndependent':True,'quotaIndependent':True,'cumulativeTraffic':True,'permanentDomains':True}))

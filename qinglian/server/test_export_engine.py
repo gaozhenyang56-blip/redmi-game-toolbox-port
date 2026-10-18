@@ -30,6 +30,10 @@ class NativeExports(unittest.TestCase):
   with engine.db() as db:db.execute("INSERT INTO exports(id,user_id,protocol,port,total,created,expires,status,data) VALUES(?,?,?,?,?,?,?,'pending',?)",(ident,'fixture',protocol,port,100*1048576,int(time.time()),int(time.time())+300,json.dumps(p)))
   engine.tick();self.assertIn(ident,engine.children,'native startup failed '+(engine.work/'native-errors.log').read_text()[-1200:])
   cfg=copy.deepcopy(p['clientConfig']);socks=engine.free_port();hy=protocol=='hysteria2'
+  if not hy and os.environ.get('QINGLIAN_NODECONFIG_CP'):
+   node=copy.deepcopy(p['node']);node['port']=port
+   converted=subprocess.run([os.environ.get('QINGLIAN_JAVA','java'),'-cp',os.environ['QINGLIAN_NODECONFIG_CP'],'NodeConfigCli'],input=json.dumps(node).encode(),capture_output=True,check=True)
+   cfg=json.loads(converted.stdout);cfg['inbounds'][1]['port']=engine.free_port()
   if hy:cfg['server']='127.0.0.1:'+str(port);cfg['tls']['ca']=str(FIX/'tls-ca.pem');cfg['socks5']['listen']='127.0.0.1:'+str(socks);binary=os.environ['QINGLIAN_HY2'];args=['client','--log-level','error','--disable-update-check','--config']
   else:
    cfg['inbounds'][0]['port']=socks;settings=cfg['outbounds'][0]['settings'];(settings.get('vnext') or settings.get('servers'))[0]['port']=port;binary=os.environ['QINGLIAN_V2RAY'];args=['run','-c']

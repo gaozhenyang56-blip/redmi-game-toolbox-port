@@ -14,5 +14,11 @@ public class ConfigTest {
  @Test(expected=Exception.class)public void rejectsInvalidPort()throws Exception{NodeConfig.build(fixture().replace("443","70000"));}
  @Test(expected=Exception.class)public void rejectsUnsupportedTransport()throws Exception{NodeConfig.build(fixture().replace("tcp","grpc"));}
  @Test(expected=Exception.class)public void rejectsMalformedId()throws Exception{NodeConfig.build(fixture().replace("11111111-1111-4111-8111-111111111111","bad"));}
+ @Test public void accountTLSUsesOnlyProvidedPublicCAAndPreservesHostnameChecks()throws Exception{
+  String ca;try(java.io.InputStream in=getClass().getResourceAsStream("/tls-ca.pem")){ca=new String(in.readAllBytes(),java.nio.charset.StandardCharsets.US_ASCII);}
+  JSONObject n=new JSONObject(fixture()).put("tls","tls").put("caPem",ca).put("sni","fixture.example");
+  JSONObject tls=new JSONObject(NodeConfig.build(n.toString())).getJSONArray("outbounds").getJSONObject(0).getJSONObject("streamSettings").getJSONObject("tlsSettings");assertFalse(tls.getBoolean("allowInsecure"));assertEquals("fixture.example",tls.getString("serverName"));assertEquals("verify",tls.getJSONArray("certificates").getJSONObject(0).getString("usage"));
+  n.put("caPem","bad certificate");try{NodeConfig.build(n.toString());fail("invalid CA accepted");}catch(java.security.cert.CertificateException expected){}
+ }
  @Test public void convertsBytesPerSecondToMegabits(){assertEquals(8,SpeedTester.mbps(1000000,1000000000L),.0001);assertEquals(0,SpeedTester.mbps(1,0),0);}
 }
