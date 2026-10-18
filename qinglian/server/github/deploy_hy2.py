@@ -64,7 +64,9 @@ try:
   try:
    with ssh.open_sftp() as sftp:
     for source,name in [(binary,'hysteria'),(Path(__file__).parents[1]/'hy2_manager.py','hy2_manager.py')]:sftp.put(str(source),stage+'/'+name);sftp.chmod(stage+'/'+name,0o700)
-   result=remote_json(ssh,'STAGE='+repr(stage)+'\n'+INSTALL,timeout=150);print(json.dumps(result))
+   script='STAGE='+repr(stage)+'\n'+INSTALL
+   wrapped="import json,traceback\ntry:\n exec(compile("+repr(script)+",'hy2-install','exec'))\nexcept Exception as error:\n print(json.dumps({'installed':False,'errorClass':type(error).__name__,'line':traceback.extract_tb(error.__traceback__)[-1].lineno}))"
+   result=remote_json(ssh,wrapped,timeout=150);print(json.dumps(result));assert result.get('installed')
   finally:
    with ssh.open_sftp() as sftp:
     for name in ['hysteria','hy2_manager.py']:
