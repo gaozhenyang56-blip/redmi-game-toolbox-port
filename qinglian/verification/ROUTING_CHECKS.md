@@ -1,3 +1,14 @@
+# 导航对齐与更新通道（versionCode7）
+
+- 1.0.6-preview/versionCode7，原签名，ARM64/Android8+。底部图文整体居中，默认间距2dp，原生绘图已检查，未实体手机验收。
+- 最终assembleRelease/testReleaseUnitTest/lintRelease成功，Android55项测试0失败，lint0错误/23警告；Go9项race测试通过。
+- 最终APK SHA256：2e4b5298e1632c315c25f9edb6868bf4b178452abd2b439d0ee91599e69555ea，19,510,222字节。原证书、ZIP及私有资产边界检查通过。
+- Android测试包含严格配置字段/范围、单调版本、防失败循环与回退、拒绝外部URL、APK hash/版本/原证书、真实可信TLS下载及失败临时文件清理。APK元数据单测使用框架fixture，不代表真实安装器验收。
+- Go覆盖未登录/其他管理员/App令牌禁止发布、无Origin禁止写入、CAS冲突、非法字段/边界、回滚新revision，以及上传与Bearer下载原字节。
+- 生产升级39097892611成功：事前加密备份已下载，RSA/AES-GCM/hash、两份SQLite一致性快照quick_check通过。原配置/入站/计数保留；原面板登录、发布并回滚、匿名401、客户端不能写管理员接口、公开可信HTTPS均通过。
+- 实际面板已发布v7（revision4），navGap2dp，APK描述大小/哈希与本地一致。公开可信TLS下载、实际APK字节/原签名/包版本验收Actions39098226748成功。
+- UI参数在前台30秒刷新；完整APK更新有Android系统确认，首次需要手动安装v7。没有真实手机安装器/覆盖升级/实际VPN性能新结论。
+
 # 苹果风格玻璃界面（versionCode6）
 
 - 1.0.5-preview / versionCode6，沿用原签名，仅App界面变化，不修改服务器/隧道配置。
