@@ -55,7 +55,16 @@ public final class NodeConfig {
   JSONObject dns=new JSONObject().put("queryStrategy","UseIPv4").put("tag","dns-internal").put("servers",new JSONArray().put("tcp://1.1.1.1").put("tcp://8.8.8.8"));
   JSONObject dnsOutbound=new JSONObject().put("tag","dns-out").put("protocol","dns").put("settings",new JSONObject());
   JSONObject dnsRule=new JSONObject().put("type","field").put("inboundTag",new JSONArray().put("socks").put("http")).put("port","53").put("network","tcp,udp").put("outboundTag","dns-out");
-  return new JSONObject().put("dns",dns).put("routing",new JSONObject().put("domainStrategy","AsIs").put("rules",new JSONArray().put(dnsRule))).put("log",new JSONObject().put("loglevel","none"))
-   .put("inbounds",ins).put("outbounds",new JSONArray().put(outbound).put(dnsOutbound)).put("stats",new JSONObject()).put("policy",new JSONObject().put("system",new JSONObject().put("statsOutboundUplink",true).put("statsOutboundDownlink",true))).toString();
+  JSONArray rules=new JSONArray().put(dnsRule),outbounds=new JSONArray().put(outbound).put(dnsOutbound);
+  if(p.equals("hysteria2")&&n.has("compatibility")){
+   JSONObject fallback=n.getJSONObject("compatibility");if(protocol(fallback).equals("hysteria2"))throw new IllegalArgumentException("兼容节点不能递归指向加速通道");
+   JSONObject compatibility=new JSONObject(build(fallback.toString())).getJSONArray("outbounds").getJSONObject(0);compatibility.put("tag","compatibility");outbounds.put(compatibility);
+   rules.put(new JSONObject().put("type","field").put("network","udp").put("port","443").put("outboundTag","compatibility"));
+   JSONArray domains=new JSONArray();for(String domain:new String[]{"googleusercontent.com","ggpht.com","githubusercontent.com","github.com","githubassets.com","chatgpt.com","openai.com","oaistatic.com","oaiusercontent.com"})domains.put("domain:"+domain);domains.put("full:ssl.gstatic.com");
+   rules.put(new JSONObject().put("type","field").put("domain",domains).put("outboundTag","compatibility"));
+   for(int i=0;i<ins.length();i++)ins.getJSONObject(i).put("sniffing",new JSONObject().put("enabled",true).put("destOverride",new JSONArray().put("http").put("tls")));
+  }
+  return new JSONObject().put("dns",dns).put("routing",new JSONObject().put("domainStrategy","AsIs").put("rules",rules)).put("log",new JSONObject().put("loglevel","none"))
+   .put("inbounds",ins).put("outbounds",outbounds).put("stats",new JSONObject()).put("policy",new JSONObject().put("system",new JSONObject().put("statsOutboundUplink",true).put("statsOutboundDownlink",true))).toString();
  }
 }

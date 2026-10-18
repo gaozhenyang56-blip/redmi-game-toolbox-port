@@ -28,4 +28,15 @@ public class ProtocolTest {
   base.put("acceleration",new JSONObject().put("node",node("hysteria2")).put("label","accelerated").put("revision","b".repeat(64)));
   assertEquals("vmess",NodeConfig.protocol(new JSONObject(ProfileMonitor.parse(base,false).node)));assertEquals("hysteria2",NodeConfig.protocol(new JSONObject(ProfileMonitor.parse(base,true).node)));
  }
+ @Test public void hybridProfileTracksBothRevisionsAndRejectsRecursiveOrInsecureCompatibility()throws Exception{
+  JSONObject base=new JSONObject().put("node",node("vmess")).put("label","fixture").put("revision","a".repeat(64));
+  base.put("acceleration",new JSONObject().put("node",node("hysteria2")).put("label","accelerated").put("revision","b".repeat(64)));
+  ProfileMonitor.Profile first=ProfileMonitor.parse(base,true);JSONObject config=new JSONObject(NodeConfig.build(first.node));
+  assertEquals("compatibility",config.getJSONArray("outbounds").getJSONObject(2).getString("tag"));
+  assertEquals("dns-out",config.getJSONObject("routing").getJSONArray("rules").getJSONObject(0).getString("outboundTag"));
+  for(int j=0;j<config.getJSONArray("outbounds").length();j++)assertNotEquals("freedom",config.getJSONArray("outbounds").getJSONObject(j).getString("protocol"));
+  base.put("revision","c".repeat(64));assertNotEquals(first.revision,ProfileMonitor.parse(base,true).revision);
+  base.put("node",node("hysteria2"));assertThrows(Exception.class,()->ProfileMonitor.parse(base,true));
+  base.put("node",node("vmess").put("insecure",true));assertThrows(Exception.class,()->ProfileMonitor.parse(base,true));
+ }
 }

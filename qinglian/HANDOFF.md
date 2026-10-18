@@ -1,3 +1,13 @@
+# HY2服务兼容与可选应用预设（versionCode10，2026-10-18）
+
+当前1.1.1-preview/versionCode10，下一版至少11，沿用原签名。下方为历史记录，冲突以本节为准。
+
+- 用户确认ChatGPT App中的Codex Cloud及Google/GitHub头像在兼容通道全部恢复。公网同一运行器的双通道TCP检查中头像均200；ChatGPT匿名请求两边均403，不能推定已登录App的行为。真实本地HY2和V2Ray串联UDP64/1200/1350字节通过。未复现手机问题，根因尚未证实，不能宣称确定是HTTP/3或IP封禁。
+- App HY2配置增加由同一已认证profile返回的兼容outbound。Google头像、GitHub、ChatGPT/OpenAI及相关资源域名经兼容；内层UDP443亦经兼容；其他保持HY2。外层HY2 QUIC不受内层规则影响。使用V2Fly实际支持的HTTP/TLS sniffing获取IP连接中的域名，会将目标重写为嗅探域名；未使用不支持的routeOnly。域名嗅探不可用（例如ECH）时不能保证识别，用户仍可切整个兼容通道。
+- DNS规则优先，解析仍通过代理TCP DNS；无DIRECT出口。HY2配置revision合并兼容与加速两者revision，面板改变兼容节点也会提示重连。通知用量汇总proxy和compatibility两标签，服务器共用原配额逻辑不变。生产服务无需重启。
+- 分流页新增可选“常用代理应用预设”：点开才将精确已知包名且已安装启用的应用预选，合并之前白名单，可逐个增删；保存切白名单、取消不写。保留独立黑名单与规则/全局选择，全局仍忽略名单，规则重连生效。名单是人工常见应用预设，不能自动判断任意应用的网络需求，不按显示名称模糊匹配。
+- 新增真实核心混合路由测试：SOCKS连接原目标是IP，HTTP Host为头像/ChatGPT时经兼容成功；HY2端点故意不可用时普通Host失败，证明没有普遍兼容回退。手机TUN、登录后ChatGPT/Codex和头像恢复仍需安装重连复测。最终构建、原签名和发布检查见verification/ROUTING_CHECKS.md。
+
 # 多协议与统一面板（versionCode9，2026-10-18）
 
 当前1.1.0-preview/versionCode9，下一版至少10，必须保留原签名。用户明确授权App支持多协议、同一个现有x-ui面板统一管理，不建立第二套用户面板。

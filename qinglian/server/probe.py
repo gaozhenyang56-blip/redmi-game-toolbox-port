@@ -24,6 +24,7 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
   with opener.open(urllib.request.Request(url,headers={'Authorization':'Bearer '+settings['token']}),timeout=15) as response:profile=json.load(response)
   n=profile['acceleration']['node'] if os.environ.get('QINGLIAN_PROBE_CHANNEL')=='accelerated' else profile['node']
   if n.get('protocol')=='hysteria2':
+   n=dict(n);n['compatibility']=profile['node']
    path=root/'hysteria'
    with urllib.request.urlopen('https://github.com/apernet/hysteria/releases/download/app%2Fv2.13.0/hysteria-linux-amd64',timeout=90) as response:path.write_bytes(response.read())
    assert hashlib.sha256(path.read_bytes()).hexdigest()=='907ba8c9693edb104b20582681fb7dc15639d5b64a9cbb616a7b539190a86691';path.chmod(0o700)

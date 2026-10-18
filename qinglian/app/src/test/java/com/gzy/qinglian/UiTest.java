@@ -44,4 +44,21 @@ public class UiTest {
   assertEquals(java.util.Set.of("example.proxy"),global.selected);assertFalse(global.plan("self",name->true).allowList);
   assertTrue(global.withGlobal(false).save(context));assertTrue(AppRouting.load(context).plan("self",name->true).allowList);
  }
+ @Test public void optionalPresetRequiresSaveAndPreservesBlackListAndGlobalMode()throws Exception{
+  try(var ctrl=Robolectric.buildActivity(MainActivity.class).setup()){
+   MainActivity a=ctrl.get();a.getSharedPreferences(AppRouting.PREFS,0).edit().clear().commit();
+   new AppRouting(true,AppRouting.Mode.WHITELIST,java.util.Set.of("example.proxy")).save(a);
+   new AppRouting(true,AppRouting.Mode.BLACKLIST,java.util.Set.of("example.direct")).save(a);
+   a.findViewById(MainActivity.NAV_ROUTING).performClick();
+   find(a.getWindow().getDecorView(),"常用代理应用预设（可选）").performClick();
+   android.app.Dialog dialog=org.robolectric.shadows.ShadowDialog.getLatestDialog();
+   assertEquals(AppRouting.Mode.BLACKLIST,AppRouting.load(a).mode);find(dialog.getWindow().getDecorView(),"取消").performClick();
+   assertEquals(AppRouting.Mode.BLACKLIST,AppRouting.load(a).mode);
+   find(a.getWindow().getDecorView(),"常用代理应用预设（可选）").performClick();dialog=org.robolectric.shadows.ShadowDialog.getLatestDialog();
+   find(dialog.getWindow().getDecorView(),"保存").performClick();
+   assertEquals(AppRouting.Mode.WHITELIST,AppRouting.load(a).mode);assertTrue(AppRouting.load(a).global);
+   assertTrue(AppRouting.load(a).selected.contains("example.proxy"));
+   assertEquals(java.util.Set.of("example.direct"),AppRouting.forMode(a,true,AppRouting.Mode.BLACKLIST).selected);
+  }
+ }
 }

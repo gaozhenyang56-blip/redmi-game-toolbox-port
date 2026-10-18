@@ -97,3 +97,7 @@ profile响应额外有acceleration（不可用为null），非空时为同样的
 管理员GET/POST `/xui/qinglian/acceleration`：沿用原登录与同源检查。GET返回installed/enabled/running/boundInbound/port/protocol/error，不含私有令牌；POST为{enabled:布尔,boundInbound:原面板有权管理的兼容入站ID}。配额取该原入站，HY2字节事务累计到其up/down，每秒检查额度/到期/停用，记账故障关闭加速服务。管理器只监听loopback11453，统计API只监听loopback11454，两者有独立私有认证；公网只需UDP443。
 
 Hysteria2认证、管理、统计密钥仅在服务器hy2.json；App只获取建立加速连接必需的认证及公开CA。进程异常可能丢失最后未采样窗口，额度停止可有约一秒及缓冲的超量，不宣称严格计费。设备在线API仍按App心跳，不把Hysteria连接数冒充设备数。
+
+## v10客户端兼容策略（API无变更）
+
+加速选中时App把响应顶层node复制为HY2节点的compatibility字段，仅客户端内部使用，API不接收用户配置。转换时再次严格验证兼容节点（不允许HY2递归或insecure），合并两者revision摘要。头像/GitHub/ChatGPT/OpenAI资源域名及内层UDP443经该兼容outbound，其余HY2；DNS优先规则保留，无DIRECT。通知汇总两个outbound，后端仍以原入站合并计量，不需部署新服务器版本。

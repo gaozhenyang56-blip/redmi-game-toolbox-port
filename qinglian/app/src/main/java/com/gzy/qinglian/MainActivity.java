@@ -137,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
  private void transportModes(){
   LinearLayout card=card(com.google.android.material.R.attr.colorSurfaceContainer);card.addView(text("传输通道",18,true));space(card,10);
   GlassSegments group=new GlassSegments(this,new String[]{"兼容","加速"},null,null,false);group.setSelected(ProfileMonitor.accelerated(this)?1:0,false);card.addView(group,new LinearLayout.LayoutParams(-1,dp(52)));
-  space(card,8);card.addView(note("兼容：面板指定的 VMess / VLESS / Trojan / Shadowsocks。加速：Hysteria2，需面板启用，Android 10+。修改后重连生效。"));
+  space(card,8);card.addView(note("兼容：面板指定的 VMess / VLESS / Trojan / Shadowsocks。加速：Hysteria2，需面板启用，Android 10+。头像、ChatGPT/Codex与HTTP/3使用兼容节点，其余使用加速通道。修改后重连生效。"));
   if(TunnelService.state.equals("connected"))card.addView(note("当前协议："+TunnelService.activeProtocol));
   group.setListener(index->{if(index==1&&android.os.Build.VERSION.SDK_INT<29){toast("加速通道需要Android 10或更高版本");group.setSelected(0,true);return;}
    if(!getSharedPreferences("transport",0).edit().putBoolean("accelerated",index==1).commit()){toast("保存失败，请重试");group.setSelected(ProfileMonitor.accelerated(this)?1:0,true);return;}
@@ -154,6 +154,9 @@ public class MainActivity extends AppCompatActivity {
   LinearLayout apps=card(com.google.android.material.R.attr.colorSurfaceContainer);TextView appCount=text("",19,true);apps.addView(appCount);space(apps,10);
   apps.addView(note("可选择有启动图标的应用。已保存但卸载的应用会保留标记，可在列表中取消。轻连自身保持直连。"));space(apps,12);
   MaterialButton select=button("选择应用");apps.addView(select);select.setOnClickListener(v->chooseApps(AppRouting.load(this)));
+  MaterialButton preset=button("常用代理应用预设（可选）");apps.addView(preset);
+  apps.addView(note("预选已安装的 ChatGPT、Google、YouTube、GitHub、Telegram 等应用，可增删。保存后使用白名单；规则模式、重连后生效。"));
+  preset.setOnClickListener(v->{AppRouting current=AppRouting.load(this);chooseApps(AppRouting.forMode(this,current.global,AppRouting.Mode.WHITELIST),true);});
   TextView warning=note("规则模式使用白名单时，请至少选择一个应用。");apps.addView(warning);
   Runnable update=()->{AppRouting latest=AppRouting.load(this);boolean white=latest.mode==AppRouting.Mode.WHITELIST;
    modeTitle.setText(white?"白名单模式":"黑名单模式");modeDescription.setText(white?"名单内的应用走 VPN，其余应用直连。":"名单内的应用直连，其余应用走 VPN。");
@@ -164,8 +167,10 @@ public class MainActivity extends AppCompatActivity {
   });
   body.addView(note(TunnelService.state.equals("connected")?"当前连接："+TunnelService.routingStatus+"。修改后需断开并重新连接。":"分流使用 Android 系统 VPN 规则，不需要额外权限。"));
  }
- private void chooseApps(AppRouting saved){
+ private void chooseApps(AppRouting saved){chooseApps(saved,false);}
+ private void chooseApps(AppRouting saved,boolean preset){
   List<AppRouting.App> all=AppRouting.apps(this,saved.selected),visible=new ArrayList<>();Set<String> selected=new HashSet<>(saved.selected);
+  if(preset)selected.addAll(AppRouting.presetPackages(all,name->{try{return getPackageManager().getApplicationInfo(name,0).enabled;}catch(android.content.pm.PackageManager.NameNotFoundException missing){return false;}}));
   LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(20),0,dp(20),0);
   EditText search=new EditText(this);search.setSingleLine(true);search.setHint("搜索应用名称或包名");search.setContentDescription("搜索应用");content.addView(search);
   TextView count=note("");content.addView(count);
@@ -179,14 +184,14 @@ public class MainActivity extends AppCompatActivity {
   };
   list.setOnItemClickListener((parent,view,position,id)->{String name=visible.get(position).packageName;if(list.isItemChecked(position))selected.add(name);else selected.remove(name);count.setText("已选择 "+selected.size()+" 个 · 匹配 "+visible.size()+" 个应用");});
   search.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){filter.run();}public void afterTextChanged(android.text.Editable s){}});filter.run();
-  androidx.appcompat.app.AlertDialog dialog=new MaterialAlertDialogBuilder(this).setTitle("选择分流应用").setView(content).setPositiveButton("保存",null).setNegativeButton("取消",null).create();
+  androidx.appcompat.app.AlertDialog dialog=new MaterialAlertDialogBuilder(this).setTitle(preset?"常用代理预设 · 白名单":"选择分流应用").setView(content).setPositiveButton("保存",null).setNegativeButton("取消",null).create();
   dialog.setOnShowListener(ignored->dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setOnClickListener(v->{
    if(saved.mode==AppRouting.Mode.WHITELIST&&selected.isEmpty()){toast("请至少选择一个应用");return;}
    if(new AppRouting(saved.global,saved.mode,selected).save(this)){dialog.dismiss();build();toast("已保存，下次连接生效");}else toast("保存失败，请重试");
   }));dialog.show();
  }
  private void about(){
-  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.0.6 · Preview\nARM64 · Android 8.0 及以上"));
+  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.1.1 · Preview\nARM64 · Android 8.0 及以上"));
   LinearLayout d=card(com.google.android.material.R.attr.colorSurfaceContainer);d.addView(text("连接与隐私",19,true));space(d,12);d.addView(note("使用 V2Ray / v2fly 与 Hysteria2 核心。\n连接时会请求 Android 系统 VPN 授权；关闭界面后仍可后台运行。\n通知栏显示本次上传、下载流量与实时速度，可直接断开。\n连接时每 10 秒向服务端上报随机安装标识、设备型号、系统与应用版本、本次速度和用量，供原面板显示在线设备。服务端可见来源 IP；断开后停止，30 秒无心跳即离线。不会读取 IMEI、通讯录、文件或浏览内容。\n不接入广告与统计 SDK。节点由面板统一指定并自动同步，App 不提供手动添加、编辑或导出入口。\n测速请求会访问 Google 204 测试地址与 Cloudflare 下载站点。"));
   LinearLayout l=card(com.google.android.material.R.attr.colorSurfaceContainer);l.addView(text("开源许可",19,true));space(l,10);l.addView(note("本应用按 GPL-3.0 提供源码。\nV2Ray / v2fly：MIT\nHysteria2：MIT\nAndroidLibV2rayLite：LGPL-3.0\nBadVPN tun2socks / v2rayNG：见随附第三方许可。"));
   LinearLayout updates=card(com.google.android.material.R.attr.colorSurfaceContainer);updates.addView(text("面板更新",19,true));space(updates,8);updateDetail=note(UpdateMonitor.status);updates.addView(updateDetail);

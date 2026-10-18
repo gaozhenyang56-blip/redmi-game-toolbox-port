@@ -35,6 +35,7 @@ public class TunnelService extends VpnService {
  private final RecoveryBudget recoveryBudget=new RecoveryBudget();
  private String runningConfig,runningNode;
  private Hy2Client hy2;
+ private boolean serviceCompatibility;
  public static volatile String activeProtocol="VMess";
  private volatile Network underlying;
  private volatile long connectionEpoch;
@@ -72,7 +73,7 @@ public class TunnelService extends VpnService {
    Libv2ray.initCoreEnv(getFilesDir().getAbsolutePath(),"");
    ProfileMonitor.Profile profile=ProfileMonitor.forConnection(this);String node=profile.node;activeProfileRevision=profile.revision;activeProfileLabel=profile.label;
    String config=NodeConfig.build(node);
-   runningConfig=config;runningNode=node;activeProtocol=NodeConfig.protocol(new org.json.JSONObject(node)).toUpperCase(java.util.Locale.ROOT);startCore();
+   runningConfig=config;runningNode=node;serviceCompatibility=new org.json.JSONObject(node).has("compatibility");activeProtocol=NodeConfig.protocol(new org.json.JSONObject(node)).toUpperCase(java.util.Locale.ROOT);startCore();
    if(cancelled){cleanup();return;}
    trackNetwork();
    Builder b=new Builder().setSession("轻连 · 专属节点").setMtu(1500)
@@ -100,6 +101,7 @@ public class TunnelService extends VpnService {
       if(core==null)return;
       if(!core.getIsRunning()||(hy2!=null&&!hy2.alive())||relay==null||!relay.isAlive()){requestRecovery();return;}
       long up=Math.max(0,core.queryStats("proxy","uplink")),down=Math.max(0,core.queryStats("proxy","downlink"));
+      if(serviceCompatibility){up+=Math.max(0,core.queryStats("compatibility","uplink"));down+=Math.max(0,core.queryStats("compatibility","downlink"));}
       uploadBytes+=up;downloadBytes+=down;uploadRate=up*1000.0/dt;downloadRate=down*1000.0/dt;
      }
      if(reporter!=null)reportingStatus=reporter.status;ProfileMonitor.refresh(this,false);

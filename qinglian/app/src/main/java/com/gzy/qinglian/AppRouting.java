@@ -47,6 +47,20 @@ final class AppRouting {
   for(String name:plan.packages){if(plan.allowList)builder.addAllowedApplication(name);else builder.addDisallowedApplication(name);}
  }
  String title(){return global?"全局模式":"规则模式 · "+(mode==Mode.WHITELIST?"白名单":"黑名单");}
+ // Exact package IDs only: never infer proxy requirements from an application's label.
+ static final Set<String> PROXY_PRESET=Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+  "com.openai.chatgpt","com.anthropic.claude","com.google.android.apps.bard",
+  "com.google.android.youtube","com.google.android.apps.youtube.music","com.google.android.gm",
+  "com.google.android.apps.maps","com.google.android.apps.photos","com.android.vending",
+  "com.google.android.apps.docs","com.google.android.apps.translate","com.google.android.apps.chromecast.app",
+  "com.github.android","org.telegram.messenger","org.thunderdog.challegram",
+  "com.twitter.android","com.instagram.android","com.facebook.katana","com.facebook.orca",
+  "com.whatsapp","com.discord","com.reddit.frontpage","com.spotify.music","com.netflix.mediaclient",
+  "com.pinterest","com.tumblr","com.medium.reader","org.wikipedia"
+ )));
+ static Set<String> presetPackages(Collection<App> apps,java.util.function.Predicate<String> enabled){
+  Set<String> result=new TreeSet<>();for(App app:apps)if(PROXY_PRESET.contains(app.packageName)&&enabled.test(app.packageName))result.add(app.packageName);return result;
+ }
  static final class App {
   final String packageName,label;
   App(String packageName,String label){this.packageName=packageName;this.label=label;}

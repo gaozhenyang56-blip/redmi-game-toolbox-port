@@ -23,9 +23,11 @@ final class ProfileMonitor {
  static boolean accelerated(Context context){return context.getSharedPreferences("transport",0).getBoolean("accelerated",false);}
  static Profile parse(JSONObject json)throws Exception{return parse(json,false);}
  static Profile parse(JSONObject json,boolean accelerated)throws Exception{
+  JSONObject primary=json.getJSONObject("node");String primaryRevision=json.getString("revision");
   if(accelerated){if(!json.has("acceleration")||json.isNull("acceleration"))throw new IOException("面板未启用加速通道");json=json.getJSONObject("acceleration");}
-  JSONObject node=json.getJSONObject("node");NodeConfig.build(node.toString());
+  JSONObject node=new JSONObject(json.getJSONObject("node").toString());if(accelerated)node.put("compatibility",primary);NodeConfig.build(node.toString());
   String revision=json.getString("revision");if(!revision.matches("[0-9a-f]{64}"))throw new IOException("无效的面板配置版本");
+  if(accelerated){if(!primaryRevision.matches("[0-9a-f]{64}"))throw new IOException("无效的兼容节点版本");revision=ApiEndpoint.hex(java.security.MessageDigest.getInstance("SHA-256").digest((revision+":"+primaryRevision).getBytes(java.nio.charset.StandardCharsets.US_ASCII)));}
   String label=json.getString("label").replaceAll("\\p{Cntrl}"," ");if(label.length()>128)label=label.substring(0,128);
   if(label.trim().isEmpty())label="专属节点";
   return new Profile(node.toString(),label,revision);

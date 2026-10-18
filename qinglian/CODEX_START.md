@@ -1,6 +1,6 @@
 先读 AGENTS.md、HANDOFF.md 与 verification/ROUTING_CHECKS.md。仅继续本分支 qinglian/，不改原Redmi项目。
 
-当前版本1.1.0-preview/versionCode9，下一版至少10，必须沿用原签名。标准Material3、亮色默认/亮色图标、深浅色与系统切换、应用黑白名单、规则/全局、面板指定节点及真实流量/在线API均已完成。
+当前版本1.1.1-preview/versionCode10，下一版至少11，必须沿用原签名。标准Material3、亮色默认/亮色图标、深浅色与系统切换、应用黑白名单、规则/全局、面板指定节点及真实流量/在线API均已完成。
 
 GitHub Actions已通过SSH连接、完成加密一致性备份并部署现有x-ui0.3.2扩展。不要重跑首次部署脚本覆盖生产，它会拒绝已有配置；后续维护先备份并设计升级/回滚。原面板“轻连 App”页管理设备与App节点；App API专用11452HTTPS，私有CA限API使用，不绕过主机名验证。
 
@@ -15,3 +15,5 @@ GitHub Actions已通过SSH连接、完成加密一致性备份并部署现有x-u
 最新v7修复底部导航图文共同居中，默认间距2dp。面板已部署“App 热修复与版本发布”；界面白名单参数支持前台30秒刷新与回滚；完整APK更新必须校验原签名并由系统确认安装。先装v7一次，后续才能使用此通道。维护用qinglian-server-upgrade.yml（先加密备份、失败回滚），不要重跑首次部署。
 
 v8修复恢复默认/失败回退后更新误报，已拒绝界面配置不影响APK更新检查。见HANDOFF首节。
+
+v10包含可选常用代理应用白名单预设；HY2模式自动将头像、ChatGPT/Codex域名和内层UDP443经面板兼容节点，其余仍HY2，无DIRECT。详见HANDOFF首节；未复现手机故障根因，需用户重连后在ChatGPT App复测。
