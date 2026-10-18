@@ -1,6 +1,6 @@
 # 轻连 — 统一面板管理 Android VPN，Codex 交接工程
 
-**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.1.5-preview`，versionCode `14`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
+**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.1.6-preview`，versionCode `15`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
 
 已完成标准 Material 3、默认亮色和亮色自适应图标；支持浅色/深色/跟随系统切换。包含延迟/下载测速、每秒通知栏速度与本次用量、可选Surfboard风格黑白名单及规则/全局模式。关闭应用分流后规则模式自动绕过大陆/私网。账号为独立页面，免登录每次手动连接64GiB，自动恢复不重置；面板分六页管理。
 
@@ -71,3 +71,5 @@ python3 scripts/verify_release_signature.py app/build/outputs/apk/release/app-re
 固定上游Hysteria2 app/v2.13.0，摘要见scripts/prepare_dependencies.py；MIT许可证随App资产分发。
 
 关于页含速度实验室：可选HY2激进性能（仅本设备独立节点）、四路并行测速和原始速度曲线，默认全关。线路与物理带宽仍限制吞吐，不保证更快。
+
+测速默认选择服务器链路（通过当前VPN、原CA和设备会话）；也可选择Cloudflare外网源。四路显示合计，所选MB为总量。服务器源不包含第三方网站上游链路，不能等同所有互联网下载速度。

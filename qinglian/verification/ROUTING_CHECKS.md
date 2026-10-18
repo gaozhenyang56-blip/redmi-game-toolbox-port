@@ -1,3 +1,12 @@
+# v15 大容量测速验证（2026-10-18，已发布）
+
+- 1.1.6-preview/versionCode15，原签名；Android构建/86项测试/lint通过（0错误/39警告）。新回归验证第一方4路精确总量、502后可重测、800MB超时提示不误报VPN断开，以及阻塞式disconnect不会阻塞UI停止；既有TLS/取消/代际/代理失败不直连仍覆盖。
+- Go race通过。新接口验证TLS设备认证、直接外部peer/伪造X-Forwarded-For拒绝、精确非32KiB整倍数长度、1..32MiB边界、4路上限429及取消后并发槽释放。固定32KiB流式缓冲，不分配请求总量；HTTP压缩禁用但实际TLS/VPN密文照常传输计量。
+- 只读诊断[39168800092](https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39168800092)：NRestarts0，MemoryPeak151588864，memory.events max/oom/oom_kill全0，原父配额未耗尽。小容量真实公网五协议[39168862614](https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39168862614)通过。用户澄清仅测速失败，GitHub约25MB/s；未定位手机Cloudflare失败码，不能把推测限流或OOM当根因。
+- 面板升级[39169479228](https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39169479228)先加密备份再构建/Go race/安装及回滚检查。无需更改/重启账号HY2引擎参数；v14 aggressive和32/64MiB窗口保持。
+- 公网[39169753935](https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39169753935)用原生客户端、真实App NodeConfig和原CA：五协议均测试Cloudflare及第一方512KiB，HY2实验四路每轮4×32MiB共8轮=1GiB，同一个原生HY2客户端/QUIC连接中立刻新请求成功（不重启、不冷却），账号实际计量至少增加1GiB。凭据只通过curl stdin而非命令行传入；不将1GiB响应装入内存，只核验实际HTTP状态与size_download。访客源也通过，原合计64GiB、无域名记录、设备隔离/恢复保守均保留。随机测试行清理，原父配额保留实际测试流量。
+- APK 28,347,610字节，SHA256 `22c84395bcb9e2aa3698e934fb0adcf866aa0c9f6193c6d8d5e884273137af09`，原证书SHA256 `2e90d97183fbe26c05a8bd67454b0a5d0f5c01633609a335fdff693a4774a870`。面板revision23；线上[39169962893](https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39169962893)验证实际HTTPS下载、大小/哈希、原签名及包名/版本。无实体手机原故障重现/安装覆盖；服务器源与外网源范围不同，不能把运行器1GiB成功等同已证明手机故障根因。
+
 # v14 速度实验室验证（2026-10-18，已发布）
 
 - 最终1.1.5-preview/versionCode14，83项Android测试0失败；assembleRelease/testReleaseUnitTest/lintRelease通过。实验默认关闭、仅加速请求、独立Activity、连接中不可改变HY2设置、原签名和TLS验证保留。首次lint发现两个方向常量用裸数字，改为LinearLayout.VERTICAL；未抑制lint错误。

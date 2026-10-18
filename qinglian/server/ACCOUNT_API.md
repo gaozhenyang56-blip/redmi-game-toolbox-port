@@ -1,4 +1,4 @@
-# 账号、主连接、访客与节点导出（v14）
+# 账号、主连接、访客与节点导出（v15）
 
 App 从连接页“账号 / 节点导出”进入独立账号页面注册或登录，自定义用户名（3..32字符，不含空白）和密码（8..72 UTF-8字节）。密码仅存 bcrypt cost12 摘要；设备会话凭据随机生成，服务器只存 SHA256 摘要，90天有效。同一账号支持多设备登录，额度与用量合并；同一设备仅可注册一个账号。Android ID 经应用范围 SHA256 后用于绑定，不是认证凭据，也不是不可伪造的硬件证明。恢复出厂设置等可能改变该标识。
 
@@ -66,3 +66,11 @@ POST `/api/v1/exports/logout` 撤销当前设备会话；其他设备会话不�
 账号监督引擎只对kind=main/guest且服务器保存标记匹配的HY2开启BBR aggressive、ignoreClientBandwidth=true和8/32MiB流窗口、16/64MiB连接窗口。原共享HY2、普通节点、独立导出节点不改；未修改系统级sysctl或全部用户带宽。现有每账号8条/全局16条及768MiB限制仍在，资源满返回不可用，不挤占/删除已有节点来创建实验节点。物理资源与带宽仍共享，不能承诺完全无相互竞争。
 
 同设备labHy2=false请求恢复普通HY2并将自己的旧实验租约过期；其他设备节点不受此更新影响。自动恢复/15秒续租复用原实验key，180秒失联停止。实验流量仍计入账号及原父配额；访客实验与普通访客行合并64GiB，不重置预算且不记录域名。没有因开实验解除到期/总量、TLS校验、管理端口loopback或私网出站限制。
+
+## 服务器链路测速（v15）
+
+GET `/api/v1/exports/speed?bytes=N` 使用原账号设备会话，GET `/api/v1/guest/speed?bytes=N` 使用当前访客会话；均要求HTTPS及X-Qinglian-Device。只允许真实r.RemoteAddr为loopback或配置serverAddress（当前为固定公网IP）的请求，直接手机来源403，忽略X-Forwarded-For。App必须显式经当前核心HTTP代理，TLS保留原专用CA/主机名验证。由现有VPN节点计量，接口本身不另加重复计数；原父配额、账号统计和64GiB访客合计仍执行。
+
+每请求1..33554432字节，200 application/octet-stream、精确Content-Length、X-Qinglian-Speed: server-v1、Cache-Control:no-store、Content-Encoding:identity。固定32KiB缓冲重复写出，TLS/VPN密文实际传输，无HTTP压缩；不是把整个N字节存入内存。取消即停止，最多4路/账号、8路/服务，超出429 Retry-After:2。无有效令牌401、非法长度400、未从VPN服务器来源403。App大小1..2048MiB通过多段请求完成。
+
+此源测手机到服务器VPN链路，排除服务器到Cloudflare的外部下载瓶颈；Cloudflare仍作为可选外网源。两者不能无标注混合或自动回退至直连。接口不新建节点、不放宽配额、不修改v14激进参数。
