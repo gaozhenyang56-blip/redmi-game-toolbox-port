@@ -31,6 +31,16 @@ public class FrostedBarTest {
    root.removeView(bar);source.getViewTreeObserver().dispatchOnPreDraw();assertNull(((ImageView)bar.getChildAt(0)).getDrawable());
   }
  }
+ @Test public void foregroundPumpSamplesChangesWithoutInvalidationAndStopsWhenPaused(){
+  try(var ctrl=Robolectric.buildActivity(Activity.class).setup()){
+   Activity a=ctrl.get();FrameLayout root=new FrameLayout(a);a.setContentView(root);int[] color={Color.RED},draws={0};
+   View source=new View(a){@Override protected void onDraw(Canvas c){draws[0]++;c.drawColor(color[0]);}};root.addView(source,new FrameLayout.LayoutParams(-1,-1));
+   FrostedBar bar=new FrostedBar(a,Color.WHITE,false);bar.setSource(source);root.addView(bar,new FrameLayout.LayoutParams(-1,80,Gravity.CENTER));root.measure(View.MeasureSpec.makeMeasureSpec(400,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(800,View.MeasureSpec.EXACTLY));root.layout(0,0,400,800);bar.setActive(true);
+   Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(150));color[0]=Color.BLUE;
+   Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(150));Bitmap b=image(bar);assertEquals(Color.BLUE,b.getPixel(b.getWidth()/2,b.getHeight()/2));
+   bar.setActive(false);int stopped=draws[0];Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(150));assertEquals(stopped,draws[0]);assertNull(((ImageView)bar.getChildAt(0)).getDrawable());
+  }
+ }
  @Test @Config(sdk=30) public void olderAndroidReallyBlursAnEdgeInsteadOfOnlyTinting(){
   try(var ctrl=Robolectric.buildActivity(Activity.class).setup()){
    Activity a=ctrl.get();FrameLayout root=new FrameLayout(a);a.setContentView(root);

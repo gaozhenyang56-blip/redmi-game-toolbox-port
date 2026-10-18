@@ -42,22 +42,32 @@ public final class SpeedTester {
    Arrays.sort(values);if(!cancelled(run))l.done(values[1]+" ms");
   }catch(Exception e){if(!cancelled(run))l.failed("延迟测试失败，请检查节点与网络");}finally{if(generation.get()==run)active=null;}});
  }
- public synchronized void download(Listener l){
+ public void download(Listener l){download(l,32);}
+ public synchronized void download(Listener l,int sizeMiB){
+  if(sizeMiB<1||sizeMiB>2048)throw new IllegalArgumentException("测速大小须为1..2048 MB");
+  final long requested=sizeMiB*1048576L;
   if(running())return;final int run=generation.incrementAndGet();
   job=executor.submit(()->{long total=0;long start=0;
    try{
-    HttpURLConnection c=open(downloadUrl+(downloadUrl.contains("?")?"&":"?")+"nonce="+System.nanoTime(),run);
-    try{if(c.getResponseCode()!=200)throw new IOException();String type=c.getContentType();if(type!=null&&(type.contains("text/html")||type.contains("application/json")))throw new IOException();
-     try(InputStream in=c.getInputStream()){
-      byte[] buffer=new byte[32768];start=System.nanoTime();long tick=start,segment=0;
-      while(!cancelled(run)&&total<33554432L&&(System.nanoTime()-start)<12000000000L){
-       int n=in.read(buffer);if(n<0)break;total+=n;segment+=n;long now=System.nanoTime();
-       if(now-tick>=250000000L){l.update(segment*8000.0/(now-tick),total,Math.min(1,(now-start)/12000000000.0));tick=now;segment=0;}
+    byte[] buffer=new byte[32768];long tick=0,segment=0;
+    while(!cancelled(run)&&total<requested&&(start==0||System.nanoTime()-start<180000000000L)){
+     long chunk=Math.min(33554432L,requested-total),end=total+chunk,before=total;
+     String target=downloadUrl.replaceAll("([?&])bytes=[0-9]+", "$1bytes="+chunk);
+     HttpURLConnection c=open(target+(target.contains("?")?"&":"?")+"nonce="+System.nanoTime(),run);
+     try{if(c.getResponseCode()!=200)throw new IOException();String type=c.getContentType();if(type!=null&&(type.contains("text/html")||type.contains("application/json")))throw new IOException();
+      try(InputStream in=c.getInputStream()){
+       if(start==0){start=System.nanoTime();tick=start;}
+       while(!cancelled(run)&&total<end&&System.nanoTime()-start<180000000000L){
+        int n=in.read(buffer,0,(int)Math.min(buffer.length,end-total));if(n<0)break;total+=n;segment+=n;long now=System.nanoTime();
+        if(now-tick>=250000000L){l.update(segment*8000.0/(now-tick),total,Math.min(1,total/(double)requested));tick=now;segment=0;}
+       }
       }
-     }
-    }finally{c.disconnect();}
+     }finally{c.disconnect();}
+     if(total-before<chunk)break;
+    }
     if(total==0)throw new IOException();
-    if(!cancelled(run))l.done(String.format(Locale.CHINA,"平均 %.2f Mbps · %.1f MB",mbps(total,System.nanoTime()-start),total/1048576.0));
+    if(!cancelled(run))l.update(mbps(total,System.nanoTime()-start),total,total/(double)requested);
+    if(!cancelled(run))l.done(String.format(Locale.CHINA,"平均 %.2f Mbps · %.1f MB%s",mbps(total,System.nanoTime()-start),total/1048576.0,total<requested?"（未完成所选大小）":""));
    }catch(Exception e){if(!cancelled(run))l.failed("下载测试失败，请检查节点或稍后重试");}finally{if(generation.get()==run)active=null;}
   });
  }

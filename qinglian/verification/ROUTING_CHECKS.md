@@ -1,3 +1,11 @@
+# 实时毛玻璃与切页动画（versionCode11）
+
+- 1.1.2-preview/versionCode11，原签名，assembleRelease/testReleaseUnitTest/lintRelease通过。66项Android测试0失败；lint0错误/23警告。初次lint要求显式SDK31保护GPU调用，补上版本判断后完整重跑通过，无忽略/抑制错误。
+- FrostedBar为pre-draw实时小条带取样；不滚动，仅改变源内容颜色即可更新背景图。相同帧连续取样复用同一显示位图，避免invalidate自循环；后台、隐藏、恢复及detach通过。只取ScrollView，两个缩小1/8位图与CPU数组复用，没有新定时器或屏幕录制。
+- Android12+使用28dp GPU模糊，四周36dp采样余量及更薄遮色；API26..30小图三遍水平/垂直盒式模糊。API30真实黑白边缘产生渐变像素，证明低版本不止透明。文字/图标独立绘制，玻璃选中块减小遮色。软件/Robolectric图像不能代替手机GPU最终观感和帧率验证。
+- 内容区切页淡出/淡入各100ms，并行6dp/220ms微移，导航固定；快速连点以最后页面为准，旧动画先结束/取消。pause和普通重建清理，系统禁用动画时跳过。快速切页/导航位置/生命周期复测通过，既有分流、HY2兼容、配置、更新与签名回归仍通过；无VPN核心/服务器协议变更。
+- APK27,593,556字节；SHA256 b9a96a95b958d15c2dc583e5bedc89424460eabc66597b8e29f18585e4c9af7a。原证书、ZIP、固定HY2二进制摘要、无服务器密码/私钥检查通过。已发布原面板revision11，原UI配置保持，导航间距仍2dp。生产VPN服务无重启/改配。
+
 # HY2兼容分流与可选应用预设（versionCode10）
 
 - 1.1.1-preview/versionCode10，原签名；assembleRelease、testReleaseUnitTest、lintRelease完成。64项Android测试0失败，lint0错误/23警告。新增预设精确包名/安装启用筛选、取消不保存、保存切白名单且保留黑名单/全局，以及双revision更新和递归/insecure拒绝测试。预设UI测试需等待弹窗onShow；未降低断言。全量曾出现本地TLS fixture EOF，独立3项及最终全量64项复测通过，保留fixture异常诊断，未放宽生产证书检查或超时。

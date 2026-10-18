@@ -1,0 +1,134 @@
+package controller
+
+import (
+	"database/sql"
+	"encoding/json"
+	"github.com/gin-gonic/gin"
+	"net"
+	"strconv"
+	"time"
+)
+
+// Each account owns separate credentials; devices of that account share them.
+// Main traffic consumes the panel-selected parent quota, never export allocation.
+func (a *QinglianController) accountProfile(c *gin.Context) {
+	parent, err := a.target()
+	if err != nil {
+		c.Status(503)
+		return
+	}
+	if !parent.Enable || parent.Total > 0 && parent.Up+parent.Down >= parent.Total || parent.ExpiryTime > 0 && parent.ExpiryTime <= time.Now().UnixMilli() {
+		c.Status(503)
+		return
+	}
+	selected, err := a.node(parent)
+	if err != nil {
+		c.Status(503)
+		return
+	}
+	protocol, _ := selected["protocol"].(string)
+	if protocol == "" {
+		protocol = "vmess"
+	}
+	user := c.GetString("exportUser")
+	now := time.Now().Unix()
+	a.store.mu.Lock()
+	defer a.store.mu.Unlock()
+	makeNode := func(p string) (map[string]interface{}, bool, error) {
+		request := "main:" + strconv.Itoa(parent.Id) + ":" + p
+		var id, status string
+		var data []byte
+		var previousExpiry int64
+		e := a.store.db.QueryRow(`SELECT id,status,data,expires FROM exports WHERE user_id=? AND request_id=?`, user, request).Scan(&id, &status, &data, &previousExpiry)
+		if e == sql.ErrNoRows {
+			var active, own int
+			if e = a.store.db.QueryRow(`SELECT COUNT(*),COALESCE(SUM(CASE WHEN user_id=? THEN 1 ELSE 0 END),0) FROM exports WHERE expires>? AND status IN ('pending','active','error')`, user, now).Scan(&active, &own); e != nil {
+				return nil, false, e
+			}
+			if active >= 16 || own >= 8 {
+				return nil, false, qUnavailable
+			}
+			id = qRandom(16)
+			port := 0
+			for i := 0; i < 100; i++ {
+				candidate := 22000 + int(time.Now().UnixNano()%2000)
+				var occupied int
+				if e = a.store.db.QueryRow(`SELECT COUNT(*) FROM exports WHERE port=?`, candidate).Scan(&occupied); e != nil {
+					return nil, false, e
+				}
+				if occupied > 0 {
+					continue
+				}
+				if p == "hysteria2" {
+					socket, e := net.ListenPacket("udp", ":"+strconv.Itoa(candidate))
+					if e != nil {
+						continue
+					}
+					socket.Close()
+				} else {
+					socket, e := net.Listen("tcp", ":"+strconv.Itoa(candidate))
+					if e != nil {
+						continue
+					}
+					socket.Close()
+				}
+				port = candidate
+				break
+			}
+			if port == 0 {
+				return nil, false, qUnavailable
+			}
+			profile, e := a.exportProfile(p, port, id, "轻连账号 · "+p)
+			if e != nil {
+				return nil, false, e
+			}
+			data, e = json.Marshal(profile)
+			if e != nil {
+				return nil, false, e
+			}
+			_, e = a.store.db.Exec(`INSERT INTO exports(id,user_id,request_id,protocol,port,total,created,expires,status,data,kind,parent_id) VALUES(?,?,?,?,?,?,?,?,?,?,'main',?)`, id, user, request, p, port, int64(1<<62), now, now+180, "pending", data, parent.Id)
+			if e != nil {
+				return nil, false, e
+			}
+			status = "pending"
+		} else if e != nil {
+			return nil, false, e
+		} else if status == "revoked" {
+			return nil, false, qUnavailable
+		}
+		nextStatus := status
+		if status == "expired" || status == "exhausted" {
+			nextStatus = "pending"
+		}
+		if _, e = a.store.db.Exec(`UPDATE exports SET expires=?,status=? WHERE id=?`, now+180, nextStatus, id); e != nil {
+			return nil, false, e
+		}
+		var profile map[string]interface{}
+		if e = json.Unmarshal(data, &profile); e != nil {
+			return nil, false, e
+		}
+		return map[string]interface{}{"node": profile["node"], "revision": qHash(string(data)), "label": "账号独立 · " + p}, status == "active" && previousExpiry > now, nil
+	}
+	primary, ready, err := makeNode(protocol)
+	if err != nil {
+		c.Status(503)
+		return
+	}
+	// Acceleration remains controlled by the existing panel switch and parent selection.
+	if a.acceleration(parent.Id) != nil {
+		hy, hyReady, e := makeNode("hysteria2")
+		if e != nil {
+			c.Status(503)
+			return
+		}
+		primary["acceleration"] = hy
+		ready = ready && hyReady
+	}
+	// Switching the selected parent stops the old main workers after final accounting.
+	if _, err = a.store.db.Exec(`UPDATE exports SET status='expired',expires=? WHERE user_id=? AND kind='main' AND parent_id!=? AND status!='revoked'`, now, user, parent.Id); err != nil {
+		c.Status(503)
+		return
+	}
+	primary["ready"] = ready
+	c.JSON(200, primary)
+}

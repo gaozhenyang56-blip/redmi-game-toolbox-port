@@ -9,7 +9,7 @@
    <p>从现有 x-ui 节点中指定 App 使用的唯一节点。修改节点参数后 App 会自动同步，已连接设备重连后使用新配置。</p>
    <a-alert v-if="selectionError" type="error" :message="selectionError" show-icon style="margin-bottom:12px"></a-alert>
    <a-select v-model="selectedId" style="width:360px;max-width:100%;margin-right:12px" placeholder="选择 App 节点">
-    <a-select-option v-for="node in nodes" :key="node.id" :value="node.id" :disabled="!node.available">[[ node.name ]] · [[ node.protocol ]] · [[ node.port ]] [[ node.available?'':'（不支持或已停用）' ]]</a-select-option>
+    <a-select-option v-for="node in nodes" :key="node.id" :value="node.id" :disabled="!node.available">[[ node.name ]] · [[ node.protocol ]] · [[ node.kind==='main'?'App主连接':'导出' ]] · [[ node.port ]] [[ node.available?'':'（不支持或已停用）' ]]</a-select-option>
    </a-select>
    <a-button type="primary" :disabled="!selectedId" :loading="saving" @click="saveSelection">保存 App 节点</a-button>
    <p style="margin-top:12px">支持单客户端 VMess / VLESS / Trojan 和单密码 Shadowsocks，TCP / WebSocket，可验证的 TLS；暂不支持 Reality、XTLS 和 SS2022。非 VMess 节点需要 App v9+。配额跟随所选节点，保存不改动入站或清零流量。</p>
@@ -48,6 +48,24 @@
    </div>
    <a-button type="primary" :loading="updateBusy" :disabled="!apkFile||!apkVersion||!apkName" @click="uploadAPK">上传并发布 APK</a-button>
   </a-card>
+  <a-card title="用户 API · 每周独立节点额度" style="margin-bottom:16px">
+   <p>全部账号累计用量：[[ size(totalAccountUsage()) ]]</p>
+   <p>每个用户每周可分配256GB（256×1024³字节），UTC周一00:00重置；每条导出节点创建后7天过期，额度耗尽提前停用。导出即预留额度，撤销或未使用不返还。支持VMess、VLESS、Trojan、Shadowsocks、HY2。</p>
+   <p>账号支持自定义用户名密码及多设备登录；同一设备仅可注册一个账号（Android ID摘要）。用户须在App明确同意永久保存主连接和导出节点的连接域名与时间，才可使用。不会保存HTTPS路径、查询或内容；后台请求也会记录，不等同浏览器历史。主连接按账号独立统计，仍消耗面板指定节点配额；每周导出额度单独计算。</p>
+   <a-alert v-if="apiError" type="error" :message="apiError" show-icon></a-alert>
+   <a-input v-model="apiUserName" placeholder="用户备注" style="width:220px;margin-right:12px" maxlength="128"></a-input><a-input v-model="apiUsername" placeholder="登录用户名" style="width:160px" maxlength="32"></a-input> <a-input-password v-model="apiPassword" placeholder="登录密码（8..72字节）" style="width:220px"></a-input-password> <a-button type="primary" :loading="apiBusy" @click="createAPIUser">创建API用户</a-button><a-button style="margin-left:8px" @click="loadAPI">刷新</a-button>
+
+   <div v-for="user in apiUsers" :key="user.id" style="padding:12px 0;border-bottom:1px solid #ddd">[[ user.name ]] · [[ user.enabled?'启用':'已撤销' ]] · [[ user.deviceCount ]] 台登录设备 · [[ user.historyConsent?'已同意永久域名记录':'待App告知同意' ]] · 累计 [[ size(user.quota.cumulativeTotalBytes) ]]（上传 [[ size(user.quota.cumulativeUploadBytes) ]] / 下载 [[ size(user.quota.cumulativeDownloadBytes) ]]） · 本周剩余 [[ size(user.quota.remainingBytes) ]] <a-button size="small" @click="historyUser=user.id;loadHistory(false)">查看域名记录</a-button> <a-popconfirm title="撤销凭据并停止该用户全部导出节点？本周额度不返还。" @confirm="revokeAPIUser(user.id)"><a-button size="small" :disabled="!user.enabled">撤销用户</a-button></a-popconfirm></div>
+   <p style="margin-top:12px">同时运行节点（含App主连接）：每用户最多8条，服务总计最多16条，以控制本机资源。TLS节点须导入公开CA并保持证书验证。App可保存包含CA、链接和客户端配置的压缩包。</p>
+   <div v-for="node in apiNodes" :key="node.id" style="padding:8px 0">[[ node.userName ]] · [[ node.remark || "未命名" ]] · [[ node.protocol ]] · [[ node.kind==='main'?'App主连接':'导出' ]] · [[ size(node.uploadBytes+node.downloadBytes) ]] / [[ node.kind==='main'?'沿用主节点配额':size(node.totalBytes) ]] · [[ node.status ]] · 到期 [[ stamp(node.expiresAt*1000) ]] <a-popconfirm title="停止该节点？本周额度不返还。" @confirm="revokeAPINode(node.id)"><a-button size="small" :disabled="['revoked','expired','exhausted'].includes(node.status)">撤销节点</a-button></a-popconfirm></div>
+  </a-card>
+  <a-card title="账号连接域名记录 · 永久保存" style="margin-bottom:16px">
+   <p>仅记录已明确同意用户的代理连接域名和时间，含后台资源请求；不是浏览器页面历史。停用后停止新增，已有记录不自动清理。</p>
+   <a-select v-model="historyUser" style="width:220px" @change="loadHistory(false)"><a-select-option value="">所有用户</a-select-option><a-select-option v-for="u in apiUsers" :key="u.id" :value="u.id">[[ u.name ]]</a-select-option></a-select><a-button @click="loadHistory(false)">刷新</a-button>
+   <p v-if="historyError">[[ historyError ]]</p>
+   <div v-for="r in historyRecords" :key="r.id" style="padding:6px 0">[[ r.userName ]] · [[ r.domain ]] · [[ stamp(r.firstSeen*1000) ]] — [[ stamp(r.lastSeen*1000) ]] · [[ r.observations ]] 次观察</div>
+   <a-button v-if="historyMore" @click="loadHistory(true)">加载更早记录</a-button>
+  </a-card>
   <a-card title="轻连 · 在线设备">
    <a-alert v-if="error" type="error" :message="error" show-icon style="margin-bottom:16px"></a-alert>
    <p>在线 [[ online === null ? '不可用' : online ]] 台 · 每 3 秒刷新，30 秒无心跳即离线。</p>
@@ -63,9 +81,16 @@
 </a-layout>
 {{template "js" .}}
 <script>
- const app=new Vue({el:'#app',delimiters:['[[',']]'],data:{siderDrawer,online:null,devices:[],error:'',timer:null,nodes:[],selectedId:null,selectionError:'',saving:false,hy:{installed:false,enabled:false,running:false},hyError:'',hyBusy:false,update:{schema:1,revision:0,ui:{navHeight:80,navIcon:24,navText:12,navGap:2,glassMargin:12,glassEnabled:true},apk:null},updateBusy:false,updateError:'',apkFile:null,apkVersion:null,apkName:'',apkNotes:'',
+ const app=new Vue({el:'#app',delimiters:['[[',']]'],data:{apiUsers:[],apiNodes:[],apiUserName:"",apiUsername:"",apiPassword:"",historyUser:"",historyRecords:[],historyMore:false,historyBefore:null,historyError:"",newApiToken:"",apiBusy:false,apiError:"",siderDrawer,online:null,devices:[],error:'',timer:null,nodes:[],selectedId:null,selectionError:'',saving:false,hy:{installed:false,enabled:false,running:false},hyError:'',hyBusy:false,update:{schema:1,revision:0,ui:{navHeight:80,navIcon:24,navText:12,navGap:2,glassMargin:12,glassEnabled:true},apk:null},updateBusy:false,updateError:'',apkFile:null,apkVersion:null,apkName:'',apkNotes:'',
  columns:[{title:'状态',dataIndex:'online',scopedSlots:{customRender:'online'}},{title:'设备名称',dataIndex:'deviceName'},{title:'品牌 / 型号',dataIndex:'model'},{title:'Android',dataIndex:'androidVersion'},{title:'App',dataIndex:'appVersion'},{title:'来源 IP',dataIndex:'sourceIp'},{title:'上线时间',dataIndex:'startedAt',scopedSlots:{customRender:'time'}},{title:'最近活跃',dataIndex:'lastSeen',scopedSlots:{customRender:'time'}},{title:'上传用量',dataIndex:'uploadBytes',scopedSlots:{customRender:'bytes'}},{title:'下载用量',dataIndex:'downloadBytes',scopedSlots:{customRender:'bytes'}},{title:'上传速度',dataIndex:'uploadRate',scopedSlots:{customRender:'rate'}},{title:'下载速度',dataIndex:'downloadRate',scopedSlots:{customRender:'rate'}}]},
- mounted(){this.loadSelection();this.loadUpdates();this.loadHy();this.refresh()},beforeDestroy(){clearTimeout(this.timer)},methods:{
+ mounted(){this.loadAPI();this.loadSelection();this.loadUpdates();this.loadHy();this.refresh()},beforeDestroy(){clearTimeout(this.timer)},methods:{
+ async apiPost(path,body){const r=await fetch(basePath+'xui/qinglian/'+path,{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw Error();return await r.json()},
+ totalAccountUsage(){return this.apiUsers.reduce((sum,user)=>sum+user.quota.cumulativeTotalBytes,0)},
+ async loadAPI(){try{const [u,n]=await Promise.all([axios.get('xui/qinglian/api-users'),axios.get('xui/qinglian/exports')]);this.apiUsers=u.data.users;this.apiNodes=n.data.nodes;this.apiError=''}catch(e){this.apiError='用户API模块暂不可用'}},
+ async createAPIUser(){if(!this.apiUserName.trim()||!this.apiUsername.trim()||!this.apiPassword)return;this.apiBusy=true;try{const r=await this.apiPost('api-users',{name:this.apiUserName,username:this.apiUsername,password:this.apiPassword});this.apiUserName='';this.apiUsername='';this.apiPassword='';await this.loadAPI()}catch(e){this.apiError='创建失败，请检查登录与备注'}finally{this.apiBusy=false}},
+ async revokeAPIUser(id){try{await this.apiPost('api-users/'+id+'/revoke',{});await this.loadAPI()}catch(e){this.apiError='撤销失败，请刷新重试'}},
+ async revokeAPINode(id){try{await this.apiPost('exports/'+id+'/revoke',{});await this.loadAPI()}catch(e){this.apiError='撤销失败，请刷新重试'}},
+ async loadHistory(more){try{const params={userId:this.historyUser};if(more&&this.historyBefore)params.before=this.historyBefore;const r=await axios.get('xui/qinglian/history',{params});this.historyRecords=more?this.historyRecords.concat(r.data.records):r.data.records;this.historyMore=r.data.hasMore;this.historyBefore=r.data.nextBefore;this.historyError=''}catch(e){this.historyError='域名记录暂不可用'}},
  async loadHy(){try{const response=await axios.get('xui/qinglian/acceleration',{timeout:5000});this.hy=response.data;this.hyError=''}catch(error){this.hyError='加速模块暂不可用'}},
  async saveHy(){this.hyBusy=true;try{const response=await fetch(basePath+'xui/qinglian/acceleration',{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'},body:JSON.stringify({enabled:this.hy.enabled,boundInbound:this.selectedId})});if(!response.ok)throw Error();this.hy=await response.json();this.hyError='';this.$message.success('已保存，等待服务生效后在App重连。');setTimeout(()=>this.loadHy(),2000)}catch(error){this.hyError='保存失败，请检查节点、配额与模块状态'}finally{this.hyBusy=false}},
  async loadUpdates(){try{const response=await axios.get('xui/qinglian/updates',{timeout:5000});this.update=response.data;this.updateError=''}catch(error){this.updateError='更新配置暂不可用，请检查登录与模块版本。'}},

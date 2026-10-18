@@ -47,4 +47,10 @@ public class SpeedTesterTest {
   try{Result r=new Result();t.latency(r);assertTrue(entered.await(3,TimeUnit.SECONDS));t.stop();release.countDown();assertFalse(r.latch.await(300,TimeUnit.MILLISECONDS));assertNull(r.success);assertNull(r.error);}finally{release.countDown();t.close();}
  }
 
+ @Test public void customSizeStopsAtRequestedBytesEvenWhenOriginSendsMore()throws Exception{
+  try(LocalServer server=new LocalServer(false)){
+   SpeedTester t=new SpeedTester(server.url("/ok"),server.url("/down"),Proxy.NO_PROXY);
+   try{Result r=new Result();t.download(r,1);assertTrue(r.latch.await(8,TimeUnit.SECONDS));assertNull(r.error);assertEquals(1048576L,r.bytes);assertTrue(r.success.contains("1.0 MB"));}finally{t.close();}
+  }
+ }
 }

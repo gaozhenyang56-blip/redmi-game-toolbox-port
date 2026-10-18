@@ -265,7 +265,7 @@ func TestQSeparateTLSListenerRejectsPanelRoutes(t *testing.T) {
 	pool := x509.NewCertPool()
 	pool.AppendCertsFromPEM(certData)
 	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}}, Timeout: 3 * time.Second}
-	for path, want := range map[string]int{"/api/v1/online": 200, "/api/v1/quota": 200, "/api/v1/heartbeat": 200, "/xui/qinglian/devices": 404, "/assets/file": 404, "/api/v1/../xui/": 404} {
+	for path, want := range map[string]int{"/api/v1/online": 200, "/api/v1/quota": 200, "/api/v1/heartbeat": 200, "/api/v1/exports/register": 200, "/api/v1/exports/profile": 200, "/api/v1/exports/history": 200, "/api/v1/exports/invalid": 404, "/api/v1/exports/nodes/invalid/revoke": 404, "/xui/qinglian/devices": 404, "/assets/file": 404, "/api/v1/../xui/": 404} {
 		response, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d%s", port, path))
 		if err != nil {
 			t.Fatal(err)

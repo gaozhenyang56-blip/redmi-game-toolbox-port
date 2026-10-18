@@ -45,19 +45,24 @@ final class ApiEndpoint {
     ||token.trim().isEmpty()||token.contains("\r")||token.contains("\n"))throw new IOException("无效的服务端接口配置");
   return new ApiEndpoint(url,token);
  }
- JSONObject request(JSONObject body)throws Exception{
+ static ApiEndpoint userExport(Context context,String path,String token)throws Exception{
+  if(!token.matches("[0-9a-f]{64}")||!path.matches("(?:bind|register|login|history|quota|profile|nodes|nodes/[0-9a-f]{32}/revoke)"))throw new IOException("无效API凭据或操作");
+  ApiEndpoint base=load(context,"profile.json");URL target=new URL(base.url,"exports/"+path);return new ApiEndpoint(target,token,base.tlsFactory);
+ }
+ JSONObject request(JSONObject body)throws Exception{return request(body,null);}
+ JSONObject request(JSONObject body,String device)throws Exception{
   HttpURLConnection c=(HttpURLConnection)url.openConnection(Proxy.NO_PROXY);
   try{
    if(tlsFactory!=null){if(!(c instanceof HttpsURLConnection))throw new IOException("接口必须使用TLS");((HttpsURLConnection)c).setSSLSocketFactory(tlsFactory);}
    c.setConnectTimeout(3000);c.setReadTimeout(3000);c.setUseCaches(false);c.setInstanceFollowRedirects(false);
-   c.setRequestProperty("Authorization","Bearer "+token);c.setRequestProperty("Accept","application/json");
+   c.setRequestProperty("Authorization","Bearer "+token);c.setRequestProperty("Accept","application/json");if(device!=null){if(!device.matches("[0-9a-f]{64}"))throw new IOException("设备标识无效");c.setRequestProperty("X-Qinglian-Device",device);}
    if(body!=null){
     byte[] bytes=body.toString().getBytes(StandardCharsets.UTF_8);
     c.setRequestMethod("POST");c.setDoOutput(true);c.setRequestProperty("Content-Type","application/json; charset=utf-8");c.setFixedLengthStreamingMode(bytes.length);
     try(OutputStream out=c.getOutputStream()){out.write(bytes);}
    }else c.setRequestMethod("GET");
-   int code=c.getResponseCode();if(code!=200)throw new HttpFailure(code);
-   byte[] bytes=new byte[8193];int total=0,n;
+   int code=c.getResponseCode();if(code!=200&&!(device!=null&&(code==201||code==202)))throw new HttpFailure(code);
+   byte[] bytes=new byte[device==null?8193:524289];int total=0,n;
    try(InputStream in=c.getInputStream()){while(total<bytes.length&&(n=in.read(bytes,total,bytes.length-total))!=-1)total+=n;}
    if(total==bytes.length)throw new IOException("接口响应过大");
    return new JSONObject(new String(bytes,0,total,StandardCharsets.UTF_8));

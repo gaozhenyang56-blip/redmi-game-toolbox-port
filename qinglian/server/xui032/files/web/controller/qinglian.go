@@ -32,6 +32,7 @@ import (
 )
 
 var qUUID = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+var qExportRoute = regexp.MustCompile(`^(register|login|bind|quota|profile|history|nodes|nodes/[0-9a-f]{32}/revoke)$`)
 var qUnavailable = errors.New("qinglian unavailable")
 
 type qTLSConfig struct {
@@ -137,6 +138,10 @@ func qOpen(path string) (*qStore, error) {
 	}
 	baseline, _ := json.Marshal(qUpdate{Schema: 1, UI: qDefaultUI()})
 	if _, err = db.Exec(`INSERT OR IGNORE INTO updates(revision,data) VALUES(0,?)`, baseline); err != nil {
+		db.Close()
+		return nil, err
+	}
+	if err = qExportSchema(db); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -290,6 +295,24 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	panel.POST("/qinglian/updates", a.saveUpdates)
 	panel.POST("/qinglian/updates/rollback", a.rollbackUpdates)
 	panel.POST("/qinglian/updates/apk", a.uploadAPK)
+	publicAccounts := g.Group("/api/v1/exports")
+	publicAccounts.POST("/register", a.account)
+	publicAccounts.POST("/login", a.account)
+	exports := g.Group("/api/v1/exports")
+	exports.Use(a.exportAuth)
+	exports.POST("/bind", a.exportQuota)
+	exports.GET("/quota", a.exportQuota)
+	exports.POST("/profile", a.accountProfile)
+	exports.GET("/history", a.domainHistory)
+	exports.GET("/nodes", a.exports)
+	exports.POST("/nodes", a.createExport)
+	exports.POST("/nodes/:id/revoke", a.revokeExport)
+	panel.GET("/qinglian/api-users", a.apiUsers)
+	panel.POST("/qinglian/api-users", a.addAPIUser)
+	panel.POST("/qinglian/api-users/:id/revoke", a.revokeAPIUser)
+	panel.GET("/qinglian/exports", a.exports)
+	panel.GET("/qinglian/history", a.domainHistory)
+	panel.POST("/qinglian/exports/:id/revoke", a.revokeExport)
 	return a
 }
 func qNoStore(c *gin.Context) {
@@ -591,7 +614,7 @@ func (a *QinglianController) StartTLS(engine http.Handler) error {
 			case a.apiPrefix + "updates", a.apiPrefix + "online", a.apiPrefix + "quota", a.apiPrefix + "heartbeat", a.apiPrefix + "profile":
 				engine.ServeHTTP(w, r)
 			default:
-				if strings.HasPrefix(r.URL.Path, a.apiPrefix+"apk/") && qDigest(strings.TrimPrefix(r.URL.Path, a.apiPrefix+"apk/")) {
+				if strings.HasPrefix(r.URL.Path, a.apiPrefix+"exports/") && qExportRoute.MatchString(strings.TrimPrefix(r.URL.Path, a.apiPrefix+"exports/")) || strings.HasPrefix(r.URL.Path, a.apiPrefix+"apk/") && qDigest(strings.TrimPrefix(r.URL.Path, a.apiPrefix+"apk/")) {
 					engine.ServeHTTP(w, r)
 				} else {
 					http.NotFound(w, r)

@@ -21,7 +21,7 @@ if menu.count(needle)!=1:raise SystemExit('Unexpected menu layout')
 menu=menu.replace(needle,'<a-menu-item key="{{ .base_path }}xui/qinglian"><a-icon type="laptop"></a-icon><span>轻连 App</span></a-menu-item>\n'+needle)
 mod=source/'go.mod';modules=mod.read_text();needle='require (\n'
 if modules.count(needle)!=1:raise SystemExit('Unexpected dependency layout')
-modules=modules.replace(needle,needle+'\tgithub.com/mattn/go-sqlite3 v1.14.5\n')
+modules=modules.replace(needle,needle+'\tgithub.com/mattn/go-sqlite3 v1.14.5\n\tgolang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2\n')
 for file in (Path(__file__).parent/'files').rglob('*'):
     if file.is_file():
         dest=source/file.relative_to(Path(__file__).parent/'files');dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(file,dest)

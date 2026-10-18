@@ -33,7 +33,10 @@ final class ProfileMonitor {
   return new Profile(node.toString(),label,revision);
  }
  private static Profile fetch(Context context)throws Exception{
-  Profile profile=parse(ApiEndpoint.load(context,"profile.json").request(null),accelerated(context));current=profile;status="已同步面板 · "+NodeConfig.protocol(new JSONObject(profile.node)).toUpperCase(java.util.Locale.ROOT);return profile;
+  if(ExportClient.token(context).isEmpty())throw new IOException("请先登录账号");
+  JSONObject response=null;
+  for(int attempt=0;attempt<10;attempt++){response=ExportClient.request(context,"profile",new JSONObject(),ExportClient.token(context));if(response.optBoolean("ready"))break;if(attempt==9)throw new IOException("账号节点启动中，请稍后重试");Thread.sleep(500);}
+  Profile profile=parse(response,accelerated(context));current=profile;status="已同步面板 · "+NodeConfig.protocol(new JSONObject(profile.node)).toUpperCase(java.util.Locale.ROOT);return profile;
  }
  static Profile forConnection(Context context)throws Exception{
   if(configured(context))return fetch(context); // A configured endpoint failure never falls back to an obsolete embedded UUID.
@@ -43,7 +46,7 @@ final class ProfileMonitor {
  static synchronized void refresh(Context context,boolean force){
   long now=SystemClock.elapsedRealtime();if(busy||(!force&&attempted!=0&&now-attempted<15000))return;busy=true;attempted=now;
   Context app=context.getApplicationContext();worker.execute(()->{try{
-   if(configured(app))fetch(app);else status="固定内置节点";
+   if(configured(app)){if(!ExportClient.token(app).isEmpty()&&TunnelService.state.equals("connected"))fetch(app);else status=ExportClient.token(app).isEmpty()?"请先登录账号，再连接独立节点":"账号已登录 · 连接时同步专属节点";}else status="固定内置节点";
   }catch(Exception failed){status=current==null?"面板配置暂不可用":"同步失败 · 当前为上次配置";}
   finally{synchronized(ProfileMonitor.class){busy=false;}}});
  }
