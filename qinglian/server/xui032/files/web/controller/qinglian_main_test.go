@@ -56,6 +56,16 @@ func TestQMainCredentialsSeparateUsersAndPreserveExportAllocation(t *testing.T) 
 	if next["ready"] != true || first["revision"] != next["revision"] {
 		t.Fatal("main credentials rotated on heartbeat")
 	}
+	// The experiment must never rotate or tune the compatibility node.
+	boosted := qExportRequest(r, "POST", "/main-fixture", `{"labHy2":true}`, token, device)
+	var experiment map[string]interface{}
+	json.Unmarshal(boosted.Body.Bytes(), &experiment)
+	if boosted.Code != 200 || experiment["revision"] != first["revision"] || experiment["labHy2"] != false {
+		t.Fatal("compatibility unexpectedly changed by HY2 experiment")
+	}
+	if qExportRequest(r, "POST", "/main-fixture", `{"labHy2":"maximum"}`, token, device).Code != 400 {
+		t.Fatal("invalid experiment value accepted")
+	}
 	quota, e := a.exportQuotaValue("fixture")
 	if e != nil || quota["allocatedBytes"] != int64(0) {
 		t.Fatal("main deducted weekly allocation")

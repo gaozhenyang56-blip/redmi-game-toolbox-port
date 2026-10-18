@@ -36,6 +36,9 @@ class ExportEngine:
   ident=row['id'];profile=json.loads(row['data']);port=self.free_port();secret=os.urandom(32).hex();hy=row['protocol']=='hysteria2'
   if hy:
    cfg={'listen':':'+str(row['port']),'tls':{'cert':self.cfg['certificate'],'key':self.cfg['privateKey']},'auth':{'type':'http','http':{'url':'http://127.0.0.1:'+str(self.cfg['controlPort'])+'/auth/'+ident}},'trafficStats':{'listen':'127.0.0.1:'+str(port),'secret':secret},'resolver':{'type':'tcp','tcp':{'addr':'1.1.1.1:53','timeout':'4s'}},'outbounds':[{'name':'direct','type':'direct','direct':{'mode':'4'}}],'acl':{'inline':['reject('+x+')' for x in self.acl()]+['direct(all)']},'congestion':{'type':'bbr','bbrProfile':'conservative'},'quic':{'disablePathMTUDiscovery':True},'sniff':{'enable':True,'timeout':'1s','rewriteDomain':True,'tcpPorts':'80,443','udpPorts':'443'}}
+   if profile.get('node',{}).get('hy2Performance')=='aggressive-v1' and row['kind'] in ('main','guest'):
+    cfg['congestion']['bbrProfile']='aggressive';cfg['ignoreClientBandwidth']=True
+    cfg['quic'].update({'initStreamReceiveWindow':8*1024*1024,'maxStreamReceiveWindow':32*1024*1024,'initConnReceiveWindow':16*1024*1024,'maxConnReceiveWindow':64*1024*1024})
    binary=self.cfg['hy2Binary'];args=['server','--log-level','error','--disable-update-check']
   else:
    cfg={'log':{'loglevel':'none'},'api':{'tag':'api','services':['StatsService']},'stats':{},'policy':{'system':{'statsInboundUplink':True,'statsInboundDownlink':True}},'inbounds':[profile['inbound'],{'tag':'api','listen':'127.0.0.1','port':port,'protocol':'dokodemo-door','settings':{'address':'127.0.0.1'}}],'outbounds':[{'tag':'proxy','protocol':'freedom','settings':{'domainStrategy':'UseIPv4'}},{'tag':'block','protocol':'blackhole','settings':{}}],'routing':{'domainStrategy':'IPIfNonMatch','rules':[{'type':'field','inboundTag':['api'],'outboundTag':'api'},{'type':'field','ip':self.acl(),'outboundTag':'block'}]}}

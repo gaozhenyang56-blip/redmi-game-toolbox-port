@@ -35,7 +35,8 @@ final class ProfileMonitor {
  private static Profile fetch(Context context)throws Exception{
   boolean guest=ExportClient.token(context).isEmpty();
   JSONObject response=null;
-  for(int attempt=0;attempt<10;attempt++){response=guest?GuestClient.profile(context):ExportClient.request(context,"profile",new JSONObject(),ExportClient.token(context));if(response.optBoolean("ready"))break;if(attempt==9)throw new IOException("账号节点启动中，请稍后重试");Thread.sleep(500);}
+  for(int attempt=0;attempt<10;attempt++){response=guest?GuestClient.profile(context):ExportClient.request(context,"profile",LabSettings.profileOptions(context),ExportClient.token(context));if(response.optBoolean("ready"))break;if(attempt==9)throw new IOException("账号节点启动中，请稍后重试");Thread.sleep(500);}
+  if(LabSettings.profileOptions(context).optBoolean("labHy2")&&!response.optBoolean("labHy2"))throw new IOException("服务器尚未支持HY2性能实验，请关闭实验或联系管理员");
   Profile profile=parse(response,accelerated(context));current=profile;status="已同步面板 · "+NodeConfig.protocol(new JSONObject(profile.node)).toUpperCase(java.util.Locale.ROOT);return profile;
  }
  static Profile forConnection(Context context)throws Exception{

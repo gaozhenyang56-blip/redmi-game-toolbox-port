@@ -65,21 +65,38 @@ with connection() as ssh,tempfile.TemporaryDirectory() as temp:
     if protocol in ('vmess','vless'):entry['users'][0]['id']=n['id']
     else:entry['password']=n['password']
    template["node"]=n;transfer(template,protocol)
+  assert primary.get('acceleration'),'HY2 fixture unavailable'
+  normal_hy=primary['acceleration']['node'];assert 'hy2Performance' not in normal_hy
+  for _ in range(30):
+   boosted=request('profile',{'labHy2':True},token)
+   if boosted.get('ready'):break
+   time.sleep(.3)
+  assert boosted.get('ready') and boosted.get('labHy2')
+  bn=boosted['acceleration']['node'];assert bn['hy2Performance']=='aggressive-v1' and bn['port']!=normal_hy['port']
+  other=request('profile',{},second['token'],other_device);assert other['acceleration']['node']==normal_hy and not other.get('labHy2')
+  repeated=request('profile',{'labHy2':True},token);assert repeated['acceleration']['node']==bn
+  check=remote_json(ssh,'STATE='+repr(cfg['statePath'])+'\nUSER='+repr(account['userId'])+'\nPORT='+repr(bn['port'])+"\nimport sqlite3,json;from pathlib import Path\nwith sqlite3.connect(STATE) as db:ident=db.execute('SELECT id FROM exports WHERE user_id=? AND port=?',(USER,PORT)).fetchone()[0]\nc=json.loads((Path('/run/qinglian-exports')/(ident+'.json')).read_text());print(json.dumps({'aggressive':c['congestion']['bbrProfile']=='aggressive','window':c['quic']['maxConnReceiveWindow'],'unlimited':c['ignoreClientBandwidth'] and 'bandwidth' not in c}))")
+  assert check=={'aggressive':True,'window':67108864,'unlimited':True}
+  template=copy.deepcopy(next(v['profile'] for v in active.values() if v['protocol']=='hysteria2'));template['node']=bn;client=template['clientConfig'];client['server']=bn['add']+':'+str(bn['port']);client['auth']=bn['auth'];client['congestion']={'type':'bbr','bbrProfile':'aggressive'};client['quic'].update({'initStreamReceiveWindow':8388608,'maxStreamReceiveWindow':33554432,'initConnReceiveWindow':16777216,'maxConnReceiveWindow':67108864});transfer(template,'hysteria2')
+  restored=request('profile',{'labHy2':False},token);assert restored['acceleration']['node']==normal_hy and not restored['labHy2']
+  retired=remote_json(ssh,'STATE='+repr(cfg['statePath'])+'\nUSER='+repr(account['userId'])+'\nPORT='+repr(bn['port'])+"\nimport sqlite3,json,time;from pathlib import Path\ntime.sleep(2)\nwith sqlite3.connect(STATE) as db:row=db.execute('SELECT id,status FROM exports WHERE user_id=? AND port=?',(USER,PORT)).fetchone()\nprint(json.dumps({'retired':row[1]!='active' and not (Path('/run/qinglian-exports')/(row[0]+'.json')).exists()}))")
+  assert retired['retired'],'disabled device experiment worker retained'
   # Guest bootstrap needs no account and keeps one combined, server-enforced budget.
   def guest(path,body=None,key=None):
    r=urllib.request.Request(base.replace('/exports/','/guest/')+path,data=None if body is None else json.dumps(body).encode(),headers={'Content-Type':'application/json','Authorization':'Bearer '+(key or cfg['clientToken']),'X-Qinglian-Device':device})
    with opener.open(r,timeout=10) as response:return json.load(response)
   guest_key=secrets.token_hex(32);guest_body={'requestId':str(__import__('uuid').uuid4()),'sessionKey':guest_key};g=guest('start',guest_body);users.append(g['id']);assert guest('start',guest_body)['id']==g['id']
   for _ in range(30):
-   gp=guest('profile',{},guest_key)
+   gp=guest('profile',{'labHy2':True},guest_key)
    if gp.get('ready'):break
    time.sleep(.3)
   assert gp.get('ready') and gp['quota']['limitBytes']==64*1024**3
+  assert gp.get('labHy2') and gp['acceleration']['node']['hy2Performance']=='aggressive-v1'
   guest_nodes=[gp['node']]
   if gp.get('acceleration'):guest_nodes.append(gp['acceleration']['node'])
   for n in guest_nodes:
    protocol=n['protocol'];template=copy.deepcopy(next(v['profile'] for v in active.values() if v['protocol']==protocol));template['node']=n
-   if protocol=='hysteria2':template['clientConfig']['server']=n['add']+':'+str(n['port']);template['clientConfig']['auth']=n['auth']
+   if protocol=='hysteria2':template['clientConfig']['server']=n['add']+':'+str(n['port']);template['clientConfig']['auth']=n['auth'];template['clientConfig']['congestion']={'type':'bbr','bbrProfile':'aggressive'};template['clientConfig']['quic'].update({'initStreamReceiveWindow':8388608,'maxStreamReceiveWindow':33554432,'initConnReceiveWindow':16777216,'maxConnReceiveWindow':67108864})
    transfer(template,protocol)
   time.sleep(1);assert guest('quota',key=guest_key)['usedBytes']>=len(guest_nodes)*524288
   check=remote_json(ssh,'STATE='+repr(cfg['statePath'])+'\nUSER='+repr(g['id'])+"\nimport sqlite3,json\nwith sqlite3.connect(STATE) as db:\n count=db.execute('SELECT COUNT(*) FROM history WHERE user_id=?',(USER,)).fetchone()[0]\n db.execute(\"UPDATE exports SET up=? WHERE id=(SELECT id FROM exports WHERE user_id=? AND kind='guest' LIMIT 1)\",(64*1024**3,USER))\nprint(json.dumps({'historyCount':count}))")
@@ -91,7 +108,7 @@ with connection() as ssh,tempfile.TemporaryDirectory() as temp:
   next_key=secrets.token_hex(32);next_guest=guest('start',{'requestId':str(__import__('uuid').uuid4()),'sessionKey':next_key});users.append(next_guest['id']);assert guest('quota',key=next_key)['remainingBytes']==64*1024**3;guest('stop',{},next_key)
   time.sleep(1);quota=request('quota' ,token=token);assert quota['allocatedBytes']==len(protocols)*2*1048576;assert quota['cumulativeTotalBytes']>=len(protocols)*524288
   history=request('history',token=token);assert history['retention']=='permanent' and any(r['domain']=='speed.cloudflare.com' for r in history['records']),'native domain capture unavailable'
-  print(json.dumps({'passed':True,'protocols':protocols,'publicBytesEach':524288,'originalCAValidated':True,'deviceRegistrationLimited':True,'multiDeviceLogin':True,'idempotency':True,'remarks':True,'mainIndependent':True,'quotaIndependent':True,'cumulativeTraffic':True,'permanentDomains':True,'guestNoAccount':True,'guestCombined64GiBCap':True,'guestHistoryDisabled':True,'guestNewManualReset':True}))
+  print(json.dumps({'passed':True,'protocols':protocols,'publicBytesEach':524288,'originalCAValidated':True,'deviceRegistrationLimited':True,'multiDeviceLogin':True,'idempotency':True,'remarks':True,'mainIndependent':True,'quotaIndependent':True,'cumulativeTraffic':True,'permanentDomains':True,'guestNoAccount':True,'guestCombined64GiBCap':True,'guestHistoryDisabled':True,'guestNewManualReset':True,'hy2ExperimentIsolated':True,'hy2AggressiveTransfer':True,'hy2NormalRestored':True}))
  finally:
   # Remove only the random fixture account after stopping its workers.
   if users:

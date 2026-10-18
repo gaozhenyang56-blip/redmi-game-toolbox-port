@@ -9,6 +9,7 @@
  <queries><intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent></queries>
  <application android:label="轻连" android:theme="@style/Theme.Qinglian" android:icon="@mipmap/ic_launcher" android:allowBackup="false" android:supportsRtl="true" android:extractNativeLibs="true" android:usesCleartextTraffic="true">
   <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.updates" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/update_paths"/></provider>
+  <activity android:name=".LabsActivity" android:exported="false"/>
   <activity android:name=".AccountActivity" android:exported="false"/>
   <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
   <service android:name=".TunnelService" android:permission="android.permission.BIND_VPN_SERVICE" android:exported="false" android:foregroundServiceType="specialUse">

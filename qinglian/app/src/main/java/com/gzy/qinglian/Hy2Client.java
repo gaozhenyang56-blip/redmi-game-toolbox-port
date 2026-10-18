@@ -14,7 +14,9 @@ final class Hy2Client implements AutoCloseable {
   String host=n.getString("add");if(host.contains(":"))host="["+host+"]";
   JSONObject tls=new JSONObject().put("sni",n.optString("sni",n.getString("add"))).put("insecure",false);
   if(!n.optString("caPem").isEmpty())tls.put("ca",caPath);
-  return new JSONObject().put("server",host+":"+n.getInt("port")).put("auth",n.getString("auth")).put("tls",tls).put("lazy",true).put("congestion",new JSONObject().put("type","bbr").put("bbrProfile","conservative")).put("quic",new JSONObject().put("disablePathMTUDiscovery",true).put("keepAlivePeriod","10s").put("maxIdleTimeout","30s"))
+  boolean experimental=n.optString("hy2Performance").equals("aggressive-v1");
+  JSONObject quic=new JSONObject().put("disablePathMTUDiscovery",true).put("keepAlivePeriod","10s").put("maxIdleTimeout","30s");if(experimental)LabSettings.quic(quic);
+  return new JSONObject().put("server",host+":"+n.getInt("port")).put("auth",n.getString("auth")).put("tls",tls).put("lazy",true).put("congestion",new JSONObject().put("type","bbr").put("bbrProfile",experimental?"aggressive":"conservative")).put("quic",quic)
    .put("socks5",new JSONObject().put("listen","127.0.0.1:10810").put("disableUDP",false));
  }
  void start(String node)throws Exception{

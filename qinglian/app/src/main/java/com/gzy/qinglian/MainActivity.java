@@ -119,12 +119,12 @@ public class MainActivity extends AppCompatActivity {
   body.addView(text("网络测速",24,true));space(body,8);body.addView(note("测速通过当前连接通道进行"));space(body,20);
   LinearLayout c=card(com.google.android.material.R.attr.colorSurfaceContainer);c.addView(note("核心延迟 / 连接复用"));space(c,8);latencyValue=text(latency,32,true);c.addView(latencyValue);space(c,8);c.addView(note("通过当前通道测试 HTTPS；两次请求取较小值"));space(c,12);
   delayButton=button("测试延迟");delayButton.setOnClickListener(v->runDelay());c.addView(delayButton);
-  LinearLayout d=card(com.google.android.material.R.attr.colorSecondaryContainer);d.addView(note("下载速度"));space(d,8);downloadValue=text(download,32,true);downloadValue.setTextColor(color(com.google.android.material.R.attr.colorOnSecondaryContainer));d.addView(downloadValue);space(d,12);
+  LinearLayout d=card(com.google.android.material.R.attr.colorSecondaryContainer);d.addView(note("下载速度 · "+(LabSettings.enabled(this,"parallel")?"4路并行":"单路")+" · "+(LabSettings.enabled(this,"raw")?"原始曲线":"近1秒曲线")));space(d,8);downloadValue=text(download,32,true);downloadValue.setTextColor(color(com.google.android.material.R.attr.colorOnSecondaryContainer));d.addView(downloadValue);space(d,12);
   graph=new Graph(this);d.addView(graph,new LinearLayout.LayoutParams(-1,dp(100)));space(d,12);
   progress=new LinearProgressIndicator(this);progress.setMax(100);progress.setTrackThickness(dp(6));progress.setTrackCornerRadius(dp(3));d.addView(progress,new LinearLayout.LayoutParams(-1,dp(8)));space(d,12);
   testDetail=note(detail);testDetail.setTextColor(color(com.google.android.material.R.attr.colorOnSecondaryContainer));d.addView(testDetail);space(d,12);downloadButton=button("开始下载测速");downloadButton.setOnClickListener(v->downloadOptions());d.addView(downloadButton);
   stopButton=button("停止测试");stopButton.setOnClickListener(v->{testSession++;tester.stop();testing=false;testKind=0;detail="测试已停止";refresh();});d.addView(stopButton);
-  body.addView(note("图表为近1秒速度，全程平均包含分段等待。测速结果受Wi‑Fi、线路、服务器和测试站点影响。Mbps 为兆比特/秒，8 Mbps 约等于 1 MB/s。"));
+  body.addView(note("图表默认近1秒速度，实验室可改原始采样或四路并行；全程平均包含等待。测速结果受Wi‑Fi、线路、服务器和测试站点影响。Mbps 为兆比特/秒，8 Mbps 约等于 1 MB/s。"));
  }
  private void appearance(){
   int mode=AppAppearance.mode(this),selected=mode==androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES?1:mode==androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM?2:0;
@@ -213,7 +213,8 @@ public class MainActivity extends AppCompatActivity {
   }));dialog.show();
  }
  private void about(){
-  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.1.4 · Preview\nARM64 · Android 8.0 及以上"));
+  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.1.5 · Preview\nARM64 · Android 8.0 及以上"));
+  LinearLayout labs=card(com.google.android.material.R.attr.colorSurfaceContainer);labs.addView(text("速度实验室",19,true));labs.addView(note("HY2激进性能、四路并行测速与原始速度曲线，均默认关闭。"));MaterialButton openLabs=button("进入实验室");labs.addView(openLabs);openLabs.setOnClickListener(v->startActivity(new Intent(this,LabsActivity.class)));
   LinearLayout d=card(com.google.android.material.R.attr.colorSurfaceContainer);d.addView(text("连接与隐私",19,true));space(d,12);d.addView(note("使用 V2Ray / v2fly 与 Hysteria2 核心。\n连接时会请求 Android 系统 VPN 授权；关闭界面后仍可后台运行。\n通知栏显示本次上传、下载流量与实时速度，可直接断开。\n连接时每 10 秒向服务端上报随机安装标识、设备型号、系统与应用版本、本次速度和用量，供原面板显示在线设备。服务端可见来源 IP；断开后停止，30 秒无心跳即离线。不会读取 IMEI、通讯录、文件或浏览内容。\n不接入广告与统计 SDK。节点由面板统一指定并自动同步，主连接不提供手动添加或编辑节点；独立节点可通过账号导出。国内直连仅在规则模式且应用分流关闭时启用。账号域名记录须登录时明确同意，永久保存在服务器，仅覆盖代理连接，不包括直连请求。\n测速请求会访问 Google 204 测试地址与 Cloudflare 下载站点。"));
   LinearLayout exports=card(com.google.android.material.R.attr.colorSurfaceContainer);exports.addView(text("独立节点导出",19,true));exports.addView(note("绑定设备后，每周可导出合计256GB，节点有效期7天。"));MaterialButton openExports=button("节点导出 / 查看额度");exports.addView(openExports);openExports.setOnClickListener(v->openAccount());
   LinearLayout l=card(com.google.android.material.R.attr.colorSurfaceContainer);l.addView(text("开源许可",19,true));space(l,10);l.addView(note("本应用按 GPL-3.0 提供源码。\nV2Ray / v2fly：MIT\nHysteria2：MIT\nAndroidLibV2rayLite：LGPL-3.0\nBadVPN tun2socks / v2rayNG：见随附第三方许可。"));
@@ -232,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
   androidx.appcompat.app.AlertDialog dialog=new MaterialAlertDialogBuilder(this).setTitle("自定义下载测速大小").setView(box).setPositiveButton("开始",null).setNegativeButton("取消",null).create();
   dialog.setOnShowListener(x->dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setOnClickListener(v->{try{int mb=Integer.parseInt(size.getText().toString());if(mb<1||mb>2048)throw new IllegalArgumentException();downloadMiB=mb;getSharedPreferences("speed-test",0).edit().putInt("sizeMiB",mb).apply();dialog.dismiss();runDownload();}catch(Exception invalid){size.setError("请输入1..2048之间的整数");}}));dialog.show();
  }
- private void runDownload(){if(!ready())return;testSession++;testing=true;testKind=2;download="准备中…";detail="正在连接测速站点…";if(graph!=null)graph.clear();refresh();tester.download(listener(true),downloadMiB);}
+ private void runDownload(){if(!ready())return;testSession++;testing=true;testKind=2;download="准备中…";detail="正在连接测速站点…";if(graph!=null)graph.clear();refresh();tester.download(listener(true),downloadMiB,LabSettings.enabled(this,"parallel")?4:1,LabSettings.enabled(this,"raw"));}
  private SpeedTester.Listener listener(boolean dl){final int session=testSession;return new SpeedTester.Listener(){
   public void update(double value,long bytes,double frac){main.post(()->{if(!testing||isDestroyed()||session!=testSession)return;if(dl){download=String.format(Locale.CHINA,"%.2f Mbps",value);detail="已接收 "+TunnelService.size(bytes);if(graph!=null)graph.add((float)value);}else{latency=String.format(Locale.CHINA,"%.0f ms",value);detail="核心延迟测量完成";}if(progress!=null)progress.setProgressCompat((int)(frac*100),true);refresh();});}
   public void done(String result){main.post(()->{if(!testing||isDestroyed()||session!=testSession)return;testing=false;testKind=0;TunnelService.verified=true;if(dl){detail=result;download=result.split(" · ")[0].replace("平均 ","");}else{latency=result;detail="延迟测试完成 · 核心两次请求取较小值（可复用连接）";}if(progress!=null&&(!dl||!result.contains("未完成")))progress.setProgressCompat(100,true);refresh();});}

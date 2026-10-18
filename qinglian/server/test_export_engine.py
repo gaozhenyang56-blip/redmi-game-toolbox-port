@@ -18,18 +18,27 @@ class NativeExports(unittest.TestCase):
   with tempfile.TemporaryDirectory() as temp:
    root=Path(temp);state=root/'state.db'
    with sqlite3.connect(state) as db:db.executescript("CREATE TABLE api_users(id TEXT,enabled INT,history_consent INT);INSERT INTO api_users VALUES('fixture',1,1);CREATE TABLE exports(id TEXT PRIMARY KEY,user_id TEXT,protocol TEXT,port INT,total INT,up INT DEFAULT 0,down INT DEFAULT 0,created INT,expires INT,status TEXT,data BLOB,kind TEXT DEFAULT 'export',parent_id INT DEFAULT 0);CREATE TABLE history(id INTEGER PRIMARY KEY,user_id TEXT,node_id TEXT,domain TEXT,bucket INT,first_seen INT,last_seen INT,hits INT,UNIQUE(user_id,node_id,domain,bucket));")
-   control=ExportEngine.free_port();engine=LocalEngine({'statePath':str(state),'work':str(root/'work'),'controlPort':control,'managementToken':'fixture','certificate':str(FIX/'tls-server-cert.pem'),'privateKey':str(FIX/'tls-server-key.pem'),'xrayBinary':os.environ['QINGLIAN_XRAY'],'hy2Binary':os.environ['QINGLIAN_HY2']})
+   panel=root/'panel.db'
+   with sqlite3.connect(panel) as db:db.executescript('CREATE TABLE inbounds(id INT,user_id INT,enable INT,total INT,up INT,down INT,expiry_time INT);INSERT INTO inbounds VALUES(1,1,1,0,0,0,0)')
+   control=ExportEngine.free_port();engine=LocalEngine({'database':str(panel),'ownerId':1,'statePath':str(state),'work':str(root/'work'),'controlPort':control,'managementToken':'fixture','certificate':str(FIX/'tls-server-cert.pem'),'privateKey':str(FIX/'tls-server-key.pem'),'xrayBinary':os.environ['QINGLIAN_XRAY'],'hy2Binary':os.environ['QINGLIAN_HY2']})
    server=http.server.ThreadingHTTPServer(('127.0.0.1',control),Handler);server.engine=engine;server.daemon_threads=True;threading.Thread(target=server.serve_forever,daemon=True).start()
    origin=http.server.ThreadingHTTPServer(('127.0.0.1',0),Origin);threading.Thread(target=origin.serve_forever,daemon=True).start()
    try:
     for protocol in ('vmess','vless','trojan','shadowsocks','hysteria2'):
      with self.subTest(protocol=protocol):self.transfer(protocol,root,engine,origin.server_port)
+    with self.subTest(protocol="hysteria2-aggressive"):self.transfer("hysteria2",root,engine,origin.server_port,True)
    finally:engine.close();server.shutdown();server.server_close();origin.shutdown();origin.server_close()
- def transfer(self,protocol,root,engine,origin):
+ def transfer(self,protocol,root,engine,origin,experimental=False):
   p=json.loads((Path(os.environ['QINGLIAN_EXPORT_PROFILES'])/(protocol+'.json')).read_text());port=engine.free_port();ident=protocol+'fixture';p['inbound']['port']=port;p['inbound']['tag']='export-'+ident
+  if experimental:ident+='lab';p['node']['hy2Performance']='aggressive-v1'
   with engine.db() as db:db.execute("INSERT INTO exports(id,user_id,protocol,port,total,created,expires,status,data) VALUES(?,?,?,?,?,?,?,'pending',?)",(ident,'fixture',protocol,port,100*1048576,int(time.time()),int(time.time())+300,json.dumps(p)))
+  if experimental:
+   with engine.db() as db:db.execute("UPDATE exports SET kind='main',parent_id=1 WHERE id=?",(ident,))
   engine.tick();self.assertIn(ident,engine.children,'native startup failed '+(engine.work/'native-errors.log').read_text()[-1200:])
   cfg=copy.deepcopy(p['clientConfig']);socks=engine.free_port();hy=protocol=='hysteria2'
+  if experimental:
+   cfg['congestion']={'type':'bbr','bbrProfile':'aggressive'};cfg['quic'].update({'initStreamReceiveWindow':8388608,'maxStreamReceiveWindow':33554432,'initConnReceiveWindow':16777216,'maxConnReceiveWindow':67108864});server_config=json.loads(engine.children[ident]['path'].read_text());self.assertEqual(server_config['congestion']['bbrProfile'],'aggressive');self.assertEqual(server_config['quic']['maxConnReceiveWindow'],67108864);self.assertTrue(server_config['ignoreClientBandwidth']);self.assertNotIn('bandwidth',server_config)
+  elif hy:self.assertEqual(json.loads(engine.children[ident]['path'].read_text())['congestion']['bbrProfile'],'conservative')
   if not hy and os.environ.get('QINGLIAN_NODECONFIG_CP'):
    node=copy.deepcopy(p['node']);node['port']=port
    converted=subprocess.run([os.environ.get('QINGLIAN_JAVA','java'),'-cp',os.environ['QINGLIAN_NODECONFIG_CP'],'NodeConfigCli'],input=json.dumps(node).encode(),capture_output=True,check=True)

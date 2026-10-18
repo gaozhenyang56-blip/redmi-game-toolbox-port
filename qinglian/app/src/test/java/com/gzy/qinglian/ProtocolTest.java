@@ -39,4 +39,8 @@ public class ProtocolTest {
   base.put("node",node("hysteria2"));assertThrows(Exception.class,()->ProfileMonitor.parse(base,true));
   base.put("node",node("vmess").put("insecure",true));assertThrows(Exception.class,()->ProfileMonitor.parse(base,true));
  }
+ @org.junit.Test public void hy2AggressiveRequiresServerMarkerAndKeepsTls()throws Exception{
+  JSONObject n=node("hysteria2");JSONObject normal=Hy2Client.configuration(n,"/private/ca.pem");assertEquals("conservative",normal.getJSONObject("congestion").getString("bbrProfile"));assertFalse(normal.getJSONObject("quic").has("maxConnReceiveWindow"));
+  n.put("hy2Performance","aggressive-v1");JSONObject boosted=Hy2Client.configuration(n,"/private/ca.pem");assertEquals("aggressive",boosted.getJSONObject("congestion").getString("bbrProfile"));assertEquals(67108864,boosted.getJSONObject("quic").getInt("maxConnReceiveWindow"));assertEquals(33554432,boosted.getJSONObject("quic").getInt("maxStreamReceiveWindow"));assertFalse(boosted.getJSONObject("tls").getBoolean("insecure"));assertFalse(boosted.has("bandwidth"));assertEquals("conservative",normal.getJSONObject("congestion").getString("bbrProfile"));
+ }
 }

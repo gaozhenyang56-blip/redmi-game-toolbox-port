@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"io"
 	"net"
 	"strconv"
 	"time"
@@ -12,6 +13,20 @@ import (
 // Each account owns separate credentials; devices of that account share them.
 // Main traffic consumes the panel-selected parent quota, never export allocation.
 func (a *QinglianController) accountProfile(c *gin.Context) {
+	var options struct {
+		LabHy2 bool `json:"labHy2"`
+	}
+	if c.Request.Body != nil {
+		if e := json.NewDecoder(io.LimitReader(c.Request.Body, 4096)).Decode(&options); e != nil && e != io.EOF {
+			c.Status(400)
+			return
+		}
+	}
+	device := qValidDevice(c)
+	if options.LabHy2 && device == "" {
+		c.Status(400)
+		return
+	}
 	parent, err := a.target()
 	if err != nil {
 		c.Status(503)
@@ -55,6 +70,15 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 	defer a.store.mu.Unlock()
 	makeNode := func(p string) (map[string]interface{}, bool, error) {
 		request := kind + ":" + strconv.Itoa(parent.Id) + ":" + p
+		experimental := options.LabHy2 && p == "hysteria2"
+		if experimental {
+			request += ":lab:" + device
+		} else if p == "hysteria2" && device != "" {
+			// Only this device's experiment is retired; other devices keep their leases.
+			if _, e := a.store.db.Exec(`UPDATE exports SET status='expired',expires=? WHERE user_id=? AND request_id=? AND status!='revoked'`, now, user, request+":lab:"+device); e != nil {
+				return nil, false, e
+			}
+		}
 		var id, status string
 		var data []byte
 		var previousExpiry int64
@@ -101,6 +125,9 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 			if e != nil {
 				return nil, false, e
 			}
+			if experimental {
+				profile["node"].(map[string]interface{})["hy2Performance"] = "aggressive-v1"
+			}
 			data, e = json.Marshal(profile)
 			if e != nil {
 				return nil, false, e
@@ -126,7 +153,7 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 		if e = json.Unmarshal(data, &profile); e != nil {
 			return nil, false, e
 		}
-		return map[string]interface{}{"node": profile["node"], "revision": qHash(string(data)), "label": label + " · " + p}, status == "active" && previousExpiry > now, nil
+		return map[string]interface{}{"node": profile["node"], "revision": qHash(string(data)), "label": label + " · " + p + map[bool]string{true: " · 性能实验"}[experimental]}, status == "active" && previousExpiry > now, nil
 	}
 	primary, ready, err := makeNode(protocol)
 	if err != nil {
@@ -151,6 +178,7 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 	if guestQuota != nil {
 		primary["quota"] = guestQuota
 	}
+	primary["labHy2"] = options.LabHy2 && primary["acceleration"] != nil
 	primary["ready"] = ready
 	c.JSON(200, primary)
 }
