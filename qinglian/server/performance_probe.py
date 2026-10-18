@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).parent/'github'))
 from ssh_common import connection,remote_json
 SCRIPT=r'''
-import json,os,re,subprocess,time,urllib.request,urllib.error,concurrent.futures,sqlite3
+import json,os,re,subprocess,time,urllib.request,urllib.error,concurrent.futures,sqlite3,hashlib,secrets
 from pathlib import Path
 def command(args):
  p=subprocess.run(args,capture_output=True,text=True,timeout=15);return p.stdout.strip() if p.returncode==0 else 'unavailable'
@@ -22,18 +22,20 @@ if not row:
   try:
    if any(c.get('id')==cfg.get('nodeUuid') for c in json.loads(entry[1]).get('clients',[])):row=entry;break
   except Exception:pass
+flow_salt=secrets.token_bytes(16)
 def sockets():
  if not row:return {'available':False}
  raw=command(['ss','-tinmHO','state','established','sport','=',':'+str(row[0])]);flows=[]
  for line in raw.splitlines():
   if 'rtt:' not in line:continue
-  item={}
+  item={'sampleFlow':hashlib.sha256(flow_salt+'|'.join(line.split()[2:4]).encode()).hexdigest()[:12]}
   for field in ['rtt','rto','cwnd','mss','pmtu','bytes_sent','bytes_retrans','reordering','snd_wnd','rcv_space','delivery_rate','pacing_rate','rwnd_limited','sndbuf_limited','busy','notsent']:
    match=re.search(r'(?:^|\s)'+field+r'[: ]([0-9.]+)',line)
    if match:item[field]=float(match.group(1))
   memory=re.search(r'skmem:\(r(\d+),rb(\d+),t(\d+),tb(\d+)',line)
   if memory:item['receiveBufferBytes']=int(memory[2]);item['sendBufferBytes']=int(memory[4])
   item['bbr']='bbr' in line;flows.append(item)
+ flows.sort(key=lambda item:item.get('bytes_sent',0),reverse=True)
  return {'available':True,'activeFlows':len(flows),'flows':flows[:12]}
 def counters():
  lines=Path('/proc/net/snmp').read_text().splitlines()
@@ -54,6 +56,9 @@ def transfer(size):
   return {'ok':count==size,'bytes':count,'seconds':round(elapsed,3),'Mbps':round(count*8/elapsed/1e6,2)}
  except urllib.error.HTTPError as error:return {'ok':False,'bytes':count,'httpStatus':error.code}
  except Exception as error:return {'ok':False,'bytes':count,'reason':type(error).__name__}
+def interface():return {key:int(Path('/sys/class/net/eth0/statistics/'+key).read_text()) for key in ['rx_dropped','tx_dropped','rx_errors','tx_errors'] if Path('/sys/class/net/eth0/statistics/'+key).exists()}
+def softnet():
+ rows=[line.split() for line in Path('/proc/net/softnet_stat').read_text().splitlines()];return {'dropped':sum(int(row[1],16) for row in rows),'timeSqueeze':sum(int(row[2],16) for row in rows)}
 def cpu():return list(map(int,Path('/proc/stat').read_text().splitlines()[0].split()[1:]))
 def processes():
  result={}
@@ -66,14 +71,14 @@ def processes():
    result[entry.name]={'name':'xray' if name.startswith('xray') else 'panel','ticks':int(fields[11])+int(fields[12]),'rssKiB':int(fields[21])*os.sysconf('SC_PAGE_SIZE')//1024}
   except (OSError,ValueError):pass
  return result
-started=time.monotonic();cpu_before=cpu();process_before=processes()
+started=time.monotonic();cpu_before=cpu();process_before=processes();interface_before=interface();softnet_before=softnet()
 before=counters();flows=sockets();single=transfer(8*1024*1024);start=time.monotonic()
 with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:parallel=list(pool.map(transfer,[8*1024*1024]*4))
 elapsed=time.monotonic()-start
 samples=[]
 for i in range(4):
  samples.append(sockets());time.sleep(3)
-after=counters();cpu_after=cpu();process_after=processes();span=time.monotonic()-started
+interface_after=interface();softnet_after=softnet();after=counters();cpu_after=cpu();process_after=processes();span=time.monotonic()-started
 process_load=[]
 for pid,value in process_after.items():
  if pid in process_before:process_load.append({'name':value['name'],'oneCoreCpuPercent':round((value['ticks']-process_before[pid]['ticks'])/os.sysconf('SC_CLK_TCK')/span*100,2),'rssKiB':value['rssKiB']})
@@ -82,7 +87,10 @@ xray=Path('/usr/local/x-ui/bin/xray-linux-amd64');version=command([str(xray),'ve
 config_path=Path('/usr/local/x-ui/bin/config.json');config=json.loads(config_path.read_text()) if config_path.exists() else {}
 policy=config.get('policy') or {};safe_policy={key:policy.get(key,{}) for key in ['system','levels']}
 flags=set(next((line.split(':',1)[1].split() for line in Path('/proc/cpuinfo').read_text().splitlines() if line.startswith('flags')),[]))
-extra={'tcpSamples':samples,'sampleSeconds':round(span,2),'processLoad':process_load,'cpuStealPercent':steal,'cpuCrypto':{key:key in flags for key in ['aes','avx','avx2']},'xrayVersion':version,'xrayPolicy':safe_policy,'sniffingEnabledCount':sum(bool((i.get('sniffing') or {}).get('enabled',False)) for i in config.get('inbounds',[])),'qdiscStatistics':command(['tc','-s','qdisc','show']),'interfaceCounters':{key:int(Path('/sys/class/net/eth0/statistics/'+key).read_text()) for key in ['rx_dropped','tx_dropped','rx_errors','tx_errors'] if Path('/sys/class/net/eth0/statistics/'+key).exists()}}
+first={item['sampleFlow']:item for item in samples[0].get('flows',[])};last={item['sampleFlow']:item for item in samples[-1].get('flows',[])};matched=set(first)&set(last)
+flow_bytes=sum(max(0,last[key].get('bytes_sent',0)-first[key].get('bytes_sent',0)) for key in matched);retrans_bytes=sum(max(0,last[key].get('bytes_retrans',0)-first[key].get('bytes_retrans',0)) for key in matched)
+flow_delta={'matchedLongLivedFlows':len(matched),'intervalSeconds':9,'sentBytes':flow_bytes,'retransmittedBytes':retrans_bytes,'Mbps':round(flow_bytes*8/9/1e6,3),'retransmittedByteFraction':round(retrans_bytes/flow_bytes,4) if flow_bytes else None}
+extra={'tcpSamples':samples,'longLivedFlowDelta':flow_delta,'interfaceDelta':{k:interface_after[k]-interface_before.get(k,0) for k in interface_after},'softnetDelta':{k:softnet_after[k]-softnet_before[k] for k in softnet_after},'sampleSeconds':round(span,2),'processLoad':process_load,'cpuStealPercent':steal,'cpuCrypto':{key:key in flags for key in ['aes','avx','avx2']},'xrayVersion':version,'xrayPolicy':safe_policy,'sniffingEnabledCount':sum(bool((i.get('sniffing') or {}).get('enabled',False)) for i in config.get('inbounds',[])),'qdiscStatistics':command(['tc','-s','qdisc','show']),'interfaceCounters':{key:int(Path('/sys/class/net/eth0/statistics/'+key).read_text()) for key in ['rx_dropped','tx_dropped','rx_errors','tx_errors'] if Path('/sys/class/net/eth0/statistics/'+key).exists()}}
 
 print(json.dumps({'deep':extra,'cpuCount':os.cpu_count(),'load':list(os.getloadavg()),'kernel':os.uname().release,'sysctl':settings,'qdisc':command(['tc','qdisc','show']),'selectedInboundTCP':flows,'selectedInboundTCPAfter':sockets(),'serverDownloadSingle':single,'serverDownloadParallel':{'streams':parallel,'aggregateMbps':round(sum(p.get('bytes',0) for p in parallel)*8/elapsed/1e6,2)},'tcpCounterDelta':{k:after[k]-before.get(k,0) for k in after},'xuiActive':command(['systemctl','is-active','x-ui']),'availableMemoryKiB':next((int(line.split()[1]) for line in Path('/proc/meminfo').read_text().splitlines() if line.startswith('MemAvailable:')),None)}))
 '''
