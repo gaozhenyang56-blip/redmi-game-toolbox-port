@@ -45,9 +45,9 @@ final class ApiEndpoint {
     ||token.trim().isEmpty()||token.contains("\r")||token.contains("\n"))throw new IOException("无效的服务端接口配置");
   return new ApiEndpoint(url,token);
  }
- static ApiEndpoint guest(Context c,String path,String token)throws Exception{if(!path.matches("start|profile|quota|stop"))throw new IOException("无效访客操作");ApiEndpoint base=load(c,"profile.json");return new ApiEndpoint(new URL(base.url,"guest/"+path),token==null?base.token:token,base.tlsFactory);}
+ static ApiEndpoint guest(Context c,String path,String token)throws Exception{if(!path.matches("start|profile|quota|stop|speed"))throw new IOException("无效访客操作");ApiEndpoint base=load(c,"profile.json");return new ApiEndpoint(new URL(base.url,"guest/"+path),token==null?base.token:token,base.tlsFactory);}
  static ApiEndpoint userExport(Context context,String path,String token)throws Exception{
-  if(!token.matches("[0-9a-f]{64}")||!path.matches("(?:bind|register|login|logout|history|quota|profile|nodes|nodes/[0-9a-f]{32}/revoke)"))throw new IOException("无效API凭据或操作");
+  if(!token.matches("[0-9a-f]{64}")||!path.matches("(?:bind|register|login|logout|history|quota|profile|speed|nodes|nodes/[0-9a-f]{32}/revoke)"))throw new IOException("无效API凭据或操作");
   ApiEndpoint base=load(context,"profile.json");URL target=new URL(base.url,"exports/"+path);return new ApiEndpoint(target,token,base.tlsFactory);
  }
  JSONObject request(JSONObject body)throws Exception{return request(body,null);}
@@ -68,6 +68,15 @@ final class ApiEndpoint {
    if(total==bytes.length)throw new IOException("接口响应过大");
    return new JSONObject(new String(bytes,0,total,StandardCharsets.UTF_8));
   }finally{c.disconnect();}
+ }
+ HttpURLConnection speedConnection(java.net.Proxy proxy,long bytes,String device)throws Exception{
+  if(bytes<1||bytes>33554432L)throw new IOException("无效测速大小");
+  URL target=new URL(url.toString()+"?bytes="+bytes+"&nonce="+System.nanoTime());HttpURLConnection c=(HttpURLConnection)target.openConnection(proxy);
+  if(tlsFactory!=null){if(!(c instanceof HttpsURLConnection))throw new IOException("测速必须使用TLS");((HttpsURLConnection)c).setSSLSocketFactory(tlsFactory);}
+  c.setRequestProperty("Authorization","Bearer "+token);c.setRequestProperty("X-Qinglian-Device",device);return c;
+ }
+ static HttpURLConnection serverSpeed(Context c,java.net.Proxy proxy,long bytes)throws Exception{
+  String account=ExportClient.token(c);ApiEndpoint endpoint=account.isEmpty()?GuestClient.speedEndpoint(c):userExport(c,"speed",account);return endpoint.speedConnection(proxy,bytes,ExportClient.device(c));
  }
  void downloadAPK(String digest,long expected,File output)throws Exception{
   if(!digest.matches("[0-9a-f]{64}")||expected<1||expected>64L*1024*1024)throw new IOException("无效安装包信息");

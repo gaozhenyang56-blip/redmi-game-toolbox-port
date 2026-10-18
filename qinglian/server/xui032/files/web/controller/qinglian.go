@@ -32,7 +32,7 @@ import (
 )
 
 var qUUID = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
-var qExportRoute = regexp.MustCompile(`^(register|login|logout|bind|quota|profile|history|nodes|nodes/[0-9a-f]{32}/revoke)$`)
+var qExportRoute = regexp.MustCompile(`^(register|login|logout|bind|quota|profile|speed|history|nodes|nodes/[0-9a-f]{32}/revoke)$`)
 var qUnavailable = errors.New("qinglian unavailable")
 
 type qTLSConfig struct {
@@ -308,6 +308,7 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	guest.Use(a.guestAuth)
 	guest.POST("/profile", a.accountProfile)
 	guest.GET("/quota", a.guestQuota)
+	guest.GET("/speed", a.speedDownload)
 	guest.POST("/stop", a.stopGuest)
 	publicAccounts := g.Group("/api/v1/exports")
 	publicAccounts.POST("/register", a.account)
@@ -316,6 +317,7 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	exports.Use(a.exportAuth)
 	exports.POST("/bind", a.exportQuota)
 	exports.GET("/quota", a.exportQuota)
+	exports.GET("/speed", a.speedDownload)
 	exports.POST("/logout", a.logoutAccount)
 	exports.POST("/profile", a.accountProfile)
 	exports.GET("/history", a.domainHistory)
@@ -626,7 +628,7 @@ func (a *QinglianController) StartTLS(engine http.Handler) error {
 	a.tlsServer = &http.Server{ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 300 * time.Second, IdleTimeout: 60 * time.Second,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.URL.Path {
-			case a.apiPrefix + "guest/start", a.apiPrefix + "guest/profile", a.apiPrefix + "guest/quota", a.apiPrefix + "guest/stop", a.apiPrefix + "updates", a.apiPrefix + "online", a.apiPrefix + "quota", a.apiPrefix + "heartbeat", a.apiPrefix + "profile":
+			case a.apiPrefix + "guest/start", a.apiPrefix + "guest/profile", a.apiPrefix + "guest/quota", a.apiPrefix + "guest/stop", a.apiPrefix + "guest/speed", a.apiPrefix + "updates", a.apiPrefix + "online", a.apiPrefix + "quota", a.apiPrefix + "heartbeat", a.apiPrefix + "profile":
 				engine.ServeHTTP(w, r)
 			default:
 				if strings.HasPrefix(r.URL.Path, a.apiPrefix+"exports/") && qExportRoute.MatchString(strings.TrimPrefix(r.URL.Path, a.apiPrefix+"exports/")) || strings.HasPrefix(r.URL.Path, a.apiPrefix+"apk/") && qDigest(strings.TrimPrefix(r.URL.Path, a.apiPrefix+"apk/")) {

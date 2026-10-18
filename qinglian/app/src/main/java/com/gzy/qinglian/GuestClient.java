@@ -19,6 +19,7 @@ final class GuestClient {
   if(!s.started){request(c,s,"start",new JSONObject().put("requestId",s.request).put("sessionKey",s.key));s.started=true;if(current!=s){stop(c,s);throw new IOException("连接已取消");}}
   JSONObject response=request(c,s,"profile",LabSettings.profileOptions(c));if(current!=s)throw new IOException("连接已取消");accept(c,s,response.optJSONObject("quota"));return response;
  }
+ static ApiEndpoint speedEndpoint(Context c)throws Exception{Session s=current;if(s==null||!s.started)throw new IOException("访客会话已结束");return ApiEndpoint.guest(c,"speed",s.key);}
  static void quota(Context c)throws Exception{Session s=current;if(s!=null&&s.started)accept(c,s,request(c,s,"quota",null));}
  private static void accept(Context c,Session s,JSONObject q)throws Exception{if(q==null||current!=s)return;s.used=q.getLong("usedBytes");s.remaining=q.getLong("remainingBytes");if(s.remaining<=0){TunnelService.guestExhausted();throw new IOException("本次访客64GB已用完，请重新连接");}}
  private static void stop(Context c,Session s){Context app=c.getApplicationContext();closer.execute(()->{try{request(app,s,"stop",new JSONObject());}catch(Exception ignored){}});}

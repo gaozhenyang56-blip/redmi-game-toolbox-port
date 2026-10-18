@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Public, bounded account/export smoke. No credentials printed or retained."""
-import copy,hashlib,http.cookiejar,json,os,secrets,socket,ssl,subprocess,tempfile,time,urllib.error,urllib.request
+import copy,hashlib,http.cookiejar,json,os,secrets,socket,ssl,subprocess,tempfile,time,urllib.error,urllib.request,urllib.parse
 from pathlib import Path
 from ssh_common import connection,remote_json
 os.umask(0o077)
@@ -32,7 +32,7 @@ with connection() as ssh,tempfile.TemporaryDirectory() as temp:
    if all(i in active for i in ids):break
    time.sleep(.3)
   else:raise AssertionError('exports did not activate')
-  def transfer(profile,p):
+  def transfer(profile,p,target=None,headers=None,rounds=1,lanes=1,renew=None):
    client=copy.deepcopy(profile['clientConfig']);socks=port();hy=p=='hysteria2'
    if not hy:
     converted=subprocess.run(['java','-cp',os.environ['QINGLIAN_NODECONFIG_CP'],'NodeConfigCli'],input=json.dumps(profile['node']).encode(),capture_output=True,check=True);client=json.loads(converted.stdout);client['inbounds'][1]['port']=port()
@@ -45,10 +45,21 @@ with connection() as ssh,tempfile.TemporaryDirectory() as temp:
      try:
       with socket.create_connection(('127.0.0.1',socks),.1):break
      except OSError:time.sleep(.05)
-    result=subprocess.run(['curl','-fsS','--max-time','30','--noproxy','','--socks5-hostname','127.0.0.1:'+str(socks),'https://speed.cloudflare.com/__down?bytes=524288'],capture_output=True,timeout=35);assert result.returncode==0 and len(result.stdout)==524288,'bounded public transfer failed for '+p
+    def fetch(_):
+     destination=target or 'https://speed.cloudflare.com/__down?bytes=524288';expected=int(urllib.parse.parse_qs(urllib.parse.urlsplit(destination).query)['bytes'][0]);config=''.join('header = "'+name+': '+value+'"\n' for name,value in (headers or {}).items())
+     command=['curl','-fsS','--max-time','30','--noproxy','','--socks5-hostname','127.0.0.1:'+str(socks),'--output',os.devnull,'--write-out','%{http_code} %{size_download}','--config','-',destination]
+     if target:command.extend(['--cacert',str(root/'ca.pem')])
+     try:result=subprocess.run(command,input=config.encode(),capture_output=True,timeout=35)
+     except subprocess.TimeoutExpired:raise AssertionError('bounded transfer timed out') from None
+     assert result.returncode==0 and result.stdout.decode().strip()=='200 '+str(expected),'bounded public transfer failed for '+p
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=lanes) as jobs:
+     for _ in range(rounds):
+      list(jobs.map(fetch,range(lanes)))
+      if renew:renew()
    finally:proc.terminate();proc.wait(timeout=5)
   for ident in ids:
-   node=active[ident];profile=node["profile"];assert profile["remark"]=="Smoke "+node["protocol"];assert "inbound" not in profile;transfer(profile,node["protocol"])
+   node=active[ident];profile=node["profile"];assert profile["remark"]=="Smoke "+node["protocol"];assert "inbound" not in profile;transfer(profile,node["protocol"]);transfer(profile,node["protocol"],base+"speed?bytes=524288",{"Authorization":"Bearer "+token,"X-Qinglian-Device":device})
   for _ in range(20):
    primary=request('profile',{},token)
    if primary.get('ready'):break
@@ -78,6 +89,15 @@ with connection() as ssh,tempfile.TemporaryDirectory() as temp:
   check=remote_json(ssh,'STATE='+repr(cfg['statePath'])+'\nUSER='+repr(account['userId'])+'\nPORT='+repr(bn['port'])+"\nimport sqlite3,json;from pathlib import Path\nwith sqlite3.connect(STATE) as db:ident=db.execute('SELECT id FROM exports WHERE user_id=? AND port=?',(USER,PORT)).fetchone()[0]\nc=json.loads((Path('/run/qinglian-exports')/(ident+'.json')).read_text());print(json.dumps({'aggressive':c['congestion']['bbrProfile']=='aggressive','window':c['quic']['maxConnReceiveWindow'],'unlimited':c['ignoreClientBandwidth'] and 'bandwidth' not in c}))")
   assert check=={'aggressive':True,'window':67108864,'unlimited':True}
   template=copy.deepcopy(next(v['profile'] for v in active.values() if v['protocol']=='hysteria2'));template['node']=bn;client=template['clientConfig'];client['server']=bn['add']+':'+str(bn['port']);client['auth']=bn['auth'];client['congestion']={'type':'bbr','bbrProfile':'aggressive'};client['quic'].update({'initStreamReceiveWindow':8388608,'maxStreamReceiveWindow':33554432,'initConnReceiveWindow':16777216,'maxConnReceiveWindow':67108864});transfer(template,'hysteria2')
+  before_speed=request('quota',token=token)['cumulativeTotalBytes']
+  speed_url=base+'speed?bytes=33554432'
+  transfer(template,'hysteria2',speed_url,{'Authorization':'Bearer '+token,'X-Qinglian-Device':device},rounds=8,lanes=4,renew=lambda:request('profile',{'labHy2':True},token))
+  # A further request must work immediately after the 1GiB four-lane transfer.
+  transfer(template,'hysteria2',base+'speed?bytes=524288',{'Authorization':'Bearer '+token,'X-Qinglian-Device':device})
+  for _ in range(10):
+   if request('quota',token=token)['cumulativeTotalBytes']-before_speed>=1073741824:break
+   time.sleep(.5)
+  else:raise AssertionError('server speed traffic was not metered')
   restored=request('profile',{'labHy2':False},token);assert restored['acceleration']['node']==normal_hy and not restored['labHy2']
   retired=remote_json(ssh,'STATE='+repr(cfg['statePath'])+'\nUSER='+repr(account['userId'])+'\nPORT='+repr(bn['port'])+"\nimport sqlite3,json,time;from pathlib import Path\ntime.sleep(2)\nwith sqlite3.connect(STATE) as db:row=db.execute('SELECT id,status FROM exports WHERE user_id=? AND port=?',(USER,PORT)).fetchone()\nprint(json.dumps({'retired':row[1]!='active' and not (Path('/run/qinglian-exports')/(row[0]+'.json')).exists()}))")
   assert retired['retired'],'disabled device experiment worker retained'
@@ -98,6 +118,7 @@ with connection() as ssh,tempfile.TemporaryDirectory() as temp:
    protocol=n['protocol'];template=copy.deepcopy(next(v['profile'] for v in active.values() if v['protocol']==protocol));template['node']=n
    if protocol=='hysteria2':template['clientConfig']['server']=n['add']+':'+str(n['port']);template['clientConfig']['auth']=n['auth'];template['clientConfig']['congestion']={'type':'bbr','bbrProfile':'aggressive'};template['clientConfig']['quic'].update({'initStreamReceiveWindow':8388608,'maxStreamReceiveWindow':33554432,'initConnReceiveWindow':16777216,'maxConnReceiveWindow':67108864})
    transfer(template,protocol)
+   transfer(template,protocol,base.replace('/exports/','/guest/')+'speed?bytes=524288',{'Authorization':'Bearer '+guest_key,'X-Qinglian-Device':device})
   time.sleep(1);assert guest('quota',key=guest_key)['usedBytes']>=len(guest_nodes)*524288
   check=remote_json(ssh,'STATE='+repr(cfg['statePath'])+'\nUSER='+repr(g['id'])+"\nimport sqlite3,json\nwith sqlite3.connect(STATE) as db:\n count=db.execute('SELECT COUNT(*) FROM history WHERE user_id=?',(USER,)).fetchone()[0]\n db.execute(\"UPDATE exports SET up=? WHERE id=(SELECT id FROM exports WHERE user_id=? AND kind='guest' LIMIT 1)\",(64*1024**3,USER))\nprint(json.dumps({'historyCount':count}))")
   assert check['historyCount']==0 and guest('profile',{},guest_key)['quota']['remainingBytes']==0
@@ -108,7 +129,7 @@ with connection() as ssh,tempfile.TemporaryDirectory() as temp:
   next_key=secrets.token_hex(32);next_guest=guest('start',{'requestId':str(__import__('uuid').uuid4()),'sessionKey':next_key});users.append(next_guest['id']);assert guest('quota',key=next_key)['remainingBytes']==64*1024**3;guest('stop',{},next_key)
   time.sleep(1);quota=request('quota' ,token=token);assert quota['allocatedBytes']==len(protocols)*2*1048576;assert quota['cumulativeTotalBytes']>=len(protocols)*524288
   history=request('history',token=token);assert history['retention']=='permanent' and any(r['domain']=='speed.cloudflare.com' for r in history['records']),'native domain capture unavailable'
-  print(json.dumps({'passed':True,'protocols':protocols,'publicBytesEach':524288,'originalCAValidated':True,'deviceRegistrationLimited':True,'multiDeviceLogin':True,'idempotency':True,'remarks':True,'mainIndependent':True,'quotaIndependent':True,'cumulativeTraffic':True,'permanentDomains':True,'guestNoAccount':True,'guestCombined64GiBCap':True,'guestHistoryDisabled':True,'guestNewManualReset':True,'hy2ExperimentIsolated':True,'hy2AggressiveTransfer':True,'hy2NormalRestored':True}))
+  print(json.dumps({'passed':True,'protocols':protocols,'publicBytesEach':524288,'originalCAValidated':True,'deviceRegistrationLimited':True,'multiDeviceLogin':True,'idempotency':True,'remarks':True,'mainIndependent':True,'quotaIndependent':True,'cumulativeTraffic':True,'permanentDomains':True,'guestNoAccount':True,'guestCombined64GiBCap':True,'guestHistoryDisabled':True,'guestNewManualReset':True,'hy2ExperimentIsolated':True,'hy2AggressiveTransfer':True,'hy2NormalRestored':True,'serverSpeedFourLanes1GiB':True,'serverSpeedImmediatelyReusable':True}))
  finally:
   # Remove only the random fixture account after stopping its workers.
   if users:
