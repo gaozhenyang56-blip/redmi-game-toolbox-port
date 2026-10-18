@@ -47,3 +47,5 @@ python3 scripts/verify_release_signature.py app/build/outputs/apk/release/app-re
 源码 GPL-3.0；第三方许可证见 LICENSE 与 third_party/。
 
 顶部与悬浮胶囊底部导航加入苹果风格毛玻璃，保留M3配色：API31+GPU模糊，低版本半透明；仅页面变化/滚动时更新，后台停止。最新记录见HANDOFF首节。
+
+规则/全局、黑白名单与底部四导航已统一为苹果玻璃分段滑块，支持点击和拖动，保留原生选中语义。

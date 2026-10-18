@@ -21,7 +21,7 @@ public class MainActivity extends AppCompatActivity {
  private FrameLayout root;
  private LinearLayout body;
  private FrostedBar topGlass,bottomGlass;
- private com.google.android.material.bottomnavigation.BottomNavigationView nav;
+ private GlassSegments nav;
  static final int NAV_CONNECT=R.id.nav_connect,NAV_SPEED=R.id.nav_speed,NAV_ROUTING=R.id.nav_routing,NAV_ABOUT=R.id.nav_about;
  private static final int[] NAV_ITEMS={NAV_CONNECT,NAV_SPEED,NAV_ROUTING,NAV_ABOUT};
  private TextView quotaValue,quotaDetail,onlineValue,onlineDetail,reportDetail,profileDetail;
@@ -54,15 +54,13 @@ public class MainActivity extends AppCompatActivity {
   body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(16),dp(12),dp(16),dp(16));scroll.addView(body);root.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
   topGlass=new FrostedBar(this,color(com.google.android.material.R.attr.colorSurface),night,28);topGlass.addView(toolbar,new FrameLayout.LayoutParams(-1,-1));topGlass.setSource(scroll);
   FrameLayout.LayoutParams topGlassLayout=new FrameLayout.LayoutParams(-1,dp(64),Gravity.TOP);topGlassLayout.setMargins(dp(12),dp(8),dp(12),0);root.addView(topGlass,topGlassLayout);
-  nav=new com.google.android.material.bottomnavigation.BottomNavigationView(this);
-  nav.setLabelVisibilityMode(com.google.android.material.navigation.NavigationBarView.LABEL_VISIBILITY_LABELED);
-  nav.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.TRANSPARENT));nav.setElevation(0);
+  nav=new GlassSegments(this,new String[]{"连接","测速","分流","关于"},NAV_ITEMS,new int[]{R.drawable.ic_nav_connect,R.drawable.ic_nav_speed,R.drawable.ic_nav_routing,R.drawable.ic_nav_info},true);
   bottomGlass=new FrostedBar(this,color(com.google.android.material.R.attr.colorSurfaceContainer),night,36);bottomGlass.addView(nav,new FrameLayout.LayoutParams(-1,-2));bottomGlass.setSource(scroll);
   FrameLayout.LayoutParams bottomGlassLayout=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);bottomGlassLayout.setMargins(dp(12),0,dp(12),dp(8));root.addView(bottomGlass,bottomGlassLayout);
   bottomGlass.addOnLayoutChangeListener((v,l,t,r,bottom,ol,ot,or,ob)->{if(scroll.getPaddingBottom()!=bottom-t+dp(16))scroll.setPadding(0,dp(80),0,bottom-t+dp(16));});
   scroll.setOnScrollChangeListener((v,x,y,oldX,oldY)->{topGlass.requestBackdrop();bottomGlass.requestBackdrop();});
   body.addOnLayoutChangeListener((v,l,t,r,bottom,ol,ot,or,ob)->{topGlass.requestBackdrop();bottomGlass.requestBackdrop();});
-  nav.setOnItemSelectedListener(item->{int next=item.getItemId()==NAV_CONNECT?0:item.getItemId()==NAV_SPEED?1:item.getItemId()==NAV_ROUTING?2:3;if(next!=tab){tab=next;build();}return true;});build();
+  nav.setListener(next->{if(next!=tab){tab=next;build();}});build();
  }
  @Override protected void onResume(){super.onResume();topGlass.setActive(true);bottomGlass.setActive(true);main.post(ticker);}
  @Override protected void onPause(){main.removeCallbacks(ticker);topGlass.setActive(false);bottomGlass.setActive(false);super.onPause();}
@@ -76,10 +74,7 @@ public class MainActivity extends AppCompatActivity {
  private LinearLayout card(int tint){MaterialCardView c=new MaterialCardView(this);c.setRadius(dp(12));c.setCardElevation(0);c.setStrokeWidth(0);c.setCardBackgroundColor(color(tint));LinearLayout p=new LinearLayout(this);p.setOrientation(LinearLayout.VERTICAL);p.setPadding(dp(16),dp(16),dp(16),dp(16));c.addView(p);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(12);body.addView(c,lp);return p;}
  private MaterialButton button(String title){MaterialButton b=new MaterialButton(this);b.setText(title);b.setTextSize(15);b.setCornerRadius(dp(20));b.setMinHeight(dp(48));return b;}
  private void build(){
-  body.removeAllViews();nav.getMenu().clear();String[] names={"连接","测速","分流","关于"};
-  int[] icons={R.drawable.ic_nav_connect,R.drawable.ic_nav_speed,R.drawable.ic_nav_routing,R.drawable.ic_nav_info};
-  for(int i=0;i<names.length;i++)nav.getMenu().add(Menu.NONE,NAV_ITEMS[i],i,names[i]).setIcon(icons[i]);
-  nav.setSelectedItemId(NAV_ITEMS[tab]);
+  body.removeAllViews();nav.setSelected(tab,false);
   quotaValue=quotaDetail=onlineValue=onlineDetail=reportDetail=profileDetail=null;status=caption=clock=up=down=upTotal=downTotal=latencyValue=downloadValue=testDetail=null;power=delayButton=downloadButton=stopButton=null;progress=null;graph=null;
   if(tab==0)home();else if(tab==1)speed();else if(tab==2)routing();else about();refresh();
  }
@@ -125,25 +120,17 @@ public class MainActivity extends AppCompatActivity {
    if(AppAppearance.select(this,next))dialog.dismiss();else toast("保存失败，请重试");
   }).setNegativeButton("取消",null).show();
  }
- private MaterialButton modeButton(String title){
-  MaterialButton button=new MaterialButton(this,null,com.google.android.material.R.attr.materialButtonOutlinedStyle);button.setText(title);button.setCornerRadius(dp(20));
-  int[][] states={new int[]{android.R.attr.state_checked},new int[]{}};
-  button.setBackgroundTintList(new android.content.res.ColorStateList(states,new int[]{color(com.google.android.material.R.attr.colorSecondaryContainer),color(com.google.android.material.R.attr.colorSurfaceContainer)}));
-  button.setTextColor(new android.content.res.ColorStateList(states,new int[]{color(com.google.android.material.R.attr.colorOnSecondaryContainer),color(com.google.android.material.R.attr.colorOnSurface)}));
-  button.setStrokeColor(android.content.res.ColorStateList.valueOf(color(com.google.android.material.R.attr.colorOutline)));return button;
- }
+ private String ruleDescription(AppRouting rules){return rules.global?"全局：所有应用走 VPN，轻连自身除外。":"规则："+(rules.mode==AppRouting.Mode.WHITELIST?"白名单中的应用走 VPN，其余直连。":"黑名单中的应用直连，其余走 VPN。");}
  private void connectionModes(){
   AppRouting rules;try{rules=AppRouting.load(this);}catch(Exception invalid){return;}
   LinearLayout card=card(com.google.android.material.R.attr.colorSurfaceContainer);card.addView(text("连接模式",18,true));space(card,10);
-  com.google.android.material.button.MaterialButtonToggleGroup group=new com.google.android.material.button.MaterialButtonToggleGroup(this);group.setSingleSelection(true);group.setSelectionRequired(true);
-  MaterialButton rule=modeButton("规则"),global=modeButton("全局");rule.setId(View.generateViewId());global.setId(View.generateViewId());
-  group.addView(rule,new LinearLayout.LayoutParams(0,dp(52),1));group.addView(global,new LinearLayout.LayoutParams(0,dp(52),1));card.addView(group);group.check(rules.global?global.getId():rule.getId());
-  group.addOnButtonCheckedListener((buttons,id,checked)->{if(!checked)return;
-   AppRouting next=AppRouting.load(this).withGlobal(id==global.getId());
-   if(!next.save(this)){toast("保存失败，请重试");build();return;}
-   toast(TunnelService.state.equals("connected")?"模式已保存，断开重连后生效":"连接模式已保存");build();
+  GlassSegments group=new GlassSegments(this,new String[]{"规则","全局"},null,null,false);group.setSelected(rules.global?1:0,false);card.addView(group,new LinearLayout.LayoutParams(-1,dp(52)));
+  space(card,8);TextView description=note(ruleDescription(rules));card.addView(description);
+  group.setListener(index->{
+   AppRouting next=AppRouting.load(this).withGlobal(index==1);
+   if(!next.save(this)){toast("保存失败，请重试");group.setSelected(AppRouting.load(this).global?1:0,true);return;}
+   description.setText(ruleDescription(next));toast(TunnelService.state.equals("connected")?"模式已保存，断开重连后生效":"连接模式已保存");
   });
-  space(card,8);card.addView(note(rules.global?"全局：所有应用走 VPN，轻连自身除外。":"规则："+(rules.mode==AppRouting.Mode.WHITELIST?"白名单中的应用走 VPN，其余直连。":"黑名单中的应用直连，其余走 VPN。")));
   if(TunnelService.state.equals("connected")){space(card,6);card.addView(note("当前连接："+TunnelService.routingStatus+" · 修改后需重连"));}
  }
  private void routing(){
@@ -151,19 +138,20 @@ public class MainActivity extends AppCompatActivity {
   try{rules=AppRouting.load(this);}catch(Exception invalid){rules=new AppRouting(true,AppRouting.Mode.BLACKLIST,Collections.emptySet());body.addView(note("已保存的分流规则无效，请重新选择模式并保存。"));}
   final AppRouting saved=rules;
   body.addView(text("应用分流",24,true));space(body,8);body.addView(note("黑名单应用直连；白名单应用走 VPN。连接页选择规则模式时生效，全局模式忽略名单。"));space(body,20);
-  LinearLayout mode=card(com.google.android.material.R.attr.colorPrimaryContainer);mode.addView(text(saved.mode==AppRouting.Mode.WHITELIST?"白名单模式":"黑名单模式",21,true));space(mode,10);
-  mode.addView(note(saved.mode==AppRouting.Mode.WHITELIST?"名单内的应用走 VPN，其余应用直连。":"名单内的应用直连，其余应用走 VPN。"));space(mode,12);
-  MaterialButton change=button("黑白名单模式");mode.addView(change);
-  change.setOnClickListener(v->{String[] titles={"黑名单 · 所选应用直连","白名单 · 仅所选应用走 VPN"};
-   new MaterialAlertDialogBuilder(this).setTitle("分流模式").setSingleChoiceItems(titles,saved.mode.ordinal(),(dialog,which)->{
-    AppRouting next=AppRouting.forMode(this,saved.global,AppRouting.Mode.values()[which]);
-    if(next.save(this)){dialog.dismiss();build();toast("已保存，下次连接生效");}else toast("保存失败，请重试");
-   }).setNegativeButton("取消",null).show();
-  });
-  LinearLayout apps=card(com.google.android.material.R.attr.colorSurfaceContainer);apps.addView(text("已选择 "+saved.selected.size()+" 个应用",19,true));space(apps,10);
+  LinearLayout mode=card(com.google.android.material.R.attr.colorPrimaryContainer);TextView modeTitle=text(saved.mode==AppRouting.Mode.WHITELIST?"白名单模式":"黑名单模式",21,true);mode.addView(modeTitle);space(mode,10);
+  TextView modeDescription=note("");mode.addView(modeDescription);space(mode,12);mode.addView(note("黑白名单模式"));space(mode,6);
+  GlassSegments modes=new GlassSegments(this,new String[]{"黑名单","白名单"},null,null,false);modes.setSelected(saved.mode.ordinal(),false);mode.addView(modes,new LinearLayout.LayoutParams(-1,dp(52)));
+  LinearLayout apps=card(com.google.android.material.R.attr.colorSurfaceContainer);TextView appCount=text("",19,true);apps.addView(appCount);space(apps,10);
   apps.addView(note("可选择有启动图标的应用。已保存但卸载的应用会保留标记，可在列表中取消。轻连自身保持直连。"));space(apps,12);
-  MaterialButton select=button("选择应用");apps.addView(select);select.setOnClickListener(v->chooseApps(saved));
-  if(saved.mode==AppRouting.Mode.WHITELIST&&saved.selected.isEmpty()){space(apps,10);apps.addView(note("规则模式使用白名单时，请至少选择一个应用。"));}
+  MaterialButton select=button("选择应用");apps.addView(select);select.setOnClickListener(v->chooseApps(AppRouting.load(this)));
+  TextView warning=note("规则模式使用白名单时，请至少选择一个应用。");apps.addView(warning);
+  Runnable update=()->{AppRouting latest=AppRouting.load(this);boolean white=latest.mode==AppRouting.Mode.WHITELIST;
+   modeTitle.setText(white?"白名单模式":"黑名单模式");modeDescription.setText(white?"名单内的应用走 VPN，其余应用直连。":"名单内的应用直连，其余应用走 VPN。");
+   appCount.setText("已选择 "+latest.selected.size()+" 个应用");warning.setVisibility(white&&latest.selected.isEmpty()?View.VISIBLE:View.GONE);
+  };update.run();
+  modes.setListener(index->{AppRouting current=AppRouting.load(this);AppRouting next=AppRouting.forMode(this,current.global,AppRouting.Mode.values()[index]);
+   if(!next.save(this)){toast("保存失败，请重试");modes.setSelected(current.mode.ordinal(),true);return;}update.run();toast("已保存，下次连接生效");
+  });
   body.addView(note(TunnelService.state.equals("connected")?"当前连接："+TunnelService.routingStatus+"。修改后需断开并重新连接。":"分流使用 Android 系统 VPN 规则，不需要额外权限。"));
  }
  private void chooseApps(AppRouting saved){
