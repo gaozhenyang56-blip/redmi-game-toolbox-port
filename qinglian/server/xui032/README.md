@@ -49,3 +49,7 @@ apply.py 要求精确提交、干净工作树，拒绝把补丁直接套到未�
 服务器保留原二进制 /usr/local/x-ui/x-ui.qinglian-previous。撤销扩展时停服务、保留当前配置/独立状态供恢复、原子恢复原二进制再启动；原表未迁移。CA/服务私钥仅在root私有目录及私有备份。
 
 “App订阅节点”保存独立preferences，仅同ownerId启用的单客户端VMess TCP/HTTP、alterId0、无TLS入站可选。App重连应用。所选入站UUID/端口变更自动反映；API主机迁移需更新构建资产。
+
+## v7 更新通道维护
+
+已部署界面热修复/完整APK发布，见server/API.md及HANDOFF.md。qinglian-server-upgrade.yml先备份两份SQLite一致性快照、原二进制和私有配置，构建精确0.3.2覆盖层再升级，失败自动恢复旧二进制。不要用首次部署脚本更新已有集成。qinglian-update-check.yml只读验证公开TLS下载字节、原签名和包版本。已有客户端需要先安装v7。

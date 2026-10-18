@@ -12,3 +12,7 @@
 备份和App资产仅以加密artifact暂存GitHub；公开Git只有封装公钥，解密私钥私有交付。凭据、节点与PKI私钥不输出日志。完整原始备份和部署后配置均已私有保存。
 
 API专用11452HTTPS保留主机名验证；server.pem有效825天、CA10年，到期前同CA续签。App发布签名与TLS密钥不同，保留原签名。
+
+## v7 更新通道维护
+
+已部署界面热修复/完整APK发布，见server/API.md及HANDOFF.md。qinglian-server-upgrade.yml先备份两份SQLite一致性快照、原二进制和私有配置，构建精确0.3.2覆盖层再升级，失败自动恢复旧二进制。不要用首次部署脚本更新已有集成。qinglian-update-check.yml只读验证公开TLS下载字节、原签名和包版本。已有客户端需要先安装v7。

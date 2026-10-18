@@ -29,7 +29,7 @@ type qUI struct {
 	GlassEnabled bool `json:"glassEnabled"`
 }
 
-func qDefaultUI() qUI { return qUI{80, 24, 12, 4, 12, true} }
+func qDefaultUI() qUI { return qUI{80, 24, 12, 2, 12, true} }
 func (u qUI) valid() bool {
 	return u.NavHeight >= 64 && u.NavHeight <= 96 && u.NavIcon >= 18 && u.NavIcon <= 30 && u.NavText >= 10 && u.NavText <= 16 && u.NavGap >= 0 && u.NavGap <= 10 && u.GlassMargin >= 0 && u.GlassMargin <= 16
 }

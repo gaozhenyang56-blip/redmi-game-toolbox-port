@@ -8,7 +8,7 @@ final class UiTuning {
  static final String PREFS="ui_updates";
  final long revision;final int navHeight,navIcon,navText,navGap,glassMargin;final boolean glassEnabled;
  UiTuning(long revision,int height,int icon,int text,int gap,int margin,boolean glass){this.revision=revision;navHeight=height;navIcon=icon;navText=text;navGap=gap;glassMargin=margin;glassEnabled=glass;}
- static UiTuning defaults(){return new UiTuning(0,80,24,12,4,12,true);}
+ static UiTuning defaults(){return new UiTuning(0,80,24,12,2,12,true);}
  static int integer(JSONObject json,String key,int min,int max)throws Exception{long n=ApiEndpoint.nonnegativeLong(json,key);if(n<min||n>max)throw new JSONException("界面配置范围无效");return (int)n;}
  static UiTuning parse(long revision,JSONObject json)throws Exception{
   if(revision<0)throw new JSONException("版本无效");

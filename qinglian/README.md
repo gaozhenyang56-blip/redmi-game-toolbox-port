@@ -1,6 +1,6 @@
 # 轻连 — Android 单节点 VPN，Codex 交接工程
 
-**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.0.5-preview`，versionCode `6`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
+**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.0.6-preview`，versionCode `7`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
 
 已完成标准 Material 3、默认亮色和亮色自适应图标；支持浅色/深色/跟随系统切换。包含延迟/下载测速、每秒通知栏速度与本次用量、Surfboard风格黑白名单及规则/全局模式。
 
@@ -49,3 +49,9 @@ python3 scripts/verify_release_signature.py app/build/outputs/apk/release/app-re
 顶部与悬浮胶囊底部导航加入苹果风格毛玻璃，保留M3配色：API31+GPU模糊，低版本半透明；仅页面变化/滚动时更新，后台停止。最新记录见HANDOFF首节。
 
 规则/全局、黑白名单与底部四导航已统一为苹果玻璃分段滑块，支持点击和拖动，保留原生选中语义。
+
+## 面板热修复与版本发布（v7）
+
+原面板“轻连 App → App 热修复与版本发布”可调整导航高度、图标/文字大小、图文间距、玻璃边距及开关，支持回滚。App前台每30秒读取已认证HTTPS配置，校验后刷新界面；连接保持。默认底部图文间距2dp，图标与文字整体居中。
+
+安装v7后可接收面板上传的后续APK。下载仅限固定HTTPS来源，核对大小、SHA256、包名、更高版本号和原签名，交给Android系统确认安装。界面热修复不执行脚本或DEX；原生功能修复需完整APK更新。首次需手动安装v7。

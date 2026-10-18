@@ -4,11 +4,11 @@
 
 ## 固定配置与权限
 
-构建前私下恢复 assets 中的 `online.json`、`quota.json`、`telemetry.json`、`profile.json`；四者格式均为 `{"url":"https://主机/完整接口路径","clientToken":"私有客户端令牌"}`。示例文件不参与连接。可选caAsset指定App API专用CA资产（生产为api-ca.pem），仍校验主机名。没有外部订阅链接，节点由原面板选择现有兼容入站。
+构建前私下恢复 assets 中的 `online.json`、`quota.json`、`telemetry.json`、`profile.json`、`updates.json`；五者格式均为 `{"url":"https://主机/完整接口路径","clientToken":"私有客户端令牌"}`。示例文件不参与连接。可选caAsset指定App API专用CA资产（生产为api-ca.pem），仍校验主机名。没有外部订阅链接，节点由原面板选择现有兼容入站。
 
 App 只接受 HTTPS，正常验证证书，不跟随重定向，Bearer 令牌不放入查询串。心跳、数量和配额都不携带面板/root 凭据。可对读与写分别发令牌，但每个令牌仅允许相应 App API；设备明细只能由面板登录会话访问。APK 内客户端令牌可提取，不是可靠设备身份。
 
-四个端点均使用 `Authorization: Bearer <clientToken>`，响应 `Cache-Control: no-store`。响应体上限 8 KiB，非 200、字段缺失或类型错误均为不可用，不能转成零。禁止把 302 登录页面误当成功；鉴权失败应返回 401/403。
+所有App端点均使用 `Authorization: Bearer <clientToken>`，响应 `Cache-Control: no-store`。响应体上限 8 KiB，非 200、字段缺失或类型错误均为不可用，不能转成零。禁止把 302 登录页面误当成功；鉴权失败应返回 401/403。
 
 ## GET /api/v1/online
 
@@ -73,3 +73,17 @@ App每15秒刷新状态，每次连接重新请求；失败阻止该次连接，
 App Bearer不能读管理员接口。TLS端口11452仅开放四个App路由，管理员路径404。原HTTP管理端口不变。
 
 设备ID和自报字段可伪造，用于本App在线观测，不作为身份或计费。真实双手机在线与Android出网仍需实机验证。
+
+## 更新通道（v7）
+
+GET `/api/v1/updates`：Bearer，8KiB以内的严格JSON：
+
+```json
+{"schema":1,"revision":3,"ui":{"navHeight":80,"navIcon":24,"navText":12,"navGap":2,"glassMargin":12,"glassEnabled":true},"apk":null}
+```
+
+apk非空时字段为versionCode、versionName、sha256（64位小写hex）、size（1..64MiB）、notes（最多1000字符）。App仅提示高于本机版本，下载后还验证真实APK包名/版本/签名。前台30秒轮询，失败保留已验证界面，不伪造成功。
+
+GET `/api/v1/apk/:digest`：同一Bearer/专用TLS，下载已发布历史内的APK，64MiB上限；此二进制路由不适用JSON8KiB上限。客户端不接受外部下载URL，不跟随重定向。
+
+管理员GET/POST `/xui/qinglian/updates`、POST `/xui/qinglian/updates/rollback`、POST `/xui/qinglian/updates/apk`。写操作要求原面板cookie、Origin同主机及X-Requested-With: XMLHttpRequest。发布使用当前revision作比较并递增；回滚也生成新revision。上传multipart字段apk/versionCode/versionName/notes，大小与hash由服务端计算；App最终核验签名，面板上传不代表已通过签名验证。以上管理员路由不暴露在专用App TLS端口。

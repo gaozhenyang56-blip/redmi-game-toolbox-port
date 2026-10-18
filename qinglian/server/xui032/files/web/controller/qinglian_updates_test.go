@@ -91,7 +91,7 @@ func TestQUpdatePublishingCASAndRollbackAreAuthenticated(t *testing.T) {
 		t.Fatal(r.Code)
 	}
 	json.Unmarshal(r.Body.Bytes(), &value)
-	if value.Revision != 2 || value.UI.NavGap != 4 {
+	if value.Revision != 2 || value.UI.NavGap != 2 {
 		t.Fatal("rollback did not publish new revision")
 	}
 }

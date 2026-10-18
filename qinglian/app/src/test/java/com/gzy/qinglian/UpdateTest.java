@@ -22,7 +22,7 @@ public class UpdateTest {
  @Test public void storesMonotonicallyAndRecoversFailedRenderWithoutRetryLoop()throws Exception{
   Context c=context();assertTrue(UiTuning.save(c,UiTuning.parse(1,UiTuning.defaults().json())));UiTuning.beginRender(c);UiTuning.stable(c);
   assertTrue(UiTuning.save(c,UiTuning.parse(2,UiTuning.defaults().json().put("navGap",8))));UiTuning.beginRender(c);UiTuning.beginRender(c);
-  assertEquals(1,UiTuning.get(c).revision);assertEquals(4,UiTuning.get(c).navGap);assertFalse(UiTuning.save(c,UiTuning.parse(2,UiTuning.defaults().json())));
+  assertEquals(1,UiTuning.get(c).revision);assertEquals(2,UiTuning.get(c).navGap);assertFalse(UiTuning.save(c,UiTuning.parse(2,UiTuning.defaults().json())));
   assertTrue(UiTuning.save(c,UiTuning.parse(3,UiTuning.defaults().json())));UiTuning.reset(c);assertEquals(0,UiTuning.get(c).revision);assertFalse(UiTuning.save(c,UiTuning.parse(3,UiTuning.defaults().json())));
  }
  @Test public void acceptsAtomicManifestButRejectsReplayAndUntrustedDownloadFields()throws Exception{

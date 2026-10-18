@@ -1,3 +1,15 @@
+# 导航对齐与面板更新（versionCode7，2026-10-18）
+
+当前1.0.6-preview/versionCode7，下一版至少8，沿用原签名。下方为历史记录，冲突以本节为准。
+
+- 底部导航采用显式绘制的图标+文字整体居中，避免系统复合drawable排版差异；保留RadioButton文字、点击、拖动与无障碍选中语义。默认图文间距由4dp缩小为2dp，按字体大小扩展高度。
+- 原x-ui新增“App 热修复与版本发布”：独立SQLite保存递增版本及最近20次历史；支持发布/回滚界面参数、上传APK，最近3个APK保留。写操作仅面板登录用户且同源，App令牌无发布权限。
+- 严格界面白名单：navHeight64..96dp、navIcon18..30dp、navText10..16sp、navGap0..10dp、glassMargin0..16dp、glassEnabled布尔。拒绝未知字段/脚本/任意URL。App前台30秒检查，配置原子保存、稳定启动确认、失败恢复上一版，关于页可恢复默认。刷新Activity不重启VPN。
+- 完整APK仅从固定HTTPS API下载，保留CA/主机名校验与Bearer，不跟随重定向。最多64MiB，校验长度/SHA256、包名、更高版本号、最低系统兼容性、原签名证书后由系统确认安装；不静默安装。Android未知来源授权后需再次点安装。
+- updates.json与既有私有API资产一致忽略，不提交令牌。首次手动安装v7，后续才能使用面板更新接口。
+- 生产升级run39097892611成功：部署前加密一致性备份已下载并校验；原入站配置/计数、私有配置/TLS保持，原面板登录与发布/回滚、公开HTTPS及权限边界检查成功。旧二进制保留x-ui.qinglian-before-updates-<sha前12位>，异常自动回滚。
+- Android55项测试、Go9项race测试、assembleRelease与lintRelease；原签名验证。实际下载发布验收及最终摘要见verification/ROUTING_CHECKS.md。没有实体手机布局、覆盖安装或安装器验收。
+
 # 苹果风格毛玻璃与滑块（versionCode6）
 
 用户要求加入接近苹果的玻璃效果。顶部Toolbar与底部悬浮胶囊导航现使用FrostedBar（圆角、柔和高光、细白边、轻阴影），文字/按钮不模糊，保留M3配色与亮暗切换。Android12/API31起，缩小至1/8的页面条带快照经GPU RenderEffect模糊；低版本使用半透明底色。
