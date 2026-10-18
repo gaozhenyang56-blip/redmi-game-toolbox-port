@@ -18,6 +18,15 @@ raw=run(['ss','-ulnm','sport','=',':443']);memory=re.findall(r'skmem:\(([^)]+)',
 config=json.loads(Path('/etc/x-ui/qinglian/hy2.json').read_text())
 req=urllib.request.Request('http://127.0.0.1:11453/status',headers={'Authorization':'Bearer '+config['managementToken']})
 with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req,timeout=3) as response:status=json.load(response)
-print(json.dumps({'hy2':{k:status.get(k) for k in ['running','enabled','error']},'service':before,'udpCounterDelta':{k:b[k]-a.get(k,0) for k in b},'udpMemory':memory,'udpReceiveCeiling':run(['sysctl','-n','net.core.rmem_max']),'udpSendCeiling':run(['sysctl','-n','net.core.wmem_max']),'serverQuic':json.loads(Path('/run/qinglian-hy2/hy2-server.json').read_text()).get('quic',{})}))
+workers=[]
+base=json.loads(Path('/etc/x-ui/qinglian.json').read_text())
+import sqlite3
+with sqlite3.connect(base['statePath']) as db:
+ for ident,port in db.execute("SELECT id,port FROM exports WHERE protocol='hysteria2' AND status='active'"):
+  path=Path('/run/qinglian-exports')/(ident+'.json')
+  if path.is_file():
+   worker=json.loads(path.read_text());raw=run(['ss','-ulnm','sport','=',':'+str(port)])
+   workers.append({'port':port,'quic':worker.get('quic',{}),'congestion':worker.get('congestion',{}),'socketMemory':re.findall(r'skmem:\(([^)]+)',raw)})
+print(json.dumps({'legacyHy2':{k:status.get(k) for k in ['running','enabled','error']},'legacyService':before,'accountService':run(['systemctl','show','qinglian-exports','-p','ActiveState','-p','NRestarts','-p','MemoryCurrent','-p','CPUUsageNSec']),'accountHy2Workers':workers,'cpuLoad':Path('/proc/loadavg').read_text().split()[:3],'udpCounterDelta':{k:b[k]-a.get(k,0) for k in b},'legacyUdpMemory':memory,'udpReceiveCeiling':run(['sysctl','-n','net.core.rmem_max']),'udpSendCeiling':run(['sysctl','-n','net.core.wmem_max'])}))
 '''
 with connection() as client:print(json.dumps(remote_json(client,SCRIPT),ensure_ascii=False))
