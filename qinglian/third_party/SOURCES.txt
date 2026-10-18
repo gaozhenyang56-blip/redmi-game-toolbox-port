@@ -2,7 +2,7 @@ Upstream versions and sources
 
 AndroidLibV2rayLite v5.54.2
 https://github.com/2dust/AndroidLibV2rayLite/releases/tag/v5.54.2
-The AAR is repackaged to retain arm64-v8a only and remove unused geo databases. No Java or native code is changed.
+The AAR is repackaged to retain arm64-v8a only and remove the AAR-bundled geo databases (v13 separately bundles the pinned routing data below). No Java or native code is changed.
 
 V2Ray core v5.54.2
 https://github.com/v2fly/v2ray-core/releases/tag/v5.54.2
@@ -18,3 +18,13 @@ Native icon design: original repo-native Android VectorDrawable, matching SVG in
 SHA-256
 libv2ray.aar b257744a0ba197f5f55f75e22ae17ec696f9a0598f05b0e0d996a58697531853
 libtun2socks.so 0a4f55221fce660527afbcc07ff93a34f4df61b903967595a92a48ada13e21a4
+
+v13 country/private routing data: extracted unchanged from V2Ray v5.54.2 v2ray-linux-64.zip
+Archive SHA256 595f22e9f56936c8f4c471b3e81a9fe35d356dae9342fd71d1caf8dc99ac8378
+geoip-only-cn-private.dat -> assets/geoip.dat
+SHA256 bc7297903da14f6d725caafbf903e5a90026b9368f3d9f9ddbc7fd6f6dd1f1b0
+geosite.dat SHA256 df277aa430bb3d67d5d7c960dd6816e4c271616000a7900486b903091d39b393
+Upstream data sources and license/attribution information:
+https://github.com/v2fly/geoip
+https://github.com/v2fly/domain-list-community
+No remote mutable rule download at runtime; prepare_dependencies.py verifies all digests.

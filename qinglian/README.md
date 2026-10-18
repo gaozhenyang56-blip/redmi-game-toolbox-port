@@ -1,8 +1,8 @@
 # 轻连 — 统一面板管理 Android VPN，Codex 交接工程
 
-**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.1.3-preview`，versionCode `12`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
+**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.1.4-preview`，versionCode `13`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
 
-已完成标准 Material 3、默认亮色和亮色自适应图标；支持浅色/深色/跟随系统切换。包含延迟/下载测速、每秒通知栏速度与本次用量、Surfboard风格黑白名单及规则/全局模式。
+已完成标准 Material 3、默认亮色和亮色自适应图标；支持浅色/深色/跟随系统切换。包含延迟/下载测速、每秒通知栏速度与本次用量、可选Surfboard风格黑白名单及规则/全局模式。关闭应用分流后规则模式自动绕过大陆/私网。账号为独立页面，免登录每次手动连接64GiB，自动恢复不重置；面板分六页管理。
 
 真实服务器已通过GitHub SSH完成加密一致性备份，并部署原x-ui内的“轻连 App”页面，沿用原面板登录。管理员从现有兼容入站选择App节点；App自动获取，重连生效，不提供节点/API编辑入口。在线数量、真实配额和设备心跳通过专用HTTPS API接入。
 

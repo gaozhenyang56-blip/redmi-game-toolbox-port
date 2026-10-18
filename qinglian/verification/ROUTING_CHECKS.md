@@ -1,3 +1,17 @@
+# v13 访客限额、可选大陆分流与滚动玻璃（2026-10-18，已发布）
+
+- 版本1.1.4-preview/versionCode13，原签名。assembleRelease、testReleaseUnitTest、lintRelease通过；78项Android测试，0失败/错误；lint0错误/37警告（含既有兼容/字符串/Android ID告警）。Robolectric TLS测试需JDK17测试进程 `--add-opens=java.base/java.net=ALL-UNNAMED`，只修测试反射环境，不修改生产TLS验证。
+- 实际ScrollView滚动600px后采样测试先复现截到白色，扣除source scrollX/Y后读到真实背景；内容更新后新位图变化，旧不可变位图保持原色。验证后台/隐藏不持续捕获、旧Android真实CPU模糊、无invalidate的内容变化。没有实体手机GPU/观感验收。
+- 应用分流开关默认关闭、旧名单保留；Android测试验证开关/全局优先级，GeoAssets固定摘要及损坏副本恢复。真实V2Ray5.54.2与App NodeConfig检查baidu/223.5.5.5/private DIRECT、github/8.8.8.8 PROXY、全局全部PROXY。测试使用不同loopback出口模拟路径；不把模拟路径当手机实际出网。国内DNS独立、其余TCP代理DNS；固定geoip/geosite随包，非运行时任意规则下载。
+- AccountUiTest覆盖独立Activity、免登录说明、未登录校验错误可见、导出控件未登录隐藏；访客随机请求身份在自动恢复保持、手动新连接改变。服务端Go race验证访客幂等、设备/令牌隔离、合并64GiB、新手动会话、停止、不消耗注册次数；多设备账号退出只撤销当前令牌。
+- 四组原生测试：五协议真实各1.4MB传输/域名/到期/额度关闭、主节点累计同步父配额、访客两种协议合并64GiB且不记录域名、实际国家路由。访客额度测试只调整随机测试行计数，不下载64GiB。真实FIFO日志产生域名后才判账号历史通过。
+- 面板六页本地Playwright用原Vue/Ant资产及模拟25账号/30节点/200条域名记录，验证渲染、分页10条/搜索、嵌套字节字段、390px无横向溢出和无JS错误。生产认证读取六条页面均HTTP200且为管理模板。生产Chromium直连代理请求遇socket hang up，未计作通过；未伪称浏览器线上全部交互验收。
+- 面板升级[39143353638](https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39143353638)成功，升级前加密一致性备份、全新上游覆盖层Go测试后安装。账号引擎部署[39143546623](https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39143546623)成功，另一次备份，保留原节点；实际国家路由检查通过。
+- 同一部署公网检查使用App实际NodeConfig与原生客户端，五协议导出及独立主兼容/HY2各512KiB，严格CA/目标证书；账户注册限制、多设备、幂等、备注、周额度隔离及永久域名均通过。访客无账号启动、兼容/HY2真实流量、合计64GiB停用、不记录域名、新手动会话重置通过；仅随机测试账号/访客清理。服务端采样限额可能少量超额，不宣称零误差计费。
+- 只读诊断[39141564513](https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39141564513)：账号服务重启0、内存约79MB、负载0.44；实际账号HY2 UDP socket缓冲16MiB，丢弃0，短观察UDP错误/缓冲错误增量0。运行器原HY2三次97.77/109.84/98.01Mbps，兼容81.17Mbps，不是用户手机或实际账号HY2吞吐证明。用户Wi-Fi下兼容也波动，根因未定位；HY2客户端/账号进程BBR conservative原生启动及传输通过，不能承诺解决手机波动。测速图近1秒平滑，全程平均不变且包含分段等待。
+- APK 28,337,246字节，SHA256 `18b0a13c1893471a37b0ca676c5ef035554c772c47a5ed4f2a12dbc8082e67d1`。包名com.gzy.qinglian、version13/1.1.4-preview、原证书SHA256 `2e90d97183fbe26c05a8bd67454b0a5d0f5c01633609a335fdff693a4774a870`。APK固定规则摘要验证，无keystore/私钥文件名；未把APK和私有资产提交Git。
+- 面板revision17已发布，原界面参数/导航2dp间距保留。线上下载[39143831021](https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39143831021)通过实际HTTPS下载、大小/哈希、原签名和包名/版本核验。无实体手机覆盖安装、TUN出网、实际手机速度/玻璃帧率测试。
+
 # 账号独立主连接、备注导出与实时玻璃（versionCode12，2026-10-18）
 
 - 1.1.3-preview/versionCode12，原签名；assembleRelease/testReleaseUnitTest/lintRelease最终完整通过，71项Android测试0失败，lint0错误/32警告（含明确选择Android ID产生的HardwareIds提示、界面字符串和既有兼容提示，没有关闭TLS检查或压制错误）。
