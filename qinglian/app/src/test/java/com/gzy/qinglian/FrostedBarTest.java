@@ -51,4 +51,13 @@ public class FrostedBarTest {
    assertTrue(Color.red(b.getPixel(b.getWidth()/2-3,b.getHeight()/2))<center);assertTrue(Color.red(b.getPixel(b.getWidth()/2+3,b.getHeight()/2))>center);
   }
  }
+ @Test public void actualScrolledContentIsBlurredAndPublishedBitmapsAreNeverMutated(){
+  try(var ctrl=Robolectric.buildActivity(Activity.class).setup()){
+   Activity a=ctrl.get();FrameLayout root=new FrameLayout(a);a.setContentView(root);ScrollView scroll=new ScrollView(a);scroll.setPadding(0,80,0,0);scroll.setClipToPadding(false);LinearLayout body=new LinearLayout(a);body.setOrientation(LinearLayout.VERTICAL);scroll.addView(body);root.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
+   View middle=null;for(int c:new int[]{Color.RED,Color.GREEN,Color.BLUE}){View row=new View(a);row.setBackgroundColor(c);body.addView(row,new LinearLayout.LayoutParams(-1,400));if(c==Color.GREEN)middle=row;}
+   FrostedBar bar=new FrostedBar(a,Color.WHITE,false);bar.setSource(scroll);root.addView(bar,new FrameLayout.LayoutParams(-1,80,Gravity.TOP));root.measure(View.MeasureSpec.makeMeasureSpec(400,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(400,View.MeasureSpec.EXACTLY));root.layout(0,0,400,400);bar.setActive(true);scroll.scrollTo(0,600);scroll.getViewTreeObserver().dispatchOnPreDraw();Bitmap first=image(bar);assertFalse(first.isMutable());int before=first.getPixel(first.getWidth()/2,first.getHeight()/2);assertEquals(Color.GREEN,before);
+   middle.setBackgroundColor(Color.YELLOW);scroll.getViewTreeObserver().dispatchOnPreDraw();assertEquals(Color.YELLOW,image(bar).getPixel(image(bar).getWidth()/2,image(bar).getHeight()/2));assertEquals(before,first.getPixel(first.getWidth()/2,first.getHeight()/2));
+  }
+ }
+
 }

@@ -31,11 +31,30 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 		protocol = "vmess"
 	}
 	user := c.GetString("exportUser")
+	kind := "main"
+	limit := int64(1 << 62)
+	label := "账号独立"
+	var guestQuota gin.H
+	if c.GetBool("guest") {
+		kind = "guest"
+		limit = qGuestBytes
+		label = "访客 · 单次64GB"
+		guestQuota, err = a.guestQuotaValue(user)
+		if err != nil {
+			c.Status(503)
+			return
+		}
+		if guestQuota["remainingBytes"].(int64) <= 0 {
+			c.JSON(200, gin.H{"ready": false, "quota": guestQuota})
+			return
+		}
+	}
+
 	now := time.Now().Unix()
 	a.store.mu.Lock()
 	defer a.store.mu.Unlock()
 	makeNode := func(p string) (map[string]interface{}, bool, error) {
-		request := "main:" + strconv.Itoa(parent.Id) + ":" + p
+		request := kind + ":" + strconv.Itoa(parent.Id) + ":" + p
 		var id, status string
 		var data []byte
 		var previousExpiry int64
@@ -53,7 +72,7 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 			for i := 0; i < 100; i++ {
 				candidate := 22000 + int(time.Now().UnixNano()%2000)
 				var occupied int
-				if e = a.store.db.QueryRow(`SELECT COUNT(*) FROM exports WHERE port=?`, candidate).Scan(&occupied); e != nil {
+				if e = a.store.db.QueryRow(`SELECT COUNT(*) FROM exports WHERE port=? AND (kind!='guest' OR (expires>? AND status IN ('pending','active','error')))`, candidate, now).Scan(&occupied); e != nil {
 					return nil, false, e
 				}
 				if occupied > 0 {
@@ -78,7 +97,7 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 			if port == 0 {
 				return nil, false, qUnavailable
 			}
-			profile, e := a.exportProfile(p, port, id, "轻连账号 · "+p)
+			profile, e := a.exportProfile(p, port, id, label+" · "+p)
 			if e != nil {
 				return nil, false, e
 			}
@@ -86,7 +105,7 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 			if e != nil {
 				return nil, false, e
 			}
-			_, e = a.store.db.Exec(`INSERT INTO exports(id,user_id,request_id,protocol,port,total,created,expires,status,data,kind,parent_id) VALUES(?,?,?,?,?,?,?,?,?,?,'main',?)`, id, user, request, p, port, int64(1<<62), now, now+180, "pending", data, parent.Id)
+			_, e = a.store.db.Exec(`INSERT INTO exports(id,user_id,request_id,protocol,port,total,created,expires,status,data,kind,parent_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`, id, user, request, p, port, limit, now, now+180, "pending", data, kind, parent.Id)
 			if e != nil {
 				return nil, false, e
 			}
@@ -107,7 +126,7 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 		if e = json.Unmarshal(data, &profile); e != nil {
 			return nil, false, e
 		}
-		return map[string]interface{}{"node": profile["node"], "revision": qHash(string(data)), "label": "账号独立 · " + p}, status == "active" && previousExpiry > now, nil
+		return map[string]interface{}{"node": profile["node"], "revision": qHash(string(data)), "label": label + " · " + p}, status == "active" && previousExpiry > now, nil
 	}
 	primary, ready, err := makeNode(protocol)
 	if err != nil {
@@ -125,9 +144,12 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 		ready = ready && hyReady
 	}
 	// Switching the selected parent stops the old main workers after final accounting.
-	if _, err = a.store.db.Exec(`UPDATE exports SET status='expired',expires=? WHERE user_id=? AND kind='main' AND parent_id!=? AND status!='revoked'`, now, user, parent.Id); err != nil {
+	if _, err = a.store.db.Exec(`UPDATE exports SET status='expired',expires=? WHERE user_id=? AND kind IN ('main','guest') AND parent_id!=? AND status!='revoked'`, now, user, parent.Id); err != nil {
 		c.Status(503)
 		return
+	}
+	if guestQuota != nil {
+		primary["quota"] = guestQuota
 	}
 	primary["ready"] = ready
 	c.JSON(200, primary)

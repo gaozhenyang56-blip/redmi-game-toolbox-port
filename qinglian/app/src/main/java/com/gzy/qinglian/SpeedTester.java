@@ -49,17 +49,17 @@ public final class SpeedTester {
   if(running())return;final int run=generation.incrementAndGet();
   job=executor.submit(()->{long total=0;long start=0;
    try{
-    byte[] buffer=new byte[32768];long tick=0,segment=0;
+    byte[] buffer=new byte[32768];long tick=0;ArrayDeque<long[]> samples=new ArrayDeque<>();
     while(!cancelled(run)&&total<requested&&(start==0||System.nanoTime()-start<180000000000L)){
      long chunk=Math.min(33554432L,requested-total),end=total+chunk,before=total;
      String target=downloadUrl.replaceAll("([?&])bytes=[0-9]+", "$1bytes="+chunk);
      HttpURLConnection c=open(target+(target.contains("?")?"&":"?")+"nonce="+System.nanoTime(),run);
      try{if(c.getResponseCode()!=200)throw new IOException();String type=c.getContentType();if(type!=null&&(type.contains("text/html")||type.contains("application/json")))throw new IOException();
       try(InputStream in=c.getInputStream()){
-       if(start==0){start=System.nanoTime();tick=start;}
+       if(start==0){start=System.nanoTime();tick=start;samples.add(new long[]{start,0});}
        while(!cancelled(run)&&total<end&&System.nanoTime()-start<180000000000L){
-        int n=in.read(buffer,0,(int)Math.min(buffer.length,end-total));if(n<0)break;total+=n;segment+=n;long now=System.nanoTime();
-        if(now-tick>=250000000L){l.update(segment*8000.0/(now-tick),total,Math.min(1,total/(double)requested));tick=now;segment=0;}
+        int n=in.read(buffer,0,(int)Math.min(buffer.length,end-total));if(n<0)break;total+=n;long now=System.nanoTime();
+        if(now-tick>=250000000L){samples.add(new long[]{now,total});while(samples.size()>2&&now-samples.peekFirst()[0]>1000000000L)samples.removeFirst();long[] first=samples.peekFirst();l.update(mbps(total-first[1],now-first[0]),total,Math.min(1,total/(double)requested));tick=now;}
        }
       }
      }finally{c.disconnect();}

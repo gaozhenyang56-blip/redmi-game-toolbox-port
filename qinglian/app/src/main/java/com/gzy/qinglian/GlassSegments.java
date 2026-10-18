@@ -31,8 +31,8 @@ final class GlassSegments extends FrameLayout {
   int surface=color(com.google.android.material.R.attr.colorSurfaceContainer),rgb=surface&0x00ffffff;
   GradientDrawable rail=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{navigation?Color.TRANSPARENT:rgb|0xB0000000,navigation?Color.TRANSPARENT:rgb|0x85000000});
   rail.setCornerRadius(radius);if(!navigation)rail.setStroke(Math.max(1,dp(.5f)),night?0x32ffffff:0x90ffffff);setBackground(rail);
-  thumb=new View(context);GradientDrawable glass=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,night?new int[]{0x40ffffff,0x14ffffff}:new int[]{0xB8ffffff,0x70ffffff});
-  glass.setCornerRadius(radius-dp(navigation?4:2));glass.setStroke(Math.max(1,dp(.65f)),night?0x60ffffff:0xE0ffffff);thumb.setBackground(glass);thumb.setElevation(dp(2));
+  thumb=new View(context);GradientDrawable glass=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,night?new int[]{0x40ffffff,0x14ffffff}:new int[]{0x65ffffff,0x28ffffff});
+  glass.setCornerRadius(radius-dp(navigation?4:2));glass.setStroke(Math.max(1,dp(.65f)),night?0x60ffffff:0x95ffffff);thumb.setBackground(glass);thumb.setElevation(dp(2));
   thumb.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);addView(thumb,new LayoutParams(0,0));
   row=new LinearLayout(context);row.setElevation(dp(3));row.setOrientation(LinearLayout.HORIZONTAL);row.setBaselineAligned(false);LayoutParams rowLayout=new LayoutParams(-1,-1);int inset=dp(navigation?4:2);rowLayout.setMargins(inset,inset,inset,inset);addView(row,rowLayout);
   int[][] states={new int[]{android.R.attr.state_checked},new int[]{}};

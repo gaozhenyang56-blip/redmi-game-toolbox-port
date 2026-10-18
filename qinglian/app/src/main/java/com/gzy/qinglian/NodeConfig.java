@@ -22,7 +22,8 @@ public final class NodeConfig {
   if(!tls.equals("none")&&!tls.equals("")&&!tls.equals("tls"))throw new IllegalArgumentException("不支持的TLS配置");
   if(p.equals("trojan")&&!tls.equals("tls"))throw new IllegalArgumentException("Trojan需要TLS");
  }
- public static String build(String node)throws Exception{
+ public static String build(String node)throws Exception{return build(node,false);}
+ public static String build(String node,boolean bypassChina)throws Exception{
   JSONObject n=new JSONObject(node);validate(n);String p=protocol(n);JSONObject outbound;
   if(p.equals("hysteria2")){
    outbound=new JSONObject().put("protocol","socks").put("settings",new JSONObject().put("servers",new JSONArray().put(new JSONObject().put("address","127.0.0.1").put("port",10810))));
@@ -73,7 +74,19 @@ public final class NodeConfig {
    rules.put(new JSONObject().put("type","field").put("domain",domains).put("outboundTag","compatibility"));
    for(int i=0;i<ins.length();i++)ins.getJSONObject(i).put("sniffing",new JSONObject().put("enabled",true).put("destOverride",new JSONArray().put("http").put("tls")));
   }
-  return new JSONObject().put("dns",dns).put("routing",new JSONObject().put("domainStrategy","AsIs").put("rules",rules)).put("log",new JSONObject().put("loglevel","none"))
+  if(bypassChina){
+   outbounds.put(new JSONObject().put("tag","direct").put("protocol","freedom").put("settings",new JSONObject().put("domainStrategy","UseIP")));
+   // Keep DNS interception first. Private and mainland rules precede the final proxy default.
+   rules.put(new JSONObject().put("type","field").put("domain",new JSONArray().put("geosite:private")).put("outboundTag","direct"));
+   rules.put(new JSONObject().put("type","field").put("ip",new JSONArray().put("geoip:private")).put("outboundTag","direct"));
+   rules.put(new JSONObject().put("type","field").put("domain",new JSONArray().put("geosite:geolocation-!cn")).put("outboundTag","proxy"));
+   rules.put(new JSONObject().put("type","field").put("domain",new JSONArray().put("geosite:cn")).put("outboundTag","direct"));
+   rules.put(new JSONObject().put("type","field").put("ip",new JSONArray().put("geoip:cn")).put("outboundTag","direct"));
+   rules.put(new JSONObject().put("type","field").put("inboundTag",new JSONArray().put("dns-internal")).put("ip",new JSONArray().put("223.5.5.5")).put("port","53").put("outboundTag","direct"));
+   dns.put("servers",new JSONArray().put(new JSONObject().put("address","223.5.5.5").put("domains",new JSONArray().put("geosite:cn").put("geosite:private")).put("expectIPs",new JSONArray().put("geoip:cn"))).put("tcp://1.1.1.1").put("tcp://8.8.8.8"));
+   for(int i=0;i<ins.length();i++)ins.getJSONObject(i).put("sniffing",new JSONObject().put("enabled",true).put("destOverride",new JSONArray().put("http").put("tls")));
+  }
+  return new JSONObject().put("dns",dns).put("routing",new JSONObject().put("domainStrategy",bypassChina?"IPIfNonMatch":"AsIs").put("rules",rules)).put("log",new JSONObject().put("loglevel","none"))
    .put("inbounds",ins).put("outbounds",outbounds).put("stats",new JSONObject()).put("policy",new JSONObject().put("system",new JSONObject().put("statsOutboundUplink",true).put("statsOutboundDownlink",true))).toString();
  }
 }

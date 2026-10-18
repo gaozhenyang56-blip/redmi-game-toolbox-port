@@ -27,4 +27,11 @@ public class AppRoutingTest {
   selected.clear();assertEquals(Set.of("example.one"),rules.selected);
   assertThrows(UnsupportedOperationException.class,()->rules.selected.clear());
  }
+ @Test public void optionalDisabledApplicationListsNeverExcludeAppsAndUseCountryRules(){
+  AppRouting disabled=new AppRouting(false,false,AppRouting.Mode.WHITELIST,Set.of("saved.app"));assertEquals(Set.of(own),disabled.plan(own,n->true).packages);assertTrue(disabled.bypassChina());assertEquals(Set.of("saved.app"),disabled.selected);
+  assertFalse(disabled.withEnabled(true).bypassChina());assertEquals(Set.of("saved.app"),disabled.withEnabled(true).plan(own,n->true).packages);
+  assertFalse(disabled.withGlobal(true).bypassChina());assertEquals(Set.of(own),disabled.withEnabled(true).withGlobal(true).plan(own,n->true).packages);
+  assertFalse(new AppRouting(false,false,AppRouting.Mode.WHITELIST,Set.of()).plan(own,n->true).allowList);
+ }
+
 }

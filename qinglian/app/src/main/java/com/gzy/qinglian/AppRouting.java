@@ -10,20 +10,23 @@ import java.util.function.Predicate;
 final class AppRouting {
  enum Mode {BLACKLIST,WHITELIST}
  static final String PREFS="app-routing";
- final boolean global;
+ final boolean global,enabled;
  final Mode mode;
  final Set<String> selected;
- AppRouting(boolean global,Mode mode,Set<String> selected){this.global=global;this.mode=mode;this.selected=Collections.unmodifiableSet(new TreeSet<>(selected));}
+ AppRouting(boolean global,Mode mode,Set<String> selected){this(global,true,mode,selected);}
+ AppRouting(boolean global,boolean enabled,Mode mode,Set<String> selected){this.global=global;this.enabled=enabled;this.mode=mode;this.selected=Collections.unmodifiableSet(new TreeSet<>(selected));}
  static AppRouting load(Context context){
   android.content.SharedPreferences prefs=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE);
   Mode mode;
   try{mode=Mode.valueOf(prefs.getString("mode",Mode.BLACKLIST.name()));}catch(Exception invalid){throw new IllegalArgumentException("分流规则无效，请重新保存");}
   return forMode(context,prefs.getBoolean("global",true),mode);
  }
- static AppRouting forMode(Context context,boolean global,Mode mode){return new AppRouting(global,mode,context.getSharedPreferences(PREFS,Context.MODE_PRIVATE).getStringSet("packages."+mode.name(),Collections.emptySet()));}
- AppRouting withGlobal(boolean global){return new AppRouting(global,mode,selected);}
+ static AppRouting forMode(Context context,boolean global,Mode mode){return new AppRouting(global,context.getSharedPreferences(PREFS,0).getBoolean("enabled",false),mode,context.getSharedPreferences(PREFS,Context.MODE_PRIVATE).getStringSet("packages."+mode.name(),Collections.emptySet()));}
+ AppRouting withGlobal(boolean global){return new AppRouting(global,enabled,mode,selected);}
+ AppRouting withEnabled(boolean enabled){return new AppRouting(global,enabled,mode,selected);}
+ boolean bypassChina(){return !global&&!enabled;}
  boolean save(Context context){
-  return context.getSharedPreferences(PREFS,Context.MODE_PRIVATE).edit().putBoolean("global",global).putString("mode",mode.name()).putStringSet("packages."+mode.name(),new HashSet<>(selected)).commit();
+  return context.getSharedPreferences(PREFS,Context.MODE_PRIVATE).edit().putBoolean("global",global).putBoolean("enabled",enabled).putString("mode",mode.name()).putStringSet("packages."+mode.name(),new HashSet<>(selected)).commit();
  }
  static final class Plan {
   final boolean allowList;final Set<String> packages;
@@ -31,8 +34,8 @@ final class AppRouting {
  }
  Plan plan(String ownPackage,Predicate<String> installed){
   Set<String> packages=new TreeSet<>();
-  if(!global)for(String name:selected)if(!name.equals(ownPackage)&&installed.test(name))packages.add(name);
-  if(!global&&mode==Mode.WHITELIST){
+  if(!global&&enabled)for(String name:selected)if(!name.equals(ownPackage)&&installed.test(name))packages.add(name);
+  if(!global&&enabled&&mode==Mode.WHITELIST){
    if(packages.isEmpty())throw new IllegalArgumentException("请先在应用分流中选择至少一个已安装且启用的应用");
    return new Plan(true,packages);
   }
@@ -46,7 +49,7 @@ final class AppRouting {
   Plan plan=plan(context);
   for(String name:plan.packages){if(plan.allowList)builder.addAllowedApplication(name);else builder.addDisallowedApplication(name);}
  }
- String title(){return global?"全局模式":"规则模式 · "+(mode==Mode.WHITELIST?"白名单":"黑名单");}
+ String title(){return global?"全局模式":!enabled?"规则模式 · 绕过大陆与局域网":"规则模式 · 应用分流 · "+(mode==Mode.WHITELIST?"白名单":"黑名单");}
  // Exact package IDs only: never infer proxy requirements from an application's label.
  static final Set<String> PROXY_PRESET=Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
   "com.openai.chatgpt","com.anthropic.claude","com.google.android.apps.bard",

@@ -223,6 +223,16 @@ func TestQAccountRegistrationOncePerDeviceMultipleLoginAndConsent(t *testing.T) 
 	if qExportRequest(r, "POST", "/login", strings.Replace(body, "fixture-password", "wrong-password", 1), "", secondDevice).Code != 401 {
 		t.Fatal("wrong password accepted")
 	}
+	r.POST("/exports/logout", a.exportAuth, a.logoutAccount)
+	if qExportRequest(r, "POST", "/exports/logout", "{}", first["token"].(string), device).Code != 200 {
+		t.Fatal("device logout failed")
+	}
+	if qExportRequest(r, "GET", "/exports/quota", "", first["token"].(string), device).Code != 401 {
+		t.Fatal("logged-out token still valid")
+	}
+	if qExportRequest(r, "GET", "/exports/quota", "", second["token"].(string), secondDevice).Code != 200 {
+		t.Fatal("logout revoked other device")
+	}
 }
 
 func TestQRemarkIsImmutableOnRetryAndShareNamesRoundTrip(t *testing.T) {

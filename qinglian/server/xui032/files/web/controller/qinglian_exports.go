@@ -71,23 +71,23 @@ func (a *QinglianController) apiUsers(c *gin.Context) {
 	if !a.panelAuth(c) {
 		return
 	}
-	rows, err := a.store.db.Query(`SELECT id,name,(SELECT COUNT(*) FROM api_sessions s WHERE s.user_id=api_users.id),enabled,created,history_consent FROM api_users ORDER BY created DESC`)
+	rows, err := a.store.db.Query(`SELECT id,name,username,(SELECT COUNT(*) FROM api_sessions s WHERE s.user_id=api_users.id),enabled,created,history_consent FROM api_users WHERE id NOT IN (SELECT user_id FROM guest_sessions) ORDER BY created DESC`)
 	if err != nil {
 		c.Status(503)
 		return
 	}
 	users := []gin.H{}
 	for rows.Next() {
-		var id, name string
+		var id, name, username string
 		var enabled, consent bool
 		var deviceCount int
 		var created int64
-		if rows.Scan(&id, &name, &deviceCount, &enabled, &created, &consent) != nil {
+		if rows.Scan(&id, &name, &username, &deviceCount, &enabled, &created, &consent) != nil {
 			rows.Close()
 			c.Status(503)
 			return
 		}
-		users = append(users, gin.H{"id": id, "name": name, "deviceBound": deviceCount > 0, "deviceCount": deviceCount, "historyConsent": consent, "enabled": enabled, "created": created})
+		users = append(users, gin.H{"id": id, "name": name, "username": username, "deviceBound": deviceCount > 0, "deviceCount": deviceCount, "historyConsent": consent, "enabled": enabled, "created": created})
 	}
 	rows.Close()
 	for _, u := range users {

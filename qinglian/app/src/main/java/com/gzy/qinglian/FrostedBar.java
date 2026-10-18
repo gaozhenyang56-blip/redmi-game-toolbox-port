@@ -14,25 +14,24 @@ final class FrostedBar extends FrameLayout {
  private ViewTreeObserver observedTree;
  private boolean active,capturing,pumpPosted;
  private final Choreographer.FrameCallback liveFrame=frameTime->{pumpPosted=false;if(canCapture()){captureBackdrop();startPump();}};
- private Bitmap snapshot,scratch;
+ private Bitmap snapshot,scratch,rawSnapshot;
  private int[] pixels,work;
  private final int surface,overscan;
- private final boolean blurEnabled,gpuBlur;
+ private final boolean blurEnabled;
  private final float blurPixels;
  private final int[] sourcePosition=new int[2],barPosition=new int[2];
  private final ViewTreeObserver.OnPreDrawListener beforeDraw=()->{captureBackdrop();return true;};
  FrostedBar(Context context,int surface,boolean night){this(context,surface,night,28);}
  FrostedBar(Context context,int surface,boolean night,float cornerDp){
-  super(context);this.surface=surface;this.blurEnabled=UiTuning.get(context).glassEnabled;gpuBlur=blurEnabled&&Build.VERSION.SDK_INT>=31;
+  super(context);this.surface=surface;this.blurEnabled=UiTuning.get(context).glassEnabled;
   setClipChildren(true);setClipToPadding(true);setClipToOutline(true);
-  float density=getResources().getDisplayMetrics().density,radius=cornerDp*density;blurPixels=GlassStyle.radius(context)*density;overscan=Math.round(56*density);
+  float density=getResources().getDisplayMetrics().density,radius=cornerDp*density;blurPixels=GlassStyle.radius(context)*density;overscan=Math.round(32*density);
   GradientDrawable backing=new GradientDrawable();backing.setCornerRadius(radius);
   backing.setColor(blurEnabled?surface:(surface&0x00ffffff)|0xED000000);setBackground(backing);setElevation(6*density);
   GradientDrawable edge=new GradientDrawable();edge.setCornerRadius(radius);edge.setColor(Color.TRANSPARENT);
   edge.setStroke(Math.max(1,Math.round(.65f*density)),night?0x55ffffff:0xB8ffffff);setForeground(edge);
   backdrop=new ImageView(context);backdrop.setScaleType(ImageView.ScaleType.FIT_XY);
   LayoutParams imageLayout=new LayoutParams(-1,-1);imageLayout.setMargins(-overscan,-overscan,-overscan,-overscan);addView(backdrop,imageLayout);
-  if(Build.VERSION.SDK_INT>=31&&gpuBlur)backdrop.setRenderEffect(RenderEffect.createBlurEffect(blurPixels,blurPixels,Shader.TileMode.CLAMP));
   View tint=new View(context);int rgb=surface&0x00ffffff;int materialAlpha=Math.round((100-GlassStyle.transparency(context))*2.55f);
   // Thin material tint: the backdrop supplies the color; labels stay sharp above it.
   GradientDrawable sheen=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
@@ -49,7 +48,7 @@ final class FrostedBar extends FrameLayout {
   unobserve();if(tree.isAlive()){observedTree=tree;tree.addOnPreDrawListener(beforeDraw);startPump();}
  }
  private boolean canCapture(){return active&&blurEnabled&&source!=null&&isAttachedToWindow()&&getWindowVisibility()==VISIBLE&&isShown();}
- private void startPump(){if(!pumpPosted&&canCapture()&&GlassStyle.live(getContext())){pumpPosted=true;Choreographer.getInstance().postFrameCallbackDelayed(liveFrame,33);}}
+ private void startPump(){if(!pumpPosted&&canCapture()&&GlassStyle.live(getContext())){pumpPosted=true;Choreographer.getInstance().postFrameCallbackDelayed(liveFrame,50);}}
  private void unobserve(){Choreographer.getInstance().removeFrameCallback(liveFrame);pumpPosted=false;if(observedTree!=null&&observedTree.isAlive())observedTree.removeOnPreDrawListener(beforeDraw);observedTree=null;}
  private void captureBackdrop(){
   if(capturing||!active||!blurEnabled||source==null||!isAttachedToWindow()||getWindowVisibility()!=VISIBLE||!isShown()||getWidth()==0||getHeight()==0)return;
@@ -59,10 +58,12 @@ final class FrostedBar extends FrameLayout {
    if(scratch==null||scratch.getWidth()!=width||scratch.getHeight()!=height)scratch=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
    scratch.eraseColor(surface);source.getLocationInWindow(sourcePosition);getLocationInWindow(barPosition);
    Canvas canvas=new Canvas(scratch);canvas.scale(width/(float)expandedWidth,height/(float)expandedHeight);
-   canvas.translate(overscan+sourcePosition[0]-barPosition[0],overscan+sourcePosition[1]-barPosition[1]);
+   canvas.translate(overscan+sourcePosition[0]-barPosition[0]-source.getScrollX(),overscan+sourcePosition[1]-barPosition[1]-source.getScrollY());
    // Only the ScrollView is sampled; neither this bar nor the root can feed back into it.
    source.draw(canvas);
-   if(!gpuBlur){
+   if(rawSnapshot!=null&&rawSnapshot.sameAs(scratch))return;
+   rawSnapshot=scratch.copy(Bitmap.Config.ARGB_8888,false);
+   {
     int count=width*height;if(pixels==null||pixels.length!=count){pixels=new int[count];work=new int[count];}
     scratch.getPixels(pixels,0,width,0,0,width,height);
     int radius=Math.max(1,Math.round(blurPixels*width/expandedWidth));
@@ -72,7 +73,8 @@ final class FrostedBar extends FrameLayout {
    // Upload only changed pixels. Our own redraw settles after one comparison,
    // while the optional foreground pump keeps sampling without forcing uploads.
    if(snapshot!=null&&snapshot.sameAs(scratch))return;
-   Bitmap previous=snapshot;snapshot=scratch;scratch=previous;backdrop.setImageBitmap(snapshot);backdrop.invalidate();
+   // Never mutate a bitmap already handed to a hardware renderer. Some OEMs cache its texture.
+   snapshot=scratch.copy(Bitmap.Config.ARGB_8888,false);backdrop.setImageBitmap(snapshot);backdrop.invalidate();
   }finally{capturing=false;}
  }
  private static void blur(int[] input,int[] output,int width,int height,int radius,boolean horizontal){
@@ -87,7 +89,7 @@ final class FrostedBar extends FrameLayout {
    }
   }
  }
- private void release(){backdrop.setImageDrawable(null);snapshot=scratch=null;pixels=work=null;}
+ private void release(){backdrop.setImageDrawable(null);snapshot=scratch=rawSnapshot=null;pixels=work=null;}
  @Override protected void onMeasure(int widthSpec,int heightSpec){
   if(MeasureSpec.getMode(heightSpec)!=MeasureSpec.EXACTLY){
    // Backdrop/tint fill the bar; their MATCH_PARENT heights must not make a

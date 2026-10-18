@@ -25,6 +25,9 @@ var qAccountRate = struct {
 }{byIP: map[string]int{}}
 
 func qAccountSchema(db *sql.DB) error {
+	if e := qGuestSchema(db); e != nil {
+		return e
+	}
 	columns := map[string]string{"username": "TEXT NOT NULL DEFAULT ''", "password_hash": "TEXT NOT NULL DEFAULT ''", "history_consent": "INTEGER NOT NULL DEFAULT 0", "consented_at": "INTEGER NOT NULL DEFAULT 0"}
 	rows, err := db.Query(`PRAGMA table_info(api_users)`)
 	if err != nil {
@@ -313,4 +316,14 @@ func (a *QinglianController) domainHistory(c *gin.Context) {
 		records = append(records, gin.H{"id": id, "userId": uid, "userName": name, "nodeId": node, "domain": domain, "firstSeen": first, "lastSeen": last, "observations": hits})
 	}
 	c.JSON(200, gin.H{"records": records, "nextBefore": cursor, "hasMore": len(records) == 200, "retention": "permanent", "source": "proxy-connection-domains"})
+}
+
+func (a *QinglianController) logoutAccount(c *gin.Context) {
+	token := strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer ")
+	_, e := a.store.db.Exec(`DELETE FROM api_sessions WHERE token_hash=? AND user_id=? AND device=?`, qHash(token), c.GetString("exportUser"), qValidDevice(c))
+	if e != nil {
+		c.Status(503)
+		return
+	}
+	c.JSON(200, gin.H{"loggedOut": true})
 }

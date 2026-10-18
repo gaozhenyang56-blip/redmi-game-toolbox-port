@@ -36,5 +36,12 @@ def main():
     if sha(tun)!=TUN_SHA:raise SystemExit('tun2socks checksum mismatch')
     hy=cache/'hysteria-android-arm64';fetch(HY_URL,hy,HY_SHA)
     (tun.parent/'libhysteria.so').write_bytes(hy.read_bytes())
+    routing=cache/'v2ray-routing.zip';fetch('https://github.com/v2fly/v2ray-core/releases/download/v5.54.2/v2ray-linux-64.zip',routing,'595f22e9f56936c8f4c471b3e81a9fe35d356dae9342fd71d1caf8dc99ac8378')
+    assets=ROOT/'app/src/main/assets';assets.mkdir(parents=True,exist_ok=True)
+    with zipfile.ZipFile(routing) as z:
+        for output,source,digest in [('geoip.dat','geoip-only-cn-private.dat','bc7297903da14f6d725caafbf903e5a90026b9368f3d9f9ddbc7fd6f6dd1f1b0'),('geosite.dat','geosite.dat','df277aa430bb3d67d5d7c960dd6816e4c271616000a7900486b903091d39b393')]:
+            data=z.read(source)
+            if hashlib.sha256(data).hexdigest()!=digest:raise SystemExit('Routing database checksum mismatch')
+            (assets/output).write_bytes(data)
     print('ARM64 core and tun2socks prepared; pinned upstream SHA-256 verified.')
 if __name__=='__main__':main()

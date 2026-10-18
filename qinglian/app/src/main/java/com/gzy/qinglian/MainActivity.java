@@ -124,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
   progress=new LinearProgressIndicator(this);progress.setMax(100);progress.setTrackThickness(dp(6));progress.setTrackCornerRadius(dp(3));d.addView(progress,new LinearLayout.LayoutParams(-1,dp(8)));space(d,12);
   testDetail=note(detail);testDetail.setTextColor(color(com.google.android.material.R.attr.colorOnSecondaryContainer));d.addView(testDetail);space(d,12);downloadButton=button("开始下载测速");downloadButton.setOnClickListener(v->downloadOptions());d.addView(downloadButton);
   stopButton=button("停止测试");stopButton.setOnClickListener(v->{testSession++;tester.stop();testing=false;testKind=0;detail="测试已停止";refresh();});d.addView(stopButton);
-  body.addView(note("测速结果受服务器、线路和测试站点影响。Mbps 为兆比特/秒，8 Mbps 约等于 1 MB/s。"));
+  body.addView(note("图表为近1秒速度，全程平均包含分段等待。测速结果受Wi‑Fi、线路、服务器和测试站点影响。Mbps 为兆比特/秒，8 Mbps 约等于 1 MB/s。"));
  }
  private void appearance(){
   int mode=AppAppearance.mode(this),selected=mode==androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES?1:mode==androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM?2:0;
@@ -137,12 +137,12 @@ public class MainActivity extends AppCompatActivity {
   LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(24),dp(12),dp(24),0);
   TextView opacity=note("");box.addView(opacity);SeekBar transparency=new SeekBar(this);transparency.setMax(80);transparency.setProgress(GlassStyle.transparency(this)-20);box.addView(transparency);
   TextView strength=note("");box.addView(strength);SeekBar radius=new SeekBar(this);radius.setMax(32);radius.setProgress(GlassStyle.radius(this)-16);box.addView(radius);
-  androidx.appcompat.widget.SwitchCompat live=new androidx.appcompat.widget.SwitchCompat(this);live.setText("前台持续实时刷新");live.setChecked(GlassStyle.live(this));box.addView(live);box.addView(note("持续刷新最多约30次/秒；后台停止。关闭后仍跟随页面重绘，降低耗电。"));
+  androidx.appcompat.widget.SwitchCompat live=new androidx.appcompat.widget.SwitchCompat(this);live.setText("前台持续实时刷新");live.setChecked(GlassStyle.live(this));box.addView(live);box.addView(note("持续刷新最多约20次/秒；后台停止。关闭后仍跟随页面重绘，降低耗电。"));
   Runnable label=()->{opacity.setText("透明度："+(transparency.getProgress()+20)+"%");strength.setText("模糊强度："+(radius.getProgress()+16));};label.run();
   SeekBar.OnSeekBarChangeListener changes=new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar b,int p,boolean user){label.run();}public void onStartTrackingTouch(SeekBar b){}public void onStopTrackingTouch(SeekBar b){}};transparency.setOnSeekBarChangeListener(changes);radius.setOnSeekBarChangeListener(changes);
   new MaterialAlertDialogBuilder(this).setTitle("毛玻璃设置").setView(box).setPositiveButton("保存",(d,w)->{if(GlassStyle.save(this,transparency.getProgress()+20,radius.getProgress()+16,live.isChecked()))recreate();else toast("保存失败，请重试");}).setNegativeButton("取消",null).show();
  }
- private String ruleDescription(AppRouting rules){return rules.global?"全局：所有应用走 VPN，轻连自身除外。":"规则："+(rules.mode==AppRouting.Mode.WHITELIST?"白名单中的应用走 VPN，其余直连。":"黑名单中的应用直连，其余走 VPN。");}
+ private String ruleDescription(AppRouting rules){return rules.global?"全局：所有应用走 VPN，轻连自身除外。":!rules.enabled?"规则：自动绕过中国大陆域名、IP与局域网，其余走代理。":"应用分流："+(rules.mode==AppRouting.Mode.WHITELIST?"白名单中的应用走 VPN，其余直连。":"黑名单中的应用直连，其余走 VPN。");}
  private void connectionModes(){
   AppRouting rules;try{rules=AppRouting.load(this);}catch(Exception invalid){return;}
   LinearLayout card=card(com.google.android.material.R.attr.colorSurfaceContainer);card.addView(text("连接模式",18,true));space(card,10);
@@ -168,7 +168,8 @@ public class MainActivity extends AppCompatActivity {
   AppRouting rules;
   try{rules=AppRouting.load(this);}catch(Exception invalid){rules=new AppRouting(true,AppRouting.Mode.BLACKLIST,Collections.emptySet());body.addView(note("已保存的分流规则无效，请重新选择模式并保存。"));}
   final AppRouting saved=rules;
-  body.addView(text("应用分流",24,true));space(body,8);body.addView(note("黑名单应用直连；白名单应用走 VPN。连接页选择规则模式时生效，全局模式忽略名单。"));space(body,20);
+  body.addView(text("应用分流",24,true));space(body,8);body.addView(note("黑名单应用直连；白名单应用走 VPN。打开应用分流并选择规则模式时生效；关闭后使用域名/IP规则自动绕过大陆和局域网。全局模式忽略两类规则。"));space(body,20);
+  LinearLayout optional=card(com.google.android.material.R.attr.colorSurfaceContainer);androidx.appcompat.widget.SwitchCompat enabled=new androidx.appcompat.widget.SwitchCompat(this);enabled.setText("启用应用分流");enabled.setChecked(saved.enabled);optional.addView(enabled);optional.addView(note("关闭：规则模式自动绕过大陆与局域网。打开：使用下方黑白名单。名单会保留，修改后需重连。"));enabled.setOnCheckedChangeListener((v,on)->{AppRouting current=AppRouting.load(this);if(on&&current.mode==AppRouting.Mode.WHITELIST&&current.selected.isEmpty()){toast("请先选择白名单应用");v.setChecked(false);return;}if(!current.withEnabled(on).save(this)){v.setChecked(!on);toast("保存失败，请重试");return;}toast("已保存，重连后生效");});
   LinearLayout mode=card(com.google.android.material.R.attr.colorPrimaryContainer);TextView modeTitle=text(saved.mode==AppRouting.Mode.WHITELIST?"白名单模式":"黑名单模式",21,true);mode.addView(modeTitle);space(mode,10);
   TextView modeDescription=note("");mode.addView(modeDescription);space(mode,12);mode.addView(note("黑白名单模式"));space(mode,6);
   GlassSegments modes=new GlassSegments(this,new String[]{"黑名单","白名单"},null,null,false);modes.setSelected(saved.mode.ordinal(),false);mode.addView(modes,new LinearLayout.LayoutParams(-1,dp(52)));
@@ -207,13 +208,13 @@ public class MainActivity extends AppCompatActivity {
   search.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){filter.run();}public void afterTextChanged(android.text.Editable s){}});filter.run();
   androidx.appcompat.app.AlertDialog dialog=new MaterialAlertDialogBuilder(this).setTitle(preset?"常用代理预设 · 白名单":"选择分流应用").setView(content).setPositiveButton("保存",null).setNegativeButton("取消",null).create();
   dialog.setOnShowListener(ignored->dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setOnClickListener(v->{
-   if(saved.mode==AppRouting.Mode.WHITELIST&&selected.isEmpty()){toast("请至少选择一个应用");return;}
-   if(new AppRouting(saved.global,saved.mode,selected).save(this)){dialog.dismiss();build();toast("已保存，下次连接生效");}else toast("保存失败，请重试");
+   if(saved.enabled&&saved.mode==AppRouting.Mode.WHITELIST&&selected.isEmpty()){toast("请至少选择一个应用");return;}
+   if(new AppRouting(saved.global,saved.enabled,saved.mode,selected).save(this)){dialog.dismiss();build();toast("已保存，下次连接生效");}else toast("保存失败，请重试");
   }));dialog.show();
  }
  private void about(){
-  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.1.3 · Preview\nARM64 · Android 8.0 及以上"));
-  LinearLayout d=card(com.google.android.material.R.attr.colorSurfaceContainer);d.addView(text("连接与隐私",19,true));space(d,12);d.addView(note("使用 V2Ray / v2fly 与 Hysteria2 核心。\n连接时会请求 Android 系统 VPN 授权；关闭界面后仍可后台运行。\n通知栏显示本次上传、下载流量与实时速度，可直接断开。\n连接时每 10 秒向服务端上报随机安装标识、设备型号、系统与应用版本、本次速度和用量，供原面板显示在线设备。服务端可见来源 IP；断开后停止，30 秒无心跳即离线。不会读取 IMEI、通讯录、文件或浏览内容。\n不接入广告与统计 SDK。节点由面板统一指定并自动同步，App 不提供手动添加、编辑或导出入口。\n测速请求会访问 Google 204 测试地址与 Cloudflare 下载站点。"));
+  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.1.4 · Preview\nARM64 · Android 8.0 及以上"));
+  LinearLayout d=card(com.google.android.material.R.attr.colorSurfaceContainer);d.addView(text("连接与隐私",19,true));space(d,12);d.addView(note("使用 V2Ray / v2fly 与 Hysteria2 核心。\n连接时会请求 Android 系统 VPN 授权；关闭界面后仍可后台运行。\n通知栏显示本次上传、下载流量与实时速度，可直接断开。\n连接时每 10 秒向服务端上报随机安装标识、设备型号、系统与应用版本、本次速度和用量，供原面板显示在线设备。服务端可见来源 IP；断开后停止，30 秒无心跳即离线。不会读取 IMEI、通讯录、文件或浏览内容。\n不接入广告与统计 SDK。节点由面板统一指定并自动同步，主连接不提供手动添加或编辑节点；独立节点可通过账号导出。国内直连仅在规则模式且应用分流关闭时启用。账号域名记录须登录时明确同意，永久保存在服务器，仅覆盖代理连接，不包括直连请求。\n测速请求会访问 Google 204 测试地址与 Cloudflare 下载站点。"));
   LinearLayout exports=card(com.google.android.material.R.attr.colorSurfaceContainer);exports.addView(text("独立节点导出",19,true));exports.addView(note("绑定设备后，每周可导出合计256GB，节点有效期7天。"));MaterialButton openExports=button("节点导出 / 查看额度");exports.addView(openExports);openExports.setOnClickListener(v->openAccount());
   LinearLayout l=card(com.google.android.material.R.attr.colorSurfaceContainer);l.addView(text("开源许可",19,true));space(l,10);l.addView(note("本应用按 GPL-3.0 提供源码。\nV2Ray / v2fly：MIT\nHysteria2：MIT\nAndroidLibV2rayLite：LGPL-3.0\nBadVPN tun2socks / v2rayNG：见随附第三方许可。"));
   LinearLayout updates=card(com.google.android.material.R.attr.colorSurfaceContainer);updates.addView(text("面板更新",19,true));space(updates,8);updateDetail=note(UpdateMonitor.status);updates.addView(updateDetail);
@@ -221,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
   MaterialButton reset=button("恢复默认界面");updates.addView(reset);reset.setOnClickListener(v->{UiTuning.reset(this);recreate();});
   MaterialButton license=button("查看第三方许可");license.setOnClickListener(v->{try(java.io.InputStream in=getAssets().open("THIRD_PARTY.txt")){new MaterialAlertDialogBuilder(this).setTitle("开源许可").setMessage(Io.readUtf8(in)).setPositiveButton("关闭",null).show();}catch(Exception e){toast("许可文件不可用");}});l.addView(license);
  }
- private void openAccount(){new ExportDialog(this,profile->{pendingExport=profile;Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/zip").putExtra(Intent.EXTRA_TITLE,ExportClient.archiveName(profile));startActivityForResult(intent,88);}).show();}
+ private void openAccount(){startActivity(new Intent(this,AccountActivity.class));}
  private boolean ready(){if(!TunnelService.state.equals("connected")){toast("请先连接 VPN");return false;}if(testing){toast("已有测试正在进行");return false;}return true;}
  private void runDelay(){if(!ready())return;testSession++;testing=true;testKind=1;latency="测试中…";detail="延迟测试 0 / 3";refresh();tester.latency(listener(false));}
  private int downloadMiB=32;
@@ -239,16 +240,16 @@ public class MainActivity extends AppCompatActivity {
  };}
  private void toggle(){String s=TunnelService.state;if(s.equals("connected")||s.equals("connecting")||s.equals("reconnecting")){testSession++;tester.stop();testing=false;testKind=0;startService(new Intent(this,TunnelService.class).setAction("STOP"));return;}
   try{AppRouting.load(this).plan(this);}catch(Exception invalid){toast(invalid.getMessage());tab=2;build();return;}
-  if(!DeviceReporter.consented(this)){
-   new MaterialAlertDialogBuilder(this).setTitle("连接与设备上报").setMessage("连接期间每 10 秒向服务端发送随机安装标识、设备型号、Android 与应用版本、本次速度和用量，用于现有面板的在线设备列表。服务端会记录来源 IP；断开后停止，30 秒无心跳即离线。不读取 IMEI、通讯录或文件。账号登录时会另行告知服务器永久记录连接域名和时间，不含HTTPS完整路径或内容。")
+  if(!DeviceReporter.consented(this)||(ExportClient.token(this).isEmpty()&&!getSharedPreferences("guest-info",0).getBoolean("consent",false))){
+   new MaterialAlertDialogBuilder(this).setTitle("连接与设备上报").setMessage("连接期间每 10 秒向服务端发送随机安装标识、设备型号、Android 与应用版本、本次速度和用量，用于现有面板的在线设备列表。访客还会提交本应用范围Android ID摘要用于会话绑定；无需账号，每次手动连接共64GB，自动重连不重置，访客不记录连接域名。服务端会记录来源 IP；断开后停止，30 秒无心跳即离线。不读取 IMEI、通讯录或文件。账号登录时会另行告知服务器永久记录连接域名和时间，不含HTTPS完整路径或内容。")
     .setPositiveButton("同意并连接",(dialog,which)->{
-     if(getSharedPreferences(DeviceReporter.PREFS,MODE_PRIVATE).edit().putBoolean(DeviceReporter.CONSENT,true).commit())requestVpn();
+     if(getSharedPreferences(DeviceReporter.PREFS,MODE_PRIVATE).edit().putBoolean(DeviceReporter.CONSENT,true).commit()&&getSharedPreferences("guest-info",0).edit().putBoolean("consent",true).commit())requestVpn();
      else toast("无法保存上报说明确认，请重试");
     }).setNegativeButton("取消",null).show();return;
   }
-  if(ExportClient.token(this).isEmpty()){openAccount();return;}requestVpn();
+  requestVpn();
  }
- private void requestVpn(){if(ExportClient.token(this).isEmpty()){openAccount();return;}Intent ask=VpnService.prepare(this);if(ask!=null)startActivityForResult(ask,77);else startTunnel();}
+ private void requestVpn(){Intent ask=VpnService.prepare(this);if(ask!=null)startActivityForResult(ask,77);else startTunnel();}
  private void startTunnel(){if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},78);return;}startForegroundService(new Intent(this,TunnelService.class));}
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==78){if(g.length>0&&g[0]!=PackageManager.PERMISSION_GRANTED)toast("通知权限未允许，可能无法在通知栏查看流量");startForegroundService(new Intent(this,TunnelService.class));}}
  @Override protected void onActivityResult(int r,int code,Intent data){super.onActivityResult(r,code,data);if(r==77){if(code==RESULT_OK)startTunnel();else toast("未获得 VPN 授权");}else if(r==88&&code==RESULT_OK&&data!=null&&data.getData()!=null&&pendingExport!=null){JSONObject profile=pendingExport;pendingExport=null;android.net.Uri target=data.getData();new Thread(()->{try(java.io.OutputStream out=getContentResolver().openOutputStream(target)){if(out==null)throw new java.io.IOException();ExportClient.archive(profile,out);main.post(()->toast("节点配置包已保存"));}catch(Exception failure){main.post(()->toast("保存失败，请重新导出"));}},"node-export").start();}}

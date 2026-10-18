@@ -32,7 +32,7 @@ import (
 )
 
 var qUUID = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
-var qExportRoute = regexp.MustCompile(`^(register|login|bind|quota|profile|history|nodes|nodes/[0-9a-f]{32}/revoke)$`)
+var qExportRoute = regexp.MustCompile(`^(register|login|logout|bind|quota|profile|history|nodes|nodes/[0-9a-f]{32}/revoke)$`)
 var qUnavailable = errors.New("qinglian unavailable")
 
 type qTLSConfig struct {
@@ -282,10 +282,19 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	api.GET("/quota", a.quota)
 	api.GET("/profile", a.profile)
 	api.GET("/updates", a.updates)
+	api.POST("/guest/start", a.startGuest)
 	api.GET("/apk/:digest", a.downloadAPK)
 	api.POST("/heartbeat", a.heartbeat)
 	panel := g.Group("/xui")
 	panel.GET("/qinglian", a.checkLogin, func(c *gin.Context) { html(c, "qinglian.html", "在线设备", nil) })
+	panel.GET("/qinglian/manage/:section", a.checkLogin, func(c *gin.Context) {
+		switch c.Param("section") {
+		case "accounts", "nodes", "history", "updates", "devices":
+			html(c, "qinglian.html", "轻连管理", nil)
+		default:
+			c.Status(404)
+		}
+	})
 	panel.GET("/qinglian/devices", a.devices)
 	panel.GET("/qinglian/selection", a.selection)
 	panel.POST("/qinglian/selection", a.selectNode)
@@ -295,6 +304,11 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	panel.POST("/qinglian/updates", a.saveUpdates)
 	panel.POST("/qinglian/updates/rollback", a.rollbackUpdates)
 	panel.POST("/qinglian/updates/apk", a.uploadAPK)
+	guest := g.Group("/api/v1/guest")
+	guest.Use(a.guestAuth)
+	guest.POST("/profile", a.accountProfile)
+	guest.GET("/quota", a.guestQuota)
+	guest.POST("/stop", a.stopGuest)
 	publicAccounts := g.Group("/api/v1/exports")
 	publicAccounts.POST("/register", a.account)
 	publicAccounts.POST("/login", a.account)
@@ -302,6 +316,7 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	exports.Use(a.exportAuth)
 	exports.POST("/bind", a.exportQuota)
 	exports.GET("/quota", a.exportQuota)
+	exports.POST("/logout", a.logoutAccount)
 	exports.POST("/profile", a.accountProfile)
 	exports.GET("/history", a.domainHistory)
 	exports.GET("/nodes", a.exports)
@@ -611,7 +626,7 @@ func (a *QinglianController) StartTLS(engine http.Handler) error {
 	a.tlsServer = &http.Server{ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 300 * time.Second, IdleTimeout: 60 * time.Second,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.URL.Path {
-			case a.apiPrefix + "updates", a.apiPrefix + "online", a.apiPrefix + "quota", a.apiPrefix + "heartbeat", a.apiPrefix + "profile":
+			case a.apiPrefix + "guest/start", a.apiPrefix + "guest/profile", a.apiPrefix + "guest/quota", a.apiPrefix + "guest/stop", a.apiPrefix + "updates", a.apiPrefix + "online", a.apiPrefix + "quota", a.apiPrefix + "heartbeat", a.apiPrefix + "profile":
 				engine.ServeHTTP(w, r)
 			default:
 				if strings.HasPrefix(r.URL.Path, a.apiPrefix+"exports/") && qExportRoute.MatchString(strings.TrimPrefix(r.URL.Path, a.apiPrefix+"exports/")) || strings.HasPrefix(r.URL.Path, a.apiPrefix+"apk/") && qDigest(strings.TrimPrefix(r.URL.Path, a.apiPrefix+"apk/")) {

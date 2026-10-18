@@ -8,7 +8,7 @@ def port():
  with socket.socket() as s:s.bind(('127.0.0.1',0));return s.getsockname()[1]
 users=[]
 with connection() as ssh,tempfile.TemporaryDirectory() as temp:
- root=Path(temp);cfg=remote_json(ssh,"import json;from pathlib import Path;c=json.loads(Path('/etc/x-ui/qinglian.json').read_text());print(json.dumps({'host':c['serverAddress'],'port':c['tls']['port'],'statePath':c['statePath']}))")
+ root=Path(temp);cfg=remote_json(ssh,"import json;from pathlib import Path;c=json.loads(Path('/etc/x-ui/qinglian.json').read_text());print(json.dumps({'host':c['serverAddress'],'port':c['tls']['port'],'statePath':c['statePath'],'clientToken':c['clientToken']}))")
  with ssh.open_sftp() as s:s.get('/etc/x-ui/qinglian/ca.pem',str(root/'ca.pem'))
  tls=ssl.create_default_context(cafile=str(root/'ca.pem'));opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),urllib.request.HTTPSHandler(context=tls));base='https://'+cfg['host']+':'+str(cfg['port'])+'/api/v1/exports/'
  device=secrets.token_hex(32);name='probe-'+secrets.token_hex(8);password=secrets.token_hex(20)
@@ -65,11 +65,35 @@ with connection() as ssh,tempfile.TemporaryDirectory() as temp:
     if protocol in ('vmess','vless'):entry['users'][0]['id']=n['id']
     else:entry['password']=n['password']
    template["node"]=n;transfer(template,protocol)
-  time.sleep(1);quota=request('quota',token=token);assert quota['allocatedBytes']==len(protocols)*2*1048576;assert quota['cumulativeTotalBytes']>=len(protocols)*524288
+  # Guest bootstrap needs no account and keeps one combined, server-enforced budget.
+  def guest(path,body=None,key=None):
+   r=urllib.request.Request(base.replace('/exports/','/guest/')+path,data=None if body is None else json.dumps(body).encode(),headers={'Content-Type':'application/json','Authorization':'Bearer '+(key or cfg['clientToken']),'X-Qinglian-Device':device})
+   with opener.open(r,timeout=10) as response:return json.load(response)
+  guest_key=secrets.token_hex(32);guest_body={'requestId':str(__import__('uuid').uuid4()),'sessionKey':guest_key};g=guest('start',guest_body);users.append(g['id']);assert guest('start',guest_body)['id']==g['id']
+  for _ in range(30):
+   gp=guest('profile',{},guest_key)
+   if gp.get('ready'):break
+   time.sleep(.3)
+  assert gp.get('ready') and gp['quota']['limitBytes']==64*1024**3
+  guest_nodes=[gp['node']]
+  if gp.get('acceleration'):guest_nodes.append(gp['acceleration']['node'])
+  for n in guest_nodes:
+   protocol=n['protocol'];template=copy.deepcopy(next(v['profile'] for v in active.values() if v['protocol']==protocol));template['node']=n
+   if protocol=='hysteria2':template['clientConfig']['server']=n['add']+':'+str(n['port']);template['clientConfig']['auth']=n['auth']
+   transfer(template,protocol)
+  time.sleep(1);assert guest('quota',key=guest_key)['usedBytes']>=len(guest_nodes)*524288
+  check=remote_json(ssh,'STATE='+repr(cfg['statePath'])+'\nUSER='+repr(g['id'])+"\nimport sqlite3,json\nwith sqlite3.connect(STATE) as db:\n count=db.execute('SELECT COUNT(*) FROM history WHERE user_id=?',(USER,)).fetchone()[0]\n db.execute(\"UPDATE exports SET up=? WHERE id=(SELECT id FROM exports WHERE user_id=? AND kind='guest' LIMIT 1)\",(64*1024**3,USER))\nprint(json.dumps({'historyCount':count}))")
+  assert check['historyCount']==0 and guest('profile',{},guest_key)['quota']['remainingBytes']==0
+  time.sleep(2)
+  stopped=remote_json(ssh,'STATE='+repr(cfg['statePath'])+'\nUSER='+repr(g['id'])+"\nimport sqlite3,json\nwith sqlite3.connect(STATE) as db:count=db.execute(\"SELECT COUNT(*) FROM exports WHERE user_id=? AND status='active'\",(USER,)).fetchone()[0]\nprint(json.dumps({'active':count}))")
+  assert stopped['active']==0,'guest cap did not close both workers'
+  guest('stop',{},guest_key)
+  next_key=secrets.token_hex(32);next_guest=guest('start',{'requestId':str(__import__('uuid').uuid4()),'sessionKey':next_key});users.append(next_guest['id']);assert guest('quota',key=next_key)['remainingBytes']==64*1024**3;guest('stop',{},next_key)
+  time.sleep(1);quota=request('quota' ,token=token);assert quota['allocatedBytes']==len(protocols)*2*1048576;assert quota['cumulativeTotalBytes']>=len(protocols)*524288
   history=request('history',token=token);assert history['retention']=='permanent' and any(r['domain']=='speed.cloudflare.com' for r in history['records']),'native domain capture unavailable'
-  print(json.dumps({'passed':True,'protocols':protocols,'publicBytesEach':524288,'originalCAValidated':True,'deviceRegistrationLimited':True,'multiDeviceLogin':True,'idempotency':True,'remarks':True,'mainIndependent':True,'quotaIndependent':True,'cumulativeTraffic':True,'permanentDomains':True}))
+  print(json.dumps({'passed':True,'protocols':protocols,'publicBytesEach':524288,'originalCAValidated':True,'deviceRegistrationLimited':True,'multiDeviceLogin':True,'idempotency':True,'remarks':True,'mainIndependent':True,'quotaIndependent':True,'cumulativeTraffic':True,'permanentDomains':True,'guestNoAccount':True,'guestCombined64GiBCap':True,'guestHistoryDisabled':True,'guestNewManualReset':True}))
  finally:
   # Remove only the random fixture account after stopping its workers.
   if users:
    prefix='STATE='+repr(cfg['statePath'])+'\nUSERS='+repr(users)+'\n'
-   remote_json(ssh,prefix+"import sqlite3,json,time\nwith sqlite3.connect(STATE) as db:\n for u in USERS:db.execute(\"UPDATE exports SET status='revoked' WHERE user_id=?\",(u,))\ntime.sleep(3)\nwith sqlite3.connect(STATE) as db:\n for u in USERS:\n  for table in ['history','api_sessions','device_registrations','exports']:db.execute('DELETE FROM '+table+' WHERE user_id=?',(u,))\n  db.execute('DELETE FROM api_users WHERE id=?',(u,))\nprint(json.dumps({'fixturesRemoved':True}))",timeout=20)
+   remote_json(ssh,prefix+"import sqlite3,json,time\nwith sqlite3.connect(STATE) as db:\n for u in USERS:db.execute(\"UPDATE exports SET status='revoked' WHERE user_id=?\",(u,))\ntime.sleep(3)\nwith sqlite3.connect(STATE) as db:\n for u in USERS:\n  for table in ['history','api_sessions','device_registrations','guest_sessions','exports']:db.execute('DELETE FROM '+table+' WHERE user_id=?',(u,))\n  db.execute('DELETE FROM api_users WHERE id=?',(u,))\nprint(json.dumps({'fixturesRemoved':True}))",timeout=20)

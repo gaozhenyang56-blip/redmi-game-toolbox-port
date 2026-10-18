@@ -46,6 +46,7 @@ public class TunnelService extends VpnService {
  @Override public int onStartCommand(Intent i,int flags,int id){
   if(i!=null&&"STOP".equals(i.getAction())) {cancelled=true;status("stopping","正在断开连接");worker.execute(()->{cleanup();stopSelf();});return START_NOT_STICKY;}
   if(!state.equals("disconnected")&&!state.equals("error"))return START_NOT_STICKY;
+  if(ExportClient.token(this).isEmpty())GuestClient.begin(this);
   cancelled=false;verified=false;connectionEpoch++;recoveryBudget.reset();status("connecting","正在启动专属通道");
   NotificationManager nm=getSystemService(NotificationManager.class);
   nm.createNotificationChannel(new NotificationChannel("vpn","VPN 连接状态",NotificationManager.IMPORTANCE_LOW));
@@ -53,6 +54,7 @@ public class TunnelService extends VpnService {
   else startForeground(1,notification("正在连接"));
   worker.execute(this::connect);return START_NOT_STICKY;
  }
+ public static void guestExhausted(){TunnelService service=activeService;if(service!=null&&!service.cancelled){service.cancelled=true;service.worker.execute(()->service.fail("本次访客64GB已用完，请重新连接"));}}
  public static String size(double n){String[] u={"B","KB","MB","GB"};int i=0;while(n>=1024&&i<3){n/=1024;i++;}return String.format(java.util.Locale.CHINA,i==0?"%.0f %s":"%.1f %s",n,u[i]);}
  private Notification notification(String text){
   PendingIntent open=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class),PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
@@ -70,9 +72,10 @@ public class TunnelService extends VpnService {
    if(prepare(this)!=null)throw new IOException("请先允许系统 VPN 权限");
    AppRouting routing=AppRouting.load(this);routing.plan(this);
    go.Seq.setContext(getApplicationContext());
+   if(routing.bypassChina())GeoAssets.prepare(this);
    Libv2ray.initCoreEnv(getFilesDir().getAbsolutePath(),"");
    ProfileMonitor.Profile profile=ProfileMonitor.forConnection(this);String node=profile.node;activeProfileRevision=profile.revision;activeProfileLabel=profile.label;
-   String config=NodeConfig.build(node);
+   String config=NodeConfig.build(node,routing.bypassChina());
    runningConfig=config;runningNode=node;serviceCompatibility=new org.json.JSONObject(node).has("compatibility");activeProtocol=NodeConfig.protocol(new org.json.JSONObject(node)).toUpperCase(java.util.Locale.ROOT);startCore();
    if(cancelled){cleanup();return;}
    trackNetwork();
@@ -207,5 +210,5 @@ public class TunnelService extends VpnService {
   main.post(()->stopForeground(STOP_FOREGROUND_REMOVE));
  }
  @Override public void onRevoke(){cancelled=true;worker.execute(()->{cleanup();stopSelf();});}
- @Override public void onDestroy(){if(activeService==this)activeService=null;cancelled=true;worker.execute(this::cleanup);worker.shutdown();super.onDestroy();}
+ @Override public void onDestroy(){if(activeService==this){activeService=null;GuestClient.end(this);}cancelled=true;worker.execute(this::cleanup);worker.shutdown();super.onDestroy();}
 }

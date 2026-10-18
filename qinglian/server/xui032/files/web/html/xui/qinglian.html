@@ -1,20 +1,35 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 {{template "head" .}}
+<style>
+.ql-content{margin:24px 20px;max-width:1500px;width:calc(100% - 40px)}.ql-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px}.ql-heading h1{font-size:26px;margin:0}.ql-muted{color:#777;font-size:13px}.ql-pages{margin-bottom:24px;overflow:auto;white-space:nowrap}.ql-stat{margin-bottom:16px}.ql-stat strong{font-size:26px}.ql-stat p{color:#777}.ql-entry{display:flex;flex-direction:column;padding:20px 8px;gap:8px}.ql-entry span{color:#777;font-size:13px}.ql-form{margin-top:20px}.ql-search{width:300px;max-width:100%;margin-bottom:16px}.ql-toolbar{display:flex;justify-content:space-between;gap:12px}.ant-table-body{overflow-x:auto}.ant-table td{word-break:normal}.ant-table a[aria-disabled=true]{color:#aaa;pointer-events:none}@media(max-width:600px){.ql-content{margin:12px;width:calc(100% - 24px)}.ql-heading h1{font-size:22px}.ant-card-body{padding:16px!important}.ql-stat strong{font-size:23px}.ql-pages{margin-bottom:16px}}
+</style>
 <body>
 <a-layout id="app" v-cloak>
  {{template "commonSider" .}}
- <a-layout><a-layout-content style="margin:24px 16px">
-  <a-card title="App 订阅节点" style="margin-bottom:16px">
+ <a-layout><a-layout-content class="ql-content">
+  <div class="ql-heading"><div><h1>轻连管理</h1><p class="ql-muted">账号、连接与 App 发布</p></div><a-button @click="refreshPage">刷新当前页</a-button></div>
+  <a-menu mode="horizontal" :selected-keys="[section]" class="ql-pages"><a-menu-item v-for="page in pages" :key="page.id"><a :href="pageLink(page.id)">[[ page.label ]]</a></a-menu-item></a-menu>
+  <template v-if="section==='overview'">
+   <a-alert v-if="apiError||error" type="warning" :message="apiError||error" show-icon style="margin-bottom:16px"></a-alert>
+   <a-row :gutter="16">
+    <a-col :xs="24" :sm="12" :lg="6"><a-card class="ql-stat"><p>账号数量</p><strong>[[ apiReady?apiUsers.length:'—' ]]</strong></a-card></a-col>
+    <a-col :xs="24" :sm="12" :lg="6"><a-card class="ql-stat"><p>账号累计用量</p><strong>[[ apiReady?size(totalAccountUsage()):'—' ]]</strong></a-card></a-col>
+    <a-col :xs="24" :sm="12" :lg="6"><a-card class="ql-stat"><p>在线设备</p><strong>[[ online===null?'—':online ]]</strong></a-card></a-col>
+    <a-col :xs="24" :sm="12" :lg="6"><a-card class="ql-stat"><p>App 发布版本</p><strong>[[ update.apk?update.apk.versionName:'—' ]]</strong></a-card></a-col>
+   </a-row>
+   <a-card title="管理入口"><a-row :gutter="16"><a-col :xs="24" :sm="12" :lg="8" v-for="page in pages.filter(p=>p.id!=='overview')" :key="page.id"><a :href="pageLink(page.id)" class="ql-entry"><strong>[[ page.label ]]</strong><span>[[ page.description ]]</span></a></a-col></a-row></a-card>
+  </template>
+  <a-card v-if="section==='nodes'" title="App 订阅节点" style="margin-bottom:16px">
    <p>从现有 x-ui 节点中指定 App 使用的唯一节点。修改节点参数后 App 会自动同步，已连接设备重连后使用新配置。</p>
    <a-alert v-if="selectionError" type="error" :message="selectionError" show-icon style="margin-bottom:12px"></a-alert>
    <a-select v-model="selectedId" style="width:360px;max-width:100%;margin-right:12px" placeholder="选择 App 节点">
-    <a-select-option v-for="node in nodes" :key="node.id" :value="node.id" :disabled="!node.available">[[ node.name ]] · [[ node.protocol ]] · [[ node.kind==='main'?'App主连接':'导出' ]] · [[ node.port ]] [[ node.available?'':'（不支持或已停用）' ]]</a-select-option>
+    <a-select-option v-for="node in nodes" :key="node.id" :value="node.id" :disabled="!node.available">[[ node.name ]] · [[ node.protocol ]] · [[ node.port ]] [[ node.available?'':'（不支持或已停用）' ]]</a-select-option>
    </a-select>
    <a-button type="primary" :disabled="!selectedId" :loading="saving" @click="saveSelection">保存 App 节点</a-button>
    <p style="margin-top:12px">支持单客户端 VMess / VLESS / Trojan 和单密码 Shadowsocks，TCP / WebSocket，可验证的 TLS；暂不支持 Reality、XTLS 和 SS2022。非 VMess 节点需要 App v9+。配额跟随所选节点，保存不改动入站或清零流量。</p>
   </a-card>
-  <a-card title="多协议 · Hysteria2 加速通道" style="margin-bottom:16px">
+  <a-card v-if="section==='nodes'" title="多协议 · Hysteria2 加速通道" style="margin-bottom:16px">
    <p>VMess / VLESS / Trojan / Shadowsocks 在原“入站列表”管理；此处统一管理新增的 Hysteria2。App v9+ 可在兼容与加速通道间切换，加速需要 Android 10+。</p>
    <a-alert v-if="hyError" type="error" :message="hyError" show-icon></a-alert>
    <p>模块：[[ hy.installed?'已安装':'尚未部署' ]] · 运行：[[ hy.running?'正常':'未运行' ]] · UDP [[ hy.port||443 ]] · 计费入站 [[ hy.boundInbound||'未绑定' ]]</p>
@@ -23,7 +38,17 @@
    <a-button type="primary" :disabled="!hy.installed||!selectedId" :loading="hyBusy" @click="saveHy">保存并绑定当前 App 节点</a-button>
    <p style="margin-top:12px">加速流量累计到绑定入站，与兼容通道共用额度和到期时间。额度耗尽、到期、停用或记账异常会关闭加速连接。切换 App 节点后需重新绑定；不会自动更换原节点。</p>
   </a-card>
-  <a-card title="App 热修复与版本发布" style="margin-bottom:16px">
+  <a-card v-if="section==='nodes'" title="账号节点与导出" style="margin-bottom:16px">
+   <div class="ql-toolbar"><a-input-search v-model="nodeQuery" placeholder="搜索用户、备注或协议" class="ql-search"></a-input-search><a-button @click="loadAPI">刷新节点</a-button></div>
+   <a-alert v-if="apiError" type="error" :message="apiError" show-icon></a-alert>
+   <a-table :columns="nodeColumns" :data-source="filteredNodes()" row-key="id" :scroll="{x:1100}" :pagination="{pageSize:10,showSizeChanger:true}">
+    <template slot="nodeKind" slot-scope="value">[[ value==='main'?'App主连接':value==='guest'?'访客连接':'导出节点' ]]</template>
+    <template slot="nodeUsage" slot-scope="value,record">[[ size(record.uploadBytes+record.downloadBytes) ]] / [[ record.kind==='main'?'主节点配额':record.kind==='guest'?'会话共64GB':size(record.totalBytes) ]]</template>
+    <template slot="nodeExpiry" slot-scope="value,record">[[ record.kind!=='export'?'租约至 ':'到期 ' ]][[ stamp(value*1000) ]]</template>
+    <template slot="nodeAction" slot-scope="value,record"><a-popconfirm title="停止此节点？已分配额度不返还。" @confirm="revokeAPINode(record.id)"><a>撤销</a></a-popconfirm></template>
+   </a-table><p class="ql-muted">有效节点上限包含主连接。主连接的180秒租约会在连接期间续租，导出节点创建后7天到期；访客会话两种通道合计64GB，自动恢复不重置。</p>
+  </a-card>
+  <a-card v-if="section==='updates'" title="App 热修复与版本发布" style="margin-bottom:16px">
    <p>界面配置发布后，支持更新的新版本 App 在前台每30秒同步，无需重装。只允许下列界面参数，不执行脚本或远程代码。</p>
    <a-alert v-if="updateError" type="error" :message="updateError" show-icon></a-alert>
    <p>发布序号：[[ update.revision ]] · 已发布安装包：[[ update.apk?update.apk.versionName+' (版本码 '+update.apk.versionCode+')':'无' ]]</p>
@@ -48,25 +73,37 @@
    </div>
    <a-button type="primary" :loading="updateBusy" :disabled="!apkFile||!apkVersion||!apkName" @click="uploadAPK">上传并发布 APK</a-button>
   </a-card>
-  <a-card title="用户 API · 每周独立节点额度" style="margin-bottom:16px">
+  <a-card v-if="section==='accounts'" title="用户 API · 每周独立节点额度" style="margin-bottom:16px">
    <p>全部账号累计用量：[[ size(totalAccountUsage()) ]]</p>
    <p>每个用户每周可分配256GB（256×1024³字节），UTC周一00:00重置；每条导出节点创建后7天过期，额度耗尽提前停用。导出即预留额度，撤销或未使用不返还。支持VMess、VLESS、Trojan、Shadowsocks、HY2。</p>
    <p>账号支持自定义用户名密码及多设备登录；同一设备仅可注册一个账号（Android ID摘要）。用户须在App明确同意永久保存主连接和导出节点的连接域名与时间，才可使用。不会保存HTTPS路径、查询或内容；后台请求也会记录，不等同浏览器历史。主连接按账号独立统计，仍消耗面板指定节点配额；每周导出额度单独计算。</p>
    <a-alert v-if="apiError" type="error" :message="apiError" show-icon></a-alert>
-   <a-input v-model="apiUserName" placeholder="用户备注" style="width:220px;margin-right:12px" maxlength="128"></a-input><a-input v-model="apiUsername" placeholder="登录用户名" style="width:160px" maxlength="32"></a-input> <a-input-password v-model="apiPassword" placeholder="登录密码（8..72字节）" style="width:220px"></a-input-password> <a-button type="primary" :loading="apiBusy" @click="createAPIUser">创建API用户</a-button><a-button style="margin-left:8px" @click="loadAPI">刷新</a-button>
+   <a-form layout="vertical" class="ql-form"><a-row :gutter="16">
+    <a-col :xs="24" :md="8"><a-form-item label="用户备注"><a-input v-model="apiUserName" placeholder="便于识别的名称" maxlength="128"></a-input></a-form-item></a-col>
+    <a-col :xs="24" :md="8"><a-form-item label="登录用户名"><a-input v-model="apiUsername" placeholder="3–32字符" maxlength="32"></a-input></a-form-item></a-col>
+    <a-col :xs="24" :md="8"><a-form-item label="登录密码"><a-input-password v-model="apiPassword" placeholder="8–72字节" autocomplete="new-password"></a-input-password></a-form-item></a-col>
+   </a-row><a-button type="primary" :loading="apiBusy" @click="createAPIUser">创建账号</a-button><a-button style="margin-left:8px" @click="loadAPI">刷新账号</a-button></a-form>
+   <a-divider></a-divider><a-input-search v-model="accountQuery" placeholder="搜索用户名或备注" class="ql-search"></a-input-search>
+   <a-table :columns="userColumns" :data-source="filteredUsers()" row-key="id" :scroll="{x:1050}" :pagination="{pageSize:10,showSizeChanger:true}">
+    <template slot="userName" slot-scope="value,record"><strong>[[ value ]]</strong><div class="ql-muted">[[ record.username ]]</div></template>
+    <template slot="userStatus" slot-scope="value"><a-tag :color="value?'green':'default'">[[ value?'启用':'已撤销' ]]</a-tag></template>
+    <template slot="accountTotal" slot-scope="value">[[ size(value) ]]</template>
+    <template slot="userConsent" slot-scope="value">[[ value?'已同意永久域名记录':'待用户同意' ]]</template>
+    <template slot="userAction" slot-scope="value,record"><a :href="pageLink('history')+'?user='+encodeURIComponent(record.id)">域名记录</a><a-divider type="vertical"></a-divider><a-popconfirm title="撤销该账号并停止其全部节点？" @confirm="revokeAPIUser(record.id)"><a :aria-disabled="!record.enabled">撤销账号</a></a-popconfirm></template>
+   </a-table>
 
-   <div v-for="user in apiUsers" :key="user.id" style="padding:12px 0;border-bottom:1px solid #ddd">[[ user.name ]] · [[ user.enabled?'启用':'已撤销' ]] · [[ user.deviceCount ]] 台登录设备 · [[ user.historyConsent?'已同意永久域名记录':'待App告知同意' ]] · 累计 [[ size(user.quota.cumulativeTotalBytes) ]]（上传 [[ size(user.quota.cumulativeUploadBytes) ]] / 下载 [[ size(user.quota.cumulativeDownloadBytes) ]]） · 本周剩余 [[ size(user.quota.remainingBytes) ]] <a-button size="small" @click="historyUser=user.id;loadHistory(false)">查看域名记录</a-button> <a-popconfirm title="撤销凭据并停止该用户全部导出节点？本周额度不返还。" @confirm="revokeAPIUser(user.id)"><a-button size="small" :disabled="!user.enabled">撤销用户</a-button></a-popconfirm></div>
+
    <p style="margin-top:12px">同时运行节点（含App主连接）：每用户最多8条，服务总计最多16条，以控制本机资源。TLS节点须导入公开CA并保持证书验证。App可保存包含CA、链接和客户端配置的压缩包。</p>
-   <div v-for="node in apiNodes" :key="node.id" style="padding:8px 0">[[ node.userName ]] · [[ node.remark || "未命名" ]] · [[ node.protocol ]] · [[ node.kind==='main'?'App主连接':'导出' ]] · [[ size(node.uploadBytes+node.downloadBytes) ]] / [[ node.kind==='main'?'沿用主节点配额':size(node.totalBytes) ]] · [[ node.status ]] · 到期 [[ stamp(node.expiresAt*1000) ]] <a-popconfirm title="停止该节点？本周额度不返还。" @confirm="revokeAPINode(node.id)"><a-button size="small" :disabled="['revoked','expired','exhausted'].includes(node.status)">撤销节点</a-button></a-popconfirm></div>
+
   </a-card>
-  <a-card title="账号连接域名记录 · 永久保存" style="margin-bottom:16px">
+  <a-card v-if="section==='history'" title="账号连接域名记录 · 永久保存" style="margin-bottom:16px">
    <p>仅记录已明确同意用户的代理连接域名和时间，含后台资源请求；不是浏览器页面历史。停用后停止新增，已有记录不自动清理。</p>
    <a-select v-model="historyUser" style="width:220px" @change="loadHistory(false)"><a-select-option value="">所有用户</a-select-option><a-select-option v-for="u in apiUsers" :key="u.id" :value="u.id">[[ u.name ]]</a-select-option></a-select><a-button @click="loadHistory(false)">刷新</a-button>
    <p v-if="historyError">[[ historyError ]]</p>
-   <div v-for="r in historyRecords" :key="r.id" style="padding:6px 0">[[ r.userName ]] · [[ r.domain ]] · [[ stamp(r.firstSeen*1000) ]] — [[ stamp(r.lastSeen*1000) ]] · [[ r.observations ]] 次观察</div>
+   <a-table :columns="historyColumns" :data-source="historyRecords" row-key="id" :scroll="{x:850}" :pagination="{pageSize:20}"><template slot="domainTime" slot-scope="value">[[ stamp(value*1000) ]]</template></a-table>
    <a-button v-if="historyMore" @click="loadHistory(true)">加载更早记录</a-button>
   </a-card>
-  <a-card title="轻连 · 在线设备">
+  <a-card v-if="section==='devices'" title="轻连 · 在线设备">
    <a-alert v-if="error" type="error" :message="error" show-icon style="margin-bottom:16px"></a-alert>
    <p>在线 [[ online === null ? '不可用' : online ]] 台 · 每 3 秒刷新，30 秒无心跳即离线。</p>
    <p>仅统计轻连 App。设备信息由客户端自报，不能作为身份或计费依据；通道建立不表示远端网络已验证。</p>
@@ -76,32 +113,36 @@
     <template slot="bytes" slot-scope="value">[[ size(value) ]]</template>
     <template slot="rate" slot-scope="value">[[ size(value) ]]/s</template>
    </a-table>
-  </a-card>
- </a-layout-content></a-layout>
+  </a-card> </a-layout-content></a-layout>
 </a-layout>
 {{template "js" .}}
 <script>
- const app=new Vue({el:'#app',delimiters:['[[',']]'],data:{apiUsers:[],apiNodes:[],apiUserName:"",apiUsername:"",apiPassword:"",historyUser:"",historyRecords:[],historyMore:false,historyBefore:null,historyError:"",newApiToken:"",apiBusy:false,apiError:"",siderDrawer,online:null,devices:[],error:'',timer:null,nodes:[],selectedId:null,selectionError:'',saving:false,hy:{installed:false,enabled:false,running:false},hyError:'',hyBusy:false,update:{schema:1,revision:0,ui:{navHeight:80,navIcon:24,navText:12,navGap:2,glassMargin:12,glassEnabled:true},apk:null},updateBusy:false,updateError:'',apkFile:null,apkVersion:null,apkName:'',apkNotes:'',
+ const currentPage=(location.pathname.match(/\/qinglian\/manage\/(accounts|nodes|history|updates|devices)\/?$/)||[])[1]||'overview';
+ const app=new Vue({el:'#app',delimiters:['[[',']]'],data:{section:currentPage,apiReady:false,accountQuery:'',nodeQuery:'',pages:[{id:'overview',label:'概览'},{id:'accounts',label:'账号',description:'登录账号、周额度与累计流量'},{id:'nodes',label:'节点',description:'App通道、协议与导出节点'},{id:'history',label:'域名记录',description:'按用户查看已告知的连接域名'},{id:'updates',label:'App更新',description:'界面修复与原签名安装包'},{id:'devices',label:'在线设备',description:'设备状态与实时速度'}],userColumns:[{title:'用户',dataIndex:'name',scopedSlots:{customRender:'userName'}},{title:'状态',dataIndex:'enabled',scopedSlots:{customRender:'userStatus'}},{title:'登录设备',dataIndex:'deviceCount'},{title:'累计用量',dataIndex:'quota.cumulativeTotalBytes',scopedSlots:{customRender:'accountTotal'}},{title:'本周可分配',dataIndex:'quota.remainingBytes',scopedSlots:{customRender:'accountTotal'}},{title:'告知状态',dataIndex:'historyConsent',scopedSlots:{customRender:'userConsent'}},{title:'操作',key:'action',scopedSlots:{customRender:'userAction'}}],nodeColumns:[{title:'用户',dataIndex:'userName'},{title:'备注',dataIndex:'remark'},{title:'协议',dataIndex:'protocol'},{title:'用途',dataIndex:'kind',scopedSlots:{customRender:'nodeKind'}},{title:'用量 / 额度',key:'usage',scopedSlots:{customRender:'nodeUsage'}},{title:'状态',dataIndex:'status'},{title:'时间',dataIndex:'expiresAt',scopedSlots:{customRender:'nodeExpiry'}},{title:'操作',key:'action',scopedSlots:{customRender:'nodeAction'}}],historyColumns:[{title:'用户',dataIndex:'userName'},{title:'域名',dataIndex:'domain'},{title:'首次观察',dataIndex:'firstSeen',scopedSlots:{customRender:'domainTime'}},{title:'最近观察',dataIndex:'lastSeen',scopedSlots:{customRender:'domainTime'}},{title:'观察次数',dataIndex:'observations'}],apiUsers:[],apiNodes:[],apiUserName:"",apiUsername:"",apiPassword:"",historyUser:"",historyRecords:[],historyMore:false,historyBefore:null,historyError:"",newApiToken:"",apiBusy:false,apiError:"",siderDrawer,online:null,devices:[],error:'',timer:null,nodes:[],selectedId:null,selectionError:'',saving:false,hy:{installed:false,enabled:false,running:false},hyError:'',hyBusy:false,update:{schema:1,revision:0,ui:{navHeight:80,navIcon:24,navText:12,navGap:2,glassMargin:12,glassEnabled:true},apk:null},updateBusy:false,updateError:'',apkFile:null,apkVersion:null,apkName:'',apkNotes:'',
  columns:[{title:'状态',dataIndex:'online',scopedSlots:{customRender:'online'}},{title:'设备名称',dataIndex:'deviceName'},{title:'品牌 / 型号',dataIndex:'model'},{title:'Android',dataIndex:'androidVersion'},{title:'App',dataIndex:'appVersion'},{title:'来源 IP',dataIndex:'sourceIp'},{title:'上线时间',dataIndex:'startedAt',scopedSlots:{customRender:'time'}},{title:'最近活跃',dataIndex:'lastSeen',scopedSlots:{customRender:'time'}},{title:'上传用量',dataIndex:'uploadBytes',scopedSlots:{customRender:'bytes'}},{title:'下载用量',dataIndex:'downloadBytes',scopedSlots:{customRender:'bytes'}},{title:'上传速度',dataIndex:'uploadRate',scopedSlots:{customRender:'rate'}},{title:'下载速度',dataIndex:'downloadRate',scopedSlots:{customRender:'rate'}}]},
- mounted(){this.loadAPI();this.loadSelection();this.loadUpdates();this.loadHy();this.refresh()},beforeDestroy(){clearTimeout(this.timer)},methods:{
+ mounted(){const user=new URLSearchParams(location.search).get('user');if(user&&/^[0-9a-f]{32}$/.test(user))this.historyUser=user;this.refreshPage()},beforeDestroy(){clearTimeout(this.timer)},methods:{
+ pageLink(id){return basePath+'xui/qinglian'+(id==='overview'?'':'/manage/'+id)},
+ filteredUsers(){const q=this.accountQuery.trim().toLowerCase();return this.apiUsers.filter(u=>(u.name+' '+(u.username||'')).toLowerCase().includes(q))},
+ filteredNodes(){const q=this.nodeQuery.trim().toLowerCase();return this.apiNodes.filter(n=>(n.userName+' '+(n.remark||'')+' '+n.protocol).toLowerCase().includes(q))},
+ refreshPage(){clearTimeout(this.timer);if(['overview','accounts','nodes','history'].includes(this.section))this.loadAPI();if(this.section==='nodes'){this.loadSelection();this.loadHy()}if(['overview','updates'].includes(this.section))this.loadUpdates();if(['overview','devices'].includes(this.section))this.refresh();if(this.section==='history')this.loadHistory(false)},
  async apiPost(path,body){const r=await fetch(basePath+'xui/qinglian/'+path,{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw Error();return await r.json()},
  totalAccountUsage(){return this.apiUsers.reduce((sum,user)=>sum+user.quota.cumulativeTotalBytes,0)},
- async loadAPI(){try{const [u,n]=await Promise.all([axios.get('xui/qinglian/api-users'),axios.get('xui/qinglian/exports')]);this.apiUsers=u.data.users;this.apiNodes=n.data.nodes;this.apiError=''}catch(e){this.apiError='用户API模块暂不可用'}},
+ async loadAPI(){try{const [u,n]=await Promise.all([axios.get(basePath+'xui/qinglian/api-users'),axios.get(basePath+'xui/qinglian/exports')]);this.apiUsers=u.data.users;this.apiNodes=n.data.nodes;this.apiReady=true;this.apiError=''}catch(e){this.apiReady=false;this.apiError='用户API模块暂不可用'}},
  async createAPIUser(){if(!this.apiUserName.trim()||!this.apiUsername.trim()||!this.apiPassword)return;this.apiBusy=true;try{const r=await this.apiPost('api-users',{name:this.apiUserName,username:this.apiUsername,password:this.apiPassword});this.apiUserName='';this.apiUsername='';this.apiPassword='';await this.loadAPI()}catch(e){this.apiError='创建失败，请检查登录与备注'}finally{this.apiBusy=false}},
  async revokeAPIUser(id){try{await this.apiPost('api-users/'+id+'/revoke',{});await this.loadAPI()}catch(e){this.apiError='撤销失败，请刷新重试'}},
  async revokeAPINode(id){try{await this.apiPost('exports/'+id+'/revoke',{});await this.loadAPI()}catch(e){this.apiError='撤销失败，请刷新重试'}},
- async loadHistory(more){try{const params={userId:this.historyUser};if(more&&this.historyBefore)params.before=this.historyBefore;const r=await axios.get('xui/qinglian/history',{params});this.historyRecords=more?this.historyRecords.concat(r.data.records):r.data.records;this.historyMore=r.data.hasMore;this.historyBefore=r.data.nextBefore;this.historyError=''}catch(e){this.historyError='域名记录暂不可用'}},
- async loadHy(){try{const response=await axios.get('xui/qinglian/acceleration',{timeout:5000});this.hy=response.data;this.hyError=''}catch(error){this.hyError='加速模块暂不可用'}},
+ async loadHistory(more){try{const params={userId:this.historyUser};if(more&&this.historyBefore)params.before=this.historyBefore;const r=await axios.get(basePath+'xui/qinglian/history',{params});this.historyRecords=more?this.historyRecords.concat(r.data.records):r.data.records;this.historyMore=r.data.hasMore;this.historyBefore=r.data.nextBefore;this.historyError=''}catch(e){this.historyError='域名记录暂不可用'}},
+ async loadHy(){try{const response=await axios.get(basePath+'xui/qinglian/acceleration',{timeout:5000});this.hy=response.data;this.hyError=''}catch(error){this.hyError='加速模块暂不可用'}},
  async saveHy(){this.hyBusy=true;try{const response=await fetch(basePath+'xui/qinglian/acceleration',{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'},body:JSON.stringify({enabled:this.hy.enabled,boundInbound:this.selectedId})});if(!response.ok)throw Error();this.hy=await response.json();this.hyError='';this.$message.success('已保存，等待服务生效后在App重连。');setTimeout(()=>this.loadHy(),2000)}catch(error){this.hyError='保存失败，请检查节点、配额与模块状态'}finally{this.hyBusy=false}},
- async loadUpdates(){try{const response=await axios.get('xui/qinglian/updates',{timeout:5000});this.update=response.data;this.updateError=''}catch(error){this.updateError='更新配置暂不可用，请检查登录与模块版本。'}},
+ async loadUpdates(){try{const response=await axios.get(basePath+'xui/qinglian/updates',{timeout:5000});this.update=response.data;this.updateError=''}catch(error){this.updateError='更新配置暂不可用，请检查登录与模块版本。'}},
  async updateRequest(path,body,isFile=false){const response=await fetch(basePath+'xui/qinglian/updates'+path,{method:'POST',credentials:'same-origin',headers:isFile?{'X-Requested-With':'XMLHttpRequest'}:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'},body:isFile?body:JSON.stringify(body)});if(!response.ok)throw Error();this.update=await response.json();this.updateError='';this.$message.success('已发布，App将自动同步；安装包升级仍需手机确认。')},
  async publishUI(){this.updateBusy=true;try{await this.updateRequest('',this.update)}catch(error){this.updateError='发布失败，请刷新后检查参数再重试。'}finally{this.updateBusy=false}},
  async rollbackUI(){this.updateBusy=true;try{await this.updateRequest('/rollback',{})}catch(error){this.updateError='没有可回滚的发布，或旧安装包已清理。'}finally{this.updateBusy=false}},
  async clearAPK(){this.updateBusy=true;try{await this.updateRequest('',{...this.update,apk:null})}catch(error){this.updateError='撤下失败，请刷新重试。'}finally{this.updateBusy=false}},
  async uploadAPK(){this.updateBusy=true;try{const form=new FormData();form.append('apk',this.apkFile);form.append('versionCode',this.apkVersion);form.append('versionName',this.apkName);form.append('notes',this.apkNotes);await this.updateRequest('/apk',form,true)}catch(error){this.updateError='上传失败：请检查APK格式、64MiB上限、版本信息与登录状态。'}finally{this.updateBusy=false}},
- async loadSelection(){try{const response=await axios.get('xui/qinglian/selection',{timeout:5000});this.nodes=response.data.nodes;this.selectedId=response.data.selectedId||null;this.selectionError=''}catch(error){this.selectionError='节点列表暂不可用，请检查登录权限与模块配置。'}},
+ async loadSelection(){try{const response=await axios.get(basePath+'xui/qinglian/selection',{timeout:5000});this.nodes=response.data.nodes;this.selectedId=response.data.selectedId||null;this.selectionError=''}catch(error){this.selectionError='节点列表暂不可用，请检查登录权限与模块配置。'}},
  async saveSelection(){this.saving=true;try{const saved=await fetch(basePath+'xui/qinglian/selection',{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'},body:JSON.stringify({inboundId:this.selectedId})});if(!saved.ok)throw Error();this.$message.success('已保存，App 下次连接自动同步。');this.selectionError='';await this.loadSelection()}catch(error){this.selectionError='保存失败，请确认节点已启用且符合支持的传输格式。'}finally{this.saving=false}},
  stamp(value){return value?new Date(value).toLocaleString():'—'},size(value){let n=Number(value||0),i=0;const units=['B','KB','MB','GB'];while(n>=1024&&i<3){n/=1024;i++}return n.toFixed(i?1:0)+' '+units[i]},
- async refresh(){try{const response=await axios.get('xui/qinglian/devices',{timeout:5000});if(!Array.isArray(response.data.devices)||!Number.isInteger(response.data.online))throw Error();this.online=response.data.online;this.devices=response.data.devices;this.error=''}catch(error){this.online=null;this.devices=[];this.error=error.response&&error.response.status===401?'登录已过期，请重新登录面板。':'设备数据暂不可用，请检查面板模块配置。'}finally{this.timer=setTimeout(()=>this.refresh(),3000)}}}});
+ async refresh(){try{const response=await axios.get(basePath+'xui/qinglian/devices',{timeout:5000});if(!Array.isArray(response.data.devices)||!Number.isInteger(response.data.online))throw Error();this.online=response.data.online;this.devices=response.data.devices;this.error=''}catch(error){this.online=null;this.devices=[];this.error=error.response&&error.response.status===401?'登录已过期，请重新登录面板。':'设备数据暂不可用，请检查面板模块配置。'}finally{this.timer=setTimeout(()=>this.refresh(),3000)}}}});
 </script>
 </body></html>

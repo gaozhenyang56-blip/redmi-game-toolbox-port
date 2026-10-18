@@ -23,3 +23,5 @@ __pycache__/
 *.pyc
 
 app/src/main/assets/updates.json
+
+app/src/main/assets/*.dat

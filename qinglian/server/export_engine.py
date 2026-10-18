@@ -13,7 +13,7 @@ class ExportEngine:
  def rows(self):
   with self.db() as db:return [dict(r) for r in db.execute('SELECT e.*,u.enabled,u.history_consent FROM exports e JOIN api_users u ON e.user_id=u.id WHERE e.status IN (\'pending\',\'active\',\'error\')')]
  @staticmethod
- def allowed(row):return row and row['enabled'] and row['history_consent'] and row['expires']>int(time.time()) and row['up']+row['down']<row['total'] and row['status'] in ('active','pending','error')
+ def allowed(row):return row and row['enabled'] and (row['history_consent'] or row['kind']=='guest') and row['expires']>int(time.time()) and row['up']+row['down']<row['total'] and row['status'] in ('active','pending','error')
  def authenticate(self,ident,secret):
   with self.lock:
    with self.db() as db:r=db.execute('SELECT e.*,u.enabled,u.history_consent FROM exports e JOIN api_users u ON e.user_id=u.id WHERE e.id=?',(ident,)).fetchone()
@@ -24,7 +24,10 @@ class ExportEngine:
   with socket.socket() as sock:sock.bind(('127.0.0.1',0));return sock.getsockname()[1]
  def acl(self):return ['127.0.0.0/8','10.0.0.0/8','172.16.0.0/12','192.168.0.0/16','169.254.0.0/16','::1/128','fc00::/7','fe80::/10']
  def parent_allowed(self,row):
-  if row.get('kind','export')!='main':return True
+  if row.get('kind','export') not in ('main','guest'):return True
+  if row.get('kind')=='guest':
+   with self.db() as db:used=db.execute("SELECT COALESCE(SUM(up+down),0) FROM exports WHERE user_id=? AND kind='guest'",(row['user_id'],)).fetchone()[0]
+   if used>=64*1024**3:return False
   with sqlite3.connect(self.cfg['database'],timeout=5) as db:
    db.row_factory=sqlite3.Row;p=db.execute('SELECT * FROM inbounds WHERE id=? AND user_id=?',(row['parent_id'],self.cfg['ownerId'])).fetchone()
   return bool(p and p['enable'] and (p['total']==0 or p['up']+p['down']<p['total']) and (p['expiry_time']==0 or p['expiry_time']>int(time.time()*1000)))
@@ -32,7 +35,7 @@ class ExportEngine:
  def start(self,row):
   ident=row['id'];profile=json.loads(row['data']);port=self.free_port();secret=os.urandom(32).hex();hy=row['protocol']=='hysteria2'
   if hy:
-   cfg={'listen':':'+str(row['port']),'tls':{'cert':self.cfg['certificate'],'key':self.cfg['privateKey']},'auth':{'type':'http','http':{'url':'http://127.0.0.1:'+str(self.cfg['controlPort'])+'/auth/'+ident}},'trafficStats':{'listen':'127.0.0.1:'+str(port),'secret':secret},'resolver':{'type':'tcp','tcp':{'addr':'1.1.1.1:53','timeout':'4s'}},'outbounds':[{'name':'direct','type':'direct','direct':{'mode':'4'}}],'acl':{'inline':['reject('+x+')' for x in self.acl()]+['direct(all)']},'quic':{'disablePathMTUDiscovery':True},'sniff':{'enable':True,'timeout':'1s','rewriteDomain':True,'tcpPorts':'80,443','udpPorts':'443'}}
+   cfg={'listen':':'+str(row['port']),'tls':{'cert':self.cfg['certificate'],'key':self.cfg['privateKey']},'auth':{'type':'http','http':{'url':'http://127.0.0.1:'+str(self.cfg['controlPort'])+'/auth/'+ident}},'trafficStats':{'listen':'127.0.0.1:'+str(port),'secret':secret},'resolver':{'type':'tcp','tcp':{'addr':'1.1.1.1:53','timeout':'4s'}},'outbounds':[{'name':'direct','type':'direct','direct':{'mode':'4'}}],'acl':{'inline':['reject('+x+')' for x in self.acl()]+['direct(all)']},'congestion':{'type':'bbr','bbrProfile':'conservative'},'quic':{'disablePathMTUDiscovery':True},'sniff':{'enable':True,'timeout':'1s','rewriteDomain':True,'tcpPorts':'80,443','udpPorts':'443'}}
    binary=self.cfg['hy2Binary'];args=['server','--log-level','error','--disable-update-check']
   else:
    cfg={'log':{'loglevel':'none'},'api':{'tag':'api','services':['StatsService']},'stats':{},'policy':{'system':{'statsInboundUplink':True,'statsInboundDownlink':True}},'inbounds':[profile['inbound'],{'tag':'api','listen':'127.0.0.1','port':port,'protocol':'dokodemo-door','settings':{'address':'127.0.0.1'}}],'outbounds':[{'tag':'proxy','protocol':'freedom','settings':{'domainStrategy':'UseIPv4'}},{'tag':'block','protocol':'blackhole','settings':{}}],'routing':{'domainStrategy':'IPIfNonMatch','rules':[{'type':'field','inboundTag':['api'],'outboundTag':'api'},{'type':'field','ip':self.acl(),'outboundTag':'block'}]}}
@@ -74,7 +77,7 @@ class ExportEngine:
   previous=item['cursor'];delta=(up-previous[0],down-previous[1]);assert min(delta)>=0
   with self.db() as db:
    row=db.execute('SELECT kind,parent_id FROM exports WHERE id=?',(ident,)).fetchone()
-   if row['kind']=='main':
+   if row['kind'] in ('main','guest'):
     # Commit normal-operation parent and account deltas together; abrupt crash durability depends on SQLite journal modes.
     db.execute('ATTACH DATABASE ? AS panel',(self.cfg['database'],))
     db.execute('BEGIN IMMEDIATE')

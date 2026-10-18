@@ -79,4 +79,16 @@ class MainAccounting(unittest.TestCase):
    self.assertTrue(engine.parent_allowed({'kind':'main','parent_id':1}))
    with sqlite3.connect(panel) as db:db.execute('UPDATE inbounds SET total=up+down')
    self.assertFalse(engine.parent_allowed({'kind':'main','parent_id':1}))
+class GuestAccounting(unittest.TestCase):
+ def test_both_channels_share_limit_without_domain_logging(self):
+  with tempfile.TemporaryDirectory() as temp:
+   root=Path(temp);state=root/'state.db';panel=root/'panel.db';limit=64*1024**3
+   with sqlite3.connect(panel) as db:db.executescript("CREATE TABLE inbounds(id INT,user_id INT,enable INT,up INT,down INT,total INT,expiry_time INT);INSERT INTO inbounds VALUES(1,7,1,0,0,0,0);")
+   with sqlite3.connect(state) as db:
+    db.executescript("CREATE TABLE api_users(id TEXT,enabled INT,history_consent INT);INSERT INTO api_users VALUES('guest',1,0);CREATE TABLE exports(id TEXT PRIMARY KEY,user_id TEXT,kind TEXT,parent_id INT,up INT,down INT,total INT,expires INT,status TEXT);CREATE TABLE history(id INT);")
+    for ident,up in [('tcp',limit-1000),('hy2',0)]:db.execute("INSERT INTO exports VALUES(?,'guest','guest',1,?,0,?,?,'active')",(ident,up,limit,int(time.time())+180))
+   engine=ExportEngine({'statePath':str(state),'database':str(panel),'ownerId':7,'work':str(root/'work')});row={'kind':'guest','parent_id':1,'user_id':'guest'};self.assertTrue(engine.parent_allowed(row));engine.record('tcp','guest-private.example:443')
+   with sqlite3.connect(state) as db:
+    self.assertEqual(db.execute('SELECT COUNT(*) FROM history').fetchone()[0],0);db.execute("UPDATE exports SET down=1000 WHERE id='hy2'")
+   self.assertFalse(engine.parent_allowed(row));self.assertFalse(engine.history_failed.is_set())
 if __name__=='__main__':unittest.main()
