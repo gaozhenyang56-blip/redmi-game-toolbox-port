@@ -56,6 +56,14 @@ jobs:
           printf '%s  %s\n' '3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed' "$RUNNER_TEMP/json.jar" | sha256sum -c -
           mkdir -p "$RUNNER_TEMP/classes"
           javac -cp "$RUNNER_TEMP/json.jar" -d "$RUNNER_TEMP/classes" qinglian/app/src/main/java/com/gzy/qinglian/NodeConfig.java qinglian/server/NodeConfigCli.java
+          mkdir -p qinglian/app/src/main/assets
+          unzip -p "$RUNNER_TEMP/v2ray.zip" geoip-only-cn-private.dat > qinglian/app/src/main/assets/geoip.dat
+          unzip -p "$RUNNER_TEMP/v2ray.zip" geosite.dat > qinglian/app/src/main/assets/geosite.dat
+      - name: Verify actual mainland, private and global routing decisions
+        env:
+          QINGLIAN_NODECONFIG_CP: ${{ runner.temp }}/classes:${{ runner.temp }}/json.jar
+          QINGLIAN_V2RAY: ${{ runner.temp }}/v2ray
+        run: python3 -m unittest discover -s qinglian/server -p test_country_routing.py -v
       - name: Check public five-protocol account flows and remove test fixtures
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
