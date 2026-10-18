@@ -62,6 +62,28 @@ final class ApiEndpoint {
    return new JSONObject(new String(bytes,0,total,StandardCharsets.UTF_8));
   }finally{c.disconnect();}
  }
+ void downloadAPK(String digest,long expected,File output)throws Exception{
+  if(!digest.matches("[0-9a-f]{64}")||expected<1||expected>64L*1024*1024)throw new IOException("无效安装包信息");
+  URL target=new URL(url,"apk/"+digest);
+  if(!target.getProtocol().equals(url.getProtocol())||!target.getHost().equals(url.getHost())||target.getPort()!=url.getPort())throw new IOException("不允许跨主机下载");
+  HttpsURLConnection connection=(HttpsURLConnection)target.openConnection(Proxy.NO_PROXY);
+  File partial=new File(output.getPath()+".part");
+  try{
+   if(tlsFactory!=null)connection.setSSLSocketFactory(tlsFactory);connection.setConnectTimeout(15000);connection.setReadTimeout(20000);connection.setUseCaches(false);connection.setInstanceFollowRedirects(false);
+   connection.setRequestProperty("Authorization","Bearer "+token);connection.setRequestProperty("Accept-Encoding","identity");
+   if(connection.getResponseCode()!=200)throw new IOException("安装包暂不可用");
+   long length=connection.getContentLengthLong();if(length!=-1&&length!=expected)throw new IOException("安装包长度不符");
+   MessageDigest hash=MessageDigest.getInstance("SHA-256");long total=0,start=System.nanoTime();
+   try(InputStream in=connection.getInputStream();FileOutputStream out=new FileOutputStream(partial)){
+    byte[] buffer=new byte[65536];int n;while((n=in.read(buffer))!=-1){
+     total+=n;if(total>expected||Thread.currentThread().isInterrupted()||System.nanoTime()-start>300000000000L)throw new IOException("安装包下载中止");hash.update(buffer,0,n);out.write(buffer,0,n);
+    }out.getFD().sync();
+   }
+   if(total!=expected||!hex(hash.digest()).equals(digest))throw new IOException("安装包校验失败");
+   if(!partial.renameTo(output))throw new IOException("无法保存安装包");
+  }finally{connection.disconnect();partial.delete();}
+ }
+ static String hex(byte[] bytes){StringBuilder result=new StringBuilder();for(byte b:bytes)result.append(String.format(java.util.Locale.ROOT,"%02x",b&255));return result.toString();}
  static long nonnegativeLong(JSONObject json,String key)throws JSONException{
   Object value=json.get(key);
   if(!(value instanceof Integer)&&!(value instanceof Long))throw new JSONException("配额或计数字段必须为整数");

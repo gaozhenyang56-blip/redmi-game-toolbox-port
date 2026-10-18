@@ -21,3 +21,5 @@ server/*.sqlite3*
 
 __pycache__/
 *.pyc
+
+app/src/main/assets/updates.json

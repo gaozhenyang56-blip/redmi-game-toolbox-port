@@ -58,4 +58,17 @@ public class ApiTlsTest {
   try(InputStream in=resource("tls-server-cert.pem")){assertThrows(Exception.class,()->ApiEndpoint.trustCa(in));}
   assertThrows(Exception.class,()->ApiEndpoint.trustCa(new ByteArrayInputStream("not a CA".getBytes(StandardCharsets.UTF_8))));
  }
+ @Test public void downloadsOnlyVerifiedExactLengthArtifactAndCleansPartialFiles()throws Exception{
+  try(LocalTlsServer server=server()){
+   SSLSocketFactory factory;try(InputStream in=resource("tls-ca.pem")){factory=ApiEndpoint.trustCa(in);}
+   byte[] bytes="{\"online\":2}".getBytes(StandardCharsets.UTF_8);String hash=ApiEndpoint.hex(MessageDigest.getInstance("SHA-256").digest(bytes));
+   ApiEndpoint endpoint=new ApiEndpoint(new URL("https://127.0.0.1:"+server.port()+"/api/updates"),"fixture-token",factory);
+   File output=File.createTempFile("qinglian-update-",".apk");output.delete();try{
+    endpoint.downloadAPK(hash,bytes.length,output);assertArrayEquals(bytes,java.nio.file.Files.readAllBytes(output.toPath()));output.delete();
+    assertThrows(Exception.class,()->endpoint.downloadAPK("0".repeat(64),bytes.length,output));assertFalse(output.exists());assertFalse(new File(output.getPath()+".part").exists());
+    assertThrows(Exception.class,()->endpoint.downloadAPK(hash,bytes.length+1,output));assertFalse(output.exists());
+   }finally{output.delete();new File(output.getPath()+".part").delete();}
+  }
+ }
+
 }

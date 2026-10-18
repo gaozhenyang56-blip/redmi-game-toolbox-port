@@ -13,13 +13,20 @@ assert Path('/etc/x-ui/x-ui.db').is_file()
 root=Path(tempfile.mkdtemp(prefix='qinglian-backup-'))
 source=sqlite3.connect('file:/etc/x-ui/x-ui.db?mode=ro',uri=True);target=sqlite3.connect(root/'database-consistent.db')
 source.backup(target);target.close();source.close()
-manifest={'version':'0.3.2','binarySha256':hashlib.sha256(Path('/usr/local/x-ui/x-ui').read_bytes()).hexdigest(),
+device_path=None
+config=Path('/etc/x-ui/qinglian.json')
+if config.is_file():
+ cfg=json.loads(config.read_text());device_path=cfg.get('statePath','/etc/x-ui/qinglian/devices.sqlite3')
+ if Path(device_path).is_file():
+  source=sqlite3.connect('file:'+device_path+'?mode=ro',uri=True);target=sqlite3.connect(root/'devices-consistent.db');source.backup(target);target.close();source.close()
+manifest={'deviceDatabase':device_path,'restoreDevices':'Use devices-consistent.db when restoring App state; raw WAL copies are not the consistency snapshot.','version':'0.3.2','binarySha256':hashlib.sha256(Path('/usr/local/x-ui/x-ui').read_bytes()).hexdigest(),
  'databaseSha256':hashlib.sha256((root/'database-consistent.db').read_bytes()).hexdigest(),
  'restoreDatabase':'Use database-consistent.db only if required. Binary-only rollback preserves live counters.'}
 (root/'manifest.json').write_text(json.dumps(manifest))
 with tarfile.open(root/'server-backup.tar.gz','w:gz') as archive:
  for name in ['/usr/local/x-ui','/etc/x-ui','/etc/systemd/system/x-ui.service','/etc/systemd/system/x-ui.service.d','/etc/nginx','/etc/caddy']:
   if Path(name).exists():archive.add(name,arcname=name.lstrip('/'))
+ if (root/'devices-consistent.db').is_file():archive.add(root/'devices-consistent.db',arcname='devices-consistent.db')
  archive.add(root/'database-consistent.db',arcname='database-consistent.db');archive.add(root/'manifest.json',arcname='manifest.json')
 sha=hashlib.sha256((root/'server-backup.tar.gz').read_bytes()).hexdigest()
 print(json.dumps({'directory':str(root),'sha256':sha}))
@@ -33,7 +40,7 @@ try:
             sftp.get(directory+'/server-backup.tar.gz',str(local))
             if hashlib.sha256(local.read_bytes()).hexdigest()!=result['sha256']:raise ValueError('backup transfer checksum mismatch')
             encrypt_file(local,Path('private-transfer'))
-            for name in ['server-backup.tar.gz','database-consistent.db','manifest.json']:sftp.remove(directory+'/'+name)
+            for name in sftp.listdir(directory):sftp.remove(directory+'/'+name)
             sftp.rmdir(directory)
     print('Consistent database, original binary, configuration and service backup encrypted successfully; no services changed.')
 except Exception as failure:

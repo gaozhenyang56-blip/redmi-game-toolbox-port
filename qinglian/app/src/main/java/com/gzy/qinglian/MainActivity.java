@@ -24,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
  private GlassSegments nav;
  static final int NAV_CONNECT=R.id.nav_connect,NAV_SPEED=R.id.nav_speed,NAV_ROUTING=R.id.nav_routing,NAV_ABOUT=R.id.nav_about;
  private static final int[] NAV_ITEMS={NAV_CONNECT,NAV_SPEED,NAV_ROUTING,NAV_ABOUT};
+ private long uiRevision;private TextView updateDetail;
  private TextView quotaValue,quotaDetail,onlineValue,onlineDetail,reportDetail,profileDetail;
  private TextView status,caption,clock,up,down,upTotal,downTotal,latencyValue,downloadValue,testDetail;
  private MaterialButton power,delayButton,downloadButton,stopButton;
@@ -35,9 +36,9 @@ public class MainActivity extends AppCompatActivity {
  private String lastState="",latency="—",download="—",detail="测速数据通过专属节点获取";
  private int testKind=0;private int testSession=0;
  private boolean testing=false;
- private final Runnable ticker=new Runnable(){public void run(){ProfileMonitor.refresh(MainActivity.this,false);QuotaMonitor.refresh(MainActivity.this,false);OnlineMonitor.refresh(MainActivity.this,false);refresh();main.postDelayed(this,500);}};
+ private final Runnable ticker=new Runnable(){public void run(){UpdateMonitor.refresh(MainActivity.this,false);if(UiTuning.get(MainActivity.this).revision!=uiRevision&&!testing){recreate();return;}ProfileMonitor.refresh(MainActivity.this,false);QuotaMonitor.refresh(MainActivity.this,false);OnlineMonitor.refresh(MainActivity.this,false);refresh();if(UpdateMonitor.needsPrompt(MainActivity.this))showUpdate();main.postDelayed(this,500);}};
  @Override public void onCreate(Bundle b){
-  AppAppearance.apply(this);DynamicColors.applyToActivityIfAvailable(this);super.onCreate(b);
+  UiTuning.beginRender(this);uiRevision=UiTuning.get(this).revision;AppAppearance.apply(this);DynamicColors.applyToActivityIfAvailable(this);super.onCreate(b);
   WindowCompat.setDecorFitsSystemWindows(getWindow(),false);
   if(b!=null){latency=b.getString("latency","—");download=b.getString("download","—");tab=b.getInt("tab",0);}
   root=new FrameLayout(this);root.setBackgroundColor(color(com.google.android.material.R.attr.colorSurface));
@@ -53,17 +54,17 @@ public class MainActivity extends AppCompatActivity {
   ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPadding(0,dp(80),0,dp(96));
   body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(16),dp(12),dp(16),dp(16));scroll.addView(body);root.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
   topGlass=new FrostedBar(this,color(com.google.android.material.R.attr.colorSurface),night,28);topGlass.addView(toolbar,new FrameLayout.LayoutParams(-1,-1));topGlass.setSource(scroll);
-  FrameLayout.LayoutParams topGlassLayout=new FrameLayout.LayoutParams(-1,dp(64),Gravity.TOP);topGlassLayout.setMargins(dp(12),dp(8),dp(12),0);root.addView(topGlass,topGlassLayout);
+  FrameLayout.LayoutParams topGlassLayout=new FrameLayout.LayoutParams(-1,dp(64),Gravity.TOP);topGlassLayout.setMargins(dp(UiTuning.get(this).glassMargin),dp(8),dp(UiTuning.get(this).glassMargin),0);root.addView(topGlass,topGlassLayout);
   nav=new GlassSegments(this,new String[]{"连接","测速","分流","关于"},NAV_ITEMS,new int[]{R.drawable.ic_nav_connect,R.drawable.ic_nav_speed,R.drawable.ic_nav_routing,R.drawable.ic_nav_info},true);
   bottomGlass=new FrostedBar(this,color(com.google.android.material.R.attr.colorSurfaceContainer),night,36);bottomGlass.addView(nav,new FrameLayout.LayoutParams(-1,-2));bottomGlass.setSource(scroll);
-  FrameLayout.LayoutParams bottomGlassLayout=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);bottomGlassLayout.setMargins(dp(12),0,dp(12),dp(8));root.addView(bottomGlass,bottomGlassLayout);
+  FrameLayout.LayoutParams bottomGlassLayout=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);bottomGlassLayout.setMargins(dp(UiTuning.get(this).glassMargin),0,dp(UiTuning.get(this).glassMargin),dp(8));root.addView(bottomGlass,bottomGlassLayout);
   bottomGlass.addOnLayoutChangeListener((v,l,t,r,bottom,ol,ot,or,ob)->{if(scroll.getPaddingBottom()!=bottom-t+dp(16))scroll.setPadding(0,dp(80),0,bottom-t+dp(16));});
   scroll.setOnScrollChangeListener((v,x,y,oldX,oldY)->{topGlass.requestBackdrop();bottomGlass.requestBackdrop();});
   body.addOnLayoutChangeListener((v,l,t,r,bottom,ol,ot,or,ob)->{topGlass.requestBackdrop();bottomGlass.requestBackdrop();});
   nav.setListener(next->{if(next!=tab){tab=next;build();}});build();
  }
- @Override protected void onResume(){super.onResume();topGlass.setActive(true);bottomGlass.setActive(true);main.post(ticker);}
- @Override protected void onPause(){main.removeCallbacks(ticker);topGlass.setActive(false);bottomGlass.setActive(false);super.onPause();}
+ @Override protected void onResume(){super.onResume();topGlass.setActive(true);bottomGlass.setActive(true);main.postDelayed(()->UiTuning.stable(this),1000);main.post(ticker);}
+ @Override protected void onPause(){UiTuning.stable(this);main.removeCallbacks(ticker);topGlass.setActive(false);bottomGlass.setActive(false);super.onPause();}
  @Override protected void onDestroy(){tester.close();main.removeCallbacksAndMessages(null);super.onDestroy();}
  @Override protected void onSaveInstanceState(Bundle out){out.putString("latency",testing&&testKind==1?"已停止":latency);out.putString("download",testing&&testKind==2?"已停止":download);out.putInt("tab",tab);super.onSaveInstanceState(out);}
  private int dp(float n){return (int)(getResources().getDisplayMetrics().density*n+.5f);}
@@ -75,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
  private MaterialButton button(String title){MaterialButton b=new MaterialButton(this);b.setText(title);b.setTextSize(15);b.setCornerRadius(dp(20));b.setMinHeight(dp(48));return b;}
  private void build(){
   body.removeAllViews();nav.setSelected(tab,false);
-  quotaValue=quotaDetail=onlineValue=onlineDetail=reportDetail=profileDetail=null;status=caption=clock=up=down=upTotal=downTotal=latencyValue=downloadValue=testDetail=null;power=delayButton=downloadButton=stopButton=null;progress=null;graph=null;
+  updateDetail=null;quotaValue=quotaDetail=onlineValue=onlineDetail=reportDetail=profileDetail=null;status=caption=clock=up=down=upTotal=downTotal=latencyValue=downloadValue=testDetail=null;power=delayButton=downloadButton=stopButton=null;progress=null;graph=null;
   if(tab==0)home();else if(tab==1)speed();else if(tab==2)routing();else about();refresh();
  }
  private void home(){
@@ -176,9 +177,12 @@ public class MainActivity extends AppCompatActivity {
   }));dialog.show();
  }
  private void about(){
-  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.0.5 · Preview\nARM64 · Android 8.0 及以上"));
+  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.0.6 · Preview\nARM64 · Android 8.0 及以上"));
   LinearLayout d=card(com.google.android.material.R.attr.colorSurfaceContainer);d.addView(text("连接与隐私",19,true));space(d,12);d.addView(note("使用 V2Ray / v2fly 核心。\n连接时会请求 Android 系统 VPN 授权；关闭界面后仍可后台运行。\n通知栏显示本次上传、下载流量与实时速度，可直接断开。\n连接时每 10 秒向服务端上报随机安装标识、设备型号、系统与应用版本、本次速度和用量，供原面板显示在线设备。服务端可见来源 IP；断开后停止，30 秒无心跳即离线。不会读取 IMEI、通讯录、文件或浏览内容。\n不接入广告与统计 SDK。节点由面板统一指定并自动同步，App 不提供手动添加、编辑或导出入口。\n测速请求会访问 Google 204 测试地址与 Cloudflare 下载站点。"));
   LinearLayout l=card(com.google.android.material.R.attr.colorSurfaceContainer);l.addView(text("开源许可",19,true));space(l,10);l.addView(note("本应用按 GPL-3.0 提供源码。\nV2Ray / v2fly：MIT\nAndroidLibV2rayLite：LGPL-3.0\nBadVPN tun2socks / v2rayNG：见随附第三方许可。"));
+  LinearLayout updates=card(com.google.android.material.R.attr.colorSurfaceContainer);updates.addView(text("面板更新",19,true));space(updates,8);updateDetail=note(UpdateMonitor.status);updates.addView(updateDetail);
+  MaterialButton check=button("检查更新 / 安装新版");updates.addView(check);check.setOnClickListener(v->{if(UpdateMonitor.available!=null)showUpdate();else{UpdateMonitor.refresh(this,true);toast("正在检查面板发布");}});
+  MaterialButton reset=button("恢复默认界面");updates.addView(reset);reset.setOnClickListener(v->{UiTuning.reset(this);recreate();});
   MaterialButton license=button("查看第三方许可");license.setOnClickListener(v->{try(java.io.InputStream in=getAssets().open("THIRD_PARTY.txt")){new MaterialAlertDialogBuilder(this).setTitle("开源许可").setMessage(Io.readUtf8(in)).setPositiveButton("关闭",null).show();}catch(Exception e){toast("许可文件不可用");}});l.addView(license);
  }
  private boolean ready(){if(!TunnelService.state.equals("connected")){toast("请先连接 VPN");return false;}if(testing){toast("已有测试正在进行");return false;}return true;}
@@ -204,7 +208,16 @@ public class MainActivity extends AppCompatActivity {
  private void startTunnel(){if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},78);return;}startForegroundService(new Intent(this,TunnelService.class));}
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==78){if(g.length>0&&g[0]!=PackageManager.PERMISSION_GRANTED)toast("通知权限未允许，可能无法在通知栏查看流量");startForegroundService(new Intent(this,TunnelService.class));}}
  @Override protected void onActivityResult(int r,int code,Intent data){super.onActivityResult(r,code,data);if(r==77){if(code==RESULT_OK)startTunnel();else toast("未获得 VPN 授权");}}
+ private void showUpdate(){
+  UpdateMonitor.APK apk=UpdateMonitor.available;if(apk==null)return;UpdateMonitor.prompted(this,apk);
+  new MaterialAlertDialogBuilder(this).setTitle("发现新版本 "+apk.name).setMessage(apk.notes+"\n安装包约 "+TunnelService.size(apk.size)+"，将校验原签名并交给系统确认安装。")
+   .setPositiveButton("下载并更新",(dialog,which)->UpdateMonitor.download(this,apk,new UpdateMonitor.Result(){
+    public void done(java.io.File file){main.post(()->{if(isDestroyed())return;try{UpdateMonitor.install(MainActivity.this,file);toast("若需允许安装来源，请授权后再次点击安装新版");}catch(Exception failed){toast("无法打开系统安装器，请重试");}});}
+    public void failed(){main.post(()->{if(!isDestroyed())toast(UpdateMonitor.status);});}
+   })).setNegativeButton("稍后",null).show();
+ }
  private void refresh(){
+  if(updateDetail!=null)updateDetail.setText(UpdateMonitor.status);
   if(profileDetail!=null){ProfileMonitor.Profile profile=ProfileMonitor.current;String value=profile==null?ProfileMonitor.status:profile.label+" · VMess / TCP\n"+ProfileMonitor.status;if(profile!=null&&TunnelService.state.equals("connected")&&!profile.revision.equals(TunnelService.activeProfileRevision))value+="\n面板已更新配置，断开重连后使用新节点";profileDetail.setText(value);}
   if(onlineValue!=null){onlineValue.setText(OnlineMonitor.count==null?(OnlineMonitor.status.startsWith("待接入")?"待接入":"不可用"):OnlineMonitor.fresh()?OnlineMonitor.count+" 台":"不可用");onlineDetail.setText((OnlineMonitor.count!=null&&!OnlineMonitor.fresh()?"上次 "+OnlineMonitor.count+" 台 · ":"")+OnlineMonitor.status+((OnlineMonitor.updatedAt>0)?"\n"+new java.text.SimpleDateFormat("HH:mm:ss",Locale.CHINA).format(new java.util.Date(OnlineMonitor.updatedAt)):""));}
   if(quotaValue!=null){QuotaInfo q=QuotaMonitor.current;if(q==null){quotaValue.setText(QuotaMonitor.status.startsWith("待接入")?"待接入":"不可用");quotaDetail.setText(QuotaMonitor.status);}else{quotaValue.setText(!QuotaMonitor.fresh()?"不可用":q.expired(System.currentTimeMillis())?"已过期":q.total!=0&&q.remaining()==0?"已用尽":q.total==0?"不限量":TunnelService.size(q.remaining()));String exp=q.expire==0?"无到期限制":new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.CHINA).format(new java.util.Date(q.expire*1000));String stamp=new java.text.SimpleDateFormat("HH:mm:ss",Locale.CHINA).format(new java.util.Date(QuotaMonitor.updatedAt));quotaDetail.setText((QuotaMonitor.fresh()?"":"上次数据 · ")+"已用 "+TunnelService.size(q.used())+" / "+(q.total==0?"不限量":TunnelService.size(q.total))+"\n到期："+exp+"\n"+QuotaMonitor.status+" · "+stamp);}}

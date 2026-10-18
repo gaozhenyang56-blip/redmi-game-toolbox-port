@@ -131,6 +131,15 @@ func qOpen(path string) (*qStore, error) {
 		db.Close()
 		return nil, err
 	}
+	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS updates (revision INTEGER PRIMARY KEY,data BLOB NOT NULL)`); err != nil {
+		db.Close()
+		return nil, err
+	}
+	baseline, _ := json.Marshal(qUpdate{Schema: 1, UI: qDefaultUI()})
+	if _, err = db.Exec(`INSERT OR IGNORE INTO updates(revision,data) VALUES(0,?)`, baseline); err != nil {
+		db.Close()
+		return nil, err
+	}
 	return &qStore{db: db}, nil
 }
 func (s *qStore) put(d qDevice, ip string, now int64) error {
@@ -267,12 +276,18 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	api.GET("/online", a.online)
 	api.GET("/quota", a.quota)
 	api.GET("/profile", a.profile)
+	api.GET("/updates", a.updates)
+	api.GET("/apk/:digest", a.downloadAPK)
 	api.POST("/heartbeat", a.heartbeat)
 	panel := g.Group("/xui")
 	panel.GET("/qinglian", a.checkLogin, func(c *gin.Context) { html(c, "qinglian.html", "在线设备", nil) })
 	panel.GET("/qinglian/devices", a.devices)
 	panel.GET("/qinglian/selection", a.selection)
 	panel.POST("/qinglian/selection", a.selectNode)
+	panel.GET("/qinglian/updates", a.adminUpdates)
+	panel.POST("/qinglian/updates", a.saveUpdates)
+	panel.POST("/qinglian/updates/rollback", a.rollbackUpdates)
+	panel.POST("/qinglian/updates/apk", a.uploadAPK)
 	return a
 }
 func qNoStore(c *gin.Context) {
@@ -604,13 +619,17 @@ func (a *QinglianController) StartTLS(engine http.Handler) error {
 	if err != nil {
 		return err
 	}
-	a.tlsServer = &http.Server{ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second,
+	a.tlsServer = &http.Server{ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 300 * time.Second, IdleTimeout: 60 * time.Second,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.URL.Path {
-			case a.apiPrefix + "online", a.apiPrefix + "quota", a.apiPrefix + "heartbeat", a.apiPrefix + "profile":
+			case a.apiPrefix + "updates", a.apiPrefix + "online", a.apiPrefix + "quota", a.apiPrefix + "heartbeat", a.apiPrefix + "profile":
 				engine.ServeHTTP(w, r)
 			default:
-				http.NotFound(w, r)
+				if strings.HasPrefix(r.URL.Path, a.apiPrefix+"apk/") && qDigest(strings.TrimPrefix(r.URL.Path, a.apiPrefix+"apk/")) {
+					engine.ServeHTTP(w, r)
+				} else {
+					http.NotFound(w, r)
+				}
 			}
 		})}
 	transport := tls.NewListener(listener, &tls.Config{Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS12, NextProtos: []string{"http/1.1"}})

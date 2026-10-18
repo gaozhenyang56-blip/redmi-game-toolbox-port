@@ -4,6 +4,8 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.drawable.GradientDrawable;
 import android.view.*;
 import android.view.animation.PathInterpolator;
@@ -18,12 +20,13 @@ final class GlassSegments extends FrameLayout {
  private final LinearLayout row;
  private final List<AppCompatRadioButton> buttons=new ArrayList<>();
  private final boolean navigation;
+ private final UiTuning tuning;
  private int selected;
  private Listener listener;
  private float downX,downY;
  private boolean dragging;
  GlassSegments(Context context,String[] labels,int[] ids,int[] icons,boolean navigation){
-  super(context);this.navigation=navigation;float radius=dp(navigation?36:26);
+  super(context);this.navigation=navigation;this.tuning=UiTuning.get(context);float radius=dp(navigation?36:26);
   boolean night=(getResources().getConfiguration().uiMode&android.content.res.Configuration.UI_MODE_NIGHT_MASK)==android.content.res.Configuration.UI_MODE_NIGHT_YES;
   int surface=color(com.google.android.material.R.attr.colorSurfaceContainer),rgb=surface&0x00ffffff;
   GradientDrawable rail=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{navigation?Color.TRANSPARENT:rgb|0xB0000000,navigation?Color.TRANSPARENT:rgb|0x85000000});
@@ -31,12 +34,11 @@ final class GlassSegments extends FrameLayout {
   thumb=new View(context);GradientDrawable glass=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,night?new int[]{0x55ffffff,0x1Affffff}:new int[]{0xE6ffffff,0x90ffffff});
   glass.setCornerRadius(radius-dp(navigation?4:2));glass.setStroke(Math.max(1,dp(.65f)),night?0x60ffffff:0xE0ffffff);thumb.setBackground(glass);thumb.setElevation(dp(2));
   thumb.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);addView(thumb,new LayoutParams(0,0));
-  row=new LinearLayout(context);row.setElevation(dp(3));row.setOrientation(LinearLayout.HORIZONTAL);LayoutParams rowLayout=new LayoutParams(-1,-1);int inset=dp(navigation?4:2);rowLayout.setMargins(inset,inset,inset,inset);addView(row,rowLayout);
+  row=new LinearLayout(context);row.setElevation(dp(3));row.setOrientation(LinearLayout.HORIZONTAL);row.setBaselineAligned(false);LayoutParams rowLayout=new LayoutParams(-1,-1);int inset=dp(navigation?4:2);rowLayout.setMargins(inset,inset,inset,inset);addView(row,rowLayout);
   int[][] states={new int[]{android.R.attr.state_checked},new int[]{}};
   ColorStateList textColors=new ColorStateList(states,new int[]{color(com.google.android.material.R.attr.colorOnSurface),color(com.google.android.material.R.attr.colorOnSurfaceVariant)});
   for(int i=0;i<labels.length;i++){
-   final int index=i;AppCompatRadioButton button=new AppCompatRadioButton(context);button.setId(ids==null?View.generateViewId():ids[i]);button.setText(labels[i]);button.setButtonDrawable(null);button.setBackground(null);button.setMinWidth(0);button.setMinimumWidth(0);button.setGravity(Gravity.CENTER);button.setPadding(0,dp(2),0,dp(2));button.setTextSize(navigation?12:14);button.setTextColor(textColors);button.setMaxLines(1);
-   if(icons!=null){android.graphics.drawable.Drawable icon=context.getDrawable(icons[i]).mutate();icon.setTintList(textColors);icon.setBounds(0,0,dp(24),dp(24));button.setCompoundDrawables(null,icon,null,null);button.setCompoundDrawablePadding(dp(3));}
+   final int index=i;AppCompatRadioButton button=icons==null?new AppCompatRadioButton(context):new NavigationItem(context,icons[i],tuning);button.setId(ids==null?View.generateViewId():ids[i]);button.setText(labels[i]);button.setButtonDrawable(null);button.setBackground(null);button.setMinWidth(0);button.setMinimumWidth(0);button.setGravity(Gravity.CENTER);button.setPadding(0,dp(2),0,dp(2));button.setTextSize(navigation?tuning.navText:14);button.setTextColor(textColors);button.setMaxLines(1);
    button.setOnClickListener(v->select(index,true,true));buttons.add(button);row.addView(button,new LinearLayout.LayoutParams(0,-1,1));
   }
   setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);select(0,false,false);
@@ -61,8 +63,26 @@ final class GlassSegments extends FrameLayout {
   thumb.setTranslationY(row.getTop());float x=row.getLeft()+target.getLeft();thumb.animate().cancel();
   if(animate&&ValueAnimator.areAnimatorsEnabled())thumb.animate().translationX(x).setDuration(180).setInterpolator(new PathInterpolator(.2f,0,0,1)).start();else thumb.setTranslationX(x);
  }
+ private int navigationHeight(){
+  Paint.FontMetrics metrics=buttons.get(0).getPaint().getFontMetrics();
+  return Math.max(dp(tuning.navHeight),dp(tuning.navIcon+tuning.navGap+20)+(int)Math.ceil(metrics.descent-metrics.ascent));
+ }
+ /** CompoundDrawable TOP can anchor at the top of a stretched TextView on OEM
+  * builds. Draw one centered icon/label block, while retaining RadioButton's
+  * click, keyboard, text and checked accessibility semantics. */
+ static final class NavigationItem extends AppCompatRadioButton {
+  private final android.graphics.drawable.Drawable icon;private final UiTuning tuning;
+  NavigationItem(Context context,int resource,UiTuning tuning){super(context);this.tuning=tuning;icon=context.getDrawable(resource).mutate();setIncludeFontPadding(false);}
+  @Override protected void onDraw(Canvas canvas){
+   Paint paint=getPaint();paint.setColor(getCurrentTextColor());Paint.FontMetrics fm=paint.getFontMetrics();
+   float density=getResources().getDisplayMetrics().density,size=tuning.navIcon*density,gap=tuning.navGap*density;
+   float top=(getHeight()-size-gap-(fm.descent-fm.ascent))/2f,cx=getWidth()/2f;
+   icon.setTint(getCurrentTextColor());icon.setBounds(Math.round(cx-size/2),Math.round(top),Math.round(cx+size/2),Math.round(top+size));icon.draw(canvas);
+   String label=getText().toString();canvas.drawText(label,cx-paint.measureText(label)/2,top+size+gap-fm.ascent,paint);
+  }
+ }
  @Override protected void onMeasure(int widthSpec,int heightSpec){
-  if(MeasureSpec.getMode(heightSpec)!=MeasureSpec.EXACTLY)heightSpec=MeasureSpec.makeMeasureSpec(resolveSize(dp(navigation?80:52),heightSpec),MeasureSpec.EXACTLY);
+  if(MeasureSpec.getMode(heightSpec)!=MeasureSpec.EXACTLY)heightSpec=MeasureSpec.makeMeasureSpec(resolveSize(navigation?navigationHeight():dp(52),heightSpec),MeasureSpec.EXACTLY);
   super.onMeasure(widthSpec,heightSpec);
  }
  @Override protected void onLayout(boolean changed,int l,int t,int r,int b){super.onLayout(changed,l,t,r,b);if(changed||thumb.getWidth()==0)placeThumb(false);}

@@ -14,6 +14,31 @@
    <a-button type="primary" :disabled="!selectedId" :loading="saving" @click="saveSelection">保存 App 节点</a-button>
    <p style="margin-top:12px">支持已启用的单客户端 VMess TCP/HTTP 无 TLS 节点；不会修改入站配置或清零流量。配额跟随所选节点读取。</p>
   </a-card>
+  <a-card title="App 热修复与版本发布" style="margin-bottom:16px">
+   <p>界面配置发布后，支持更新的新版本 App 在前台每30秒同步，无需重装。只允许下列界面参数，不执行脚本或远程代码。</p>
+   <a-alert v-if="updateError" type="error" :message="updateError" show-icon></a-alert>
+   <p>发布序号：[[ update.revision ]] · 已发布安装包：[[ update.apk?update.apk.versionName+' (版本码 '+update.apk.versionCode+')':'无' ]]</p>
+   <div style="display:flex;gap:16px;flex-wrap:wrap;margin:16px 0">
+    <label>导航高度 <a-input-number v-model="update.ui.navHeight" :min="64" :max="96"></a-input-number></label>
+    <label>图标大小 <a-input-number v-model="update.ui.navIcon" :min="18" :max="30"></a-input-number></label>
+    <label>文字大小 <a-input-number v-model="update.ui.navText" :min="10" :max="16"></a-input-number></label>
+    <label>图文间距 <a-input-number v-model="update.ui.navGap" :min="0" :max="10"></a-input-number></label>
+    <label>玻璃栏侧边距 <a-input-number v-model="update.ui.glassMargin" :min="0" :max="16"></a-input-number></label>
+    <label>背景模糊 <a-switch v-model="update.ui.glassEnabled"></a-switch></label>
+   </div>
+   <a-button type="primary" :loading="updateBusy" @click="publishUI">发布界面修复</a-button>
+   <a-button :disabled="updateBusy" @click="rollbackUI" style="margin-left:8px">回滚上次发布</a-button>
+   <a-button :disabled="updateBusy" @click="clearAPK" style="margin-left:8px">撤下安装包提示</a-button>
+   <a-divider></a-divider>
+   <p>原生代码更新请上传原签名 APK（最多64MiB）。App验证包名、版本、SHA256和原证书，再交给系统确认安装；首次使用须先安装含更新功能的版本。</p>
+   <input type="file" accept=".apk" @change="apkFile=$event.target.files[0]">
+   <div style="margin:12px 0;display:flex;gap:12px;flex-wrap:wrap">
+    <label>版本码 <a-input-number v-model="apkVersion" :min="1"></a-input-number></label>
+    <label>版本名 <a-input v-model="apkName" style="width:180px" maxlength="64"></a-input></label>
+    <label>更新说明 <a-input v-model="apkNotes" style="width:300px" maxlength="1000"></a-input></label>
+   </div>
+   <a-button type="primary" :loading="updateBusy" :disabled="!apkFile||!apkVersion||!apkName" @click="uploadAPK">上传并发布 APK</a-button>
+  </a-card>
   <a-card title="轻连 · 在线设备">
    <a-alert v-if="error" type="error" :message="error" show-icon style="margin-bottom:16px"></a-alert>
    <p>在线 [[ online === null ? '不可用' : online ]] 台 · 每 3 秒刷新，30 秒无心跳即离线。</p>
@@ -29,9 +54,15 @@
 </a-layout>
 {{template "js" .}}
 <script>
- const app=new Vue({el:'#app',delimiters:['[[',']]'],data:{siderDrawer,online:null,devices:[],error:'',timer:null,nodes:[],selectedId:null,selectionError:'',saving:false,
+ const app=new Vue({el:'#app',delimiters:['[[',']]'],data:{siderDrawer,online:null,devices:[],error:'',timer:null,nodes:[],selectedId:null,selectionError:'',saving:false,update:{schema:1,revision:0,ui:{navHeight:80,navIcon:24,navText:12,navGap:4,glassMargin:12,glassEnabled:true},apk:null},updateBusy:false,updateError:'',apkFile:null,apkVersion:null,apkName:'',apkNotes:'',
  columns:[{title:'状态',dataIndex:'online',scopedSlots:{customRender:'online'}},{title:'设备名称',dataIndex:'deviceName'},{title:'品牌 / 型号',dataIndex:'model'},{title:'Android',dataIndex:'androidVersion'},{title:'App',dataIndex:'appVersion'},{title:'来源 IP',dataIndex:'sourceIp'},{title:'上线时间',dataIndex:'startedAt',scopedSlots:{customRender:'time'}},{title:'最近活跃',dataIndex:'lastSeen',scopedSlots:{customRender:'time'}},{title:'上传用量',dataIndex:'uploadBytes',scopedSlots:{customRender:'bytes'}},{title:'下载用量',dataIndex:'downloadBytes',scopedSlots:{customRender:'bytes'}},{title:'上传速度',dataIndex:'uploadRate',scopedSlots:{customRender:'rate'}},{title:'下载速度',dataIndex:'downloadRate',scopedSlots:{customRender:'rate'}}]},
- mounted(){this.loadSelection();this.refresh()},beforeDestroy(){clearTimeout(this.timer)},methods:{
+ mounted(){this.loadSelection();this.loadUpdates();this.refresh()},beforeDestroy(){clearTimeout(this.timer)},methods:{
+ async loadUpdates(){try{const response=await axios.get('xui/qinglian/updates',{timeout:5000});this.update=response.data;this.updateError=''}catch(error){this.updateError='更新配置暂不可用，请检查登录与模块版本。'}},
+ async updateRequest(path,body,isFile=false){const response=await fetch(basePath+'xui/qinglian/updates'+path,{method:'POST',credentials:'same-origin',headers:isFile?{'X-Requested-With':'XMLHttpRequest'}:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'},body:isFile?body:JSON.stringify(body)});if(!response.ok)throw Error();this.update=await response.json();this.updateError='';this.$message.success('已发布，App将自动同步；安装包升级仍需手机确认。')},
+ async publishUI(){this.updateBusy=true;try{await this.updateRequest('',this.update)}catch(error){this.updateError='发布失败，请刷新后检查参数再重试。'}finally{this.updateBusy=false}},
+ async rollbackUI(){this.updateBusy=true;try{await this.updateRequest('/rollback',{})}catch(error){this.updateError='没有可回滚的发布，或旧安装包已清理。'}finally{this.updateBusy=false}},
+ async clearAPK(){this.updateBusy=true;try{await this.updateRequest('',{...this.update,apk:null})}catch(error){this.updateError='撤下失败，请刷新重试。'}finally{this.updateBusy=false}},
+ async uploadAPK(){this.updateBusy=true;try{const form=new FormData();form.append('apk',this.apkFile);form.append('versionCode',this.apkVersion);form.append('versionName',this.apkName);form.append('notes',this.apkNotes);await this.updateRequest('/apk',form,true)}catch(error){this.updateError='上传失败：请检查APK格式、64MiB上限、版本信息与登录状态。'}finally{this.updateBusy=false}},
  async loadSelection(){try{const response=await axios.get('xui/qinglian/selection',{timeout:5000});this.nodes=response.data.nodes;this.selectedId=response.data.selectedId||null;this.selectionError=''}catch(error){this.selectionError='节点列表暂不可用，请检查登录权限与模块配置。'}},
  async saveSelection(){this.saving=true;try{const saved=await fetch(basePath+'xui/qinglian/selection',{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'},body:JSON.stringify({inboundId:this.selectedId})});if(!saved.ok)throw Error();this.$message.success('已保存，App 下次连接自动同步。');this.selectionError='';await this.loadSelection()}catch(error){this.selectionError='保存失败，请确认节点已启用且符合支持的传输格式。'}finally{this.saving=false}},
  stamp(value){return value?new Date(value).toLocaleString():'—'},size(value){let n=Number(value||0),i=0;const units=['B','KB','MB','GB'];while(n>=1024&&i<3){n/=1024;i++}return n.toFixed(i?1:0)+' '+units[i]},
