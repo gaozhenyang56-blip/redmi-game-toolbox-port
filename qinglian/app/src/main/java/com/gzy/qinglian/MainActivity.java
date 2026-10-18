@@ -160,6 +160,9 @@ public class MainActivity extends AppCompatActivity {
   GlassSegments group=new GlassSegments(this,new String[]{"兼容","加速"},null,null,false);group.setSelected(ProfileMonitor.accelerated(this)?1:0,false);card.addView(group,new LinearLayout.LayoutParams(-1,dp(52)));
   space(card,8);card.addView(note("兼容：面板指定的 VMess / VLESS / Trojan / Shadowsocks。加速：Hysteria2，需面板启用，Android 10+。头像、ChatGPT/Codex与HTTP/3使用兼容节点，其余使用加速通道。修改后重连生效。"));
   if(TunnelService.state.equals("connected"))card.addView(note("当前协议："+TunnelService.activeProtocol));
+  space(card,12);card.addView(text("HY2 配置",16,true));space(card,8);
+  GlassSegments performance=new GlassSegments(this,new String[]{"高性能","保守"},null,null,false);performance.setSelected(Hy2Settings.performance(this)?0:1,false);card.addView(performance,new LinearLayout.LayoutParams(-1,dp(52)));space(card,8);card.addView(note("加速通道默认使用高性能配置；保守配置可按需切换。仅对本设备生效，修改后重连。兼容通道不受影响。"));
+  performance.setListener(index->{if(!Hy2Settings.savePerformance(this,index==0)){performance.setSelected(Hy2Settings.performance(this)?0:1,true);toast("保存失败，请重试");return;}toast("HY2配置已保存，重连后生效");});
   group.setListener(index->{if(index==1&&android.os.Build.VERSION.SDK_INT<29){toast("加速通道需要Android 10或更高版本");group.setSelected(0,true);return;}
    if(!getSharedPreferences("transport",0).edit().putBoolean("accelerated",index==1).commit()){toast("保存失败，请重试");group.setSelected(ProfileMonitor.accelerated(this)?1:0,true);return;}
    ProfileMonitor.refresh(this,true);toast("通道已保存，重连后生效");});
@@ -213,8 +216,8 @@ public class MainActivity extends AppCompatActivity {
   }));dialog.show();
  }
  private void about(){
-  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.1.6 · Preview\nARM64 · Android 8.0 及以上"));
-  LinearLayout labs=card(com.google.android.material.R.attr.colorSurfaceContainer);labs.addView(text("速度实验室",19,true));labs.addView(note("HY2激进性能、四路并行测速与原始速度曲线，均默认关闭。"));MaterialButton openLabs=button("进入实验室");labs.addView(openLabs);openLabs.setOnClickListener(v->startActivity(new Intent(this,LabsActivity.class)));
+  LinearLayout c=card(com.google.android.material.R.attr.colorPrimaryContainer);c.addView(text("轻连",28,true));space(c,10);c.addView(note("一个节点，专注连接。\n1.1.7 · Preview\nARM64 · Android 8.0 及以上"));
+  LinearLayout labs=card(com.google.android.material.R.attr.colorSurfaceContainer);labs.addView(text("速度实验室",19,true));labs.addView(note("四路并行测速与原始速度曲线，默认关闭。HY2高性能配置已加入连接页。"));MaterialButton openLabs=button("进入实验室");labs.addView(openLabs);openLabs.setOnClickListener(v->startActivity(new Intent(this,LabsActivity.class)));
   LinearLayout d=card(com.google.android.material.R.attr.colorSurfaceContainer);d.addView(text("连接与隐私",19,true));space(d,12);d.addView(note("使用 V2Ray / v2fly 与 Hysteria2 核心。\n连接时会请求 Android 系统 VPN 授权；关闭界面后仍可后台运行。\n通知栏显示本次上传、下载流量与实时速度，可直接断开。\n连接时每 10 秒向服务端上报随机安装标识、设备型号、系统与应用版本、本次速度和用量，供原面板显示在线设备。服务端可见来源 IP；断开后停止，30 秒无心跳即离线。不会读取 IMEI、通讯录、文件或浏览内容。\n不接入广告与统计 SDK。节点由面板统一指定并自动同步，主连接不提供手动添加或编辑节点；独立节点可通过账号导出。国内直连仅在规则模式且应用分流关闭时启用。账号域名记录须登录时明确同意，永久保存在服务器，仅覆盖代理连接，不包括直连请求。\n测速请求会访问 Google 204 测试地址与 Cloudflare 下载站点或本服务器链路测速接口。"));
   LinearLayout exports=card(com.google.android.material.R.attr.colorSurfaceContainer);exports.addView(text("独立节点导出",19,true));exports.addView(note("绑定设备后，每周可导出合计256GB，节点有效期7天。"));MaterialButton openExports=button("节点导出 / 查看额度");exports.addView(openExports);openExports.setOnClickListener(v->openAccount());
   LinearLayout l=card(com.google.android.material.R.attr.colorSurfaceContainer);l.addView(text("开源许可",19,true));space(l,10);l.addView(note("本应用按 GPL-3.0 提供源码。\nV2Ray / v2fly：MIT\nHysteria2：MIT\nAndroidLibV2rayLite：LGPL-3.0\nBadVPN tun2socks / v2rayNG：见随附第三方许可。"));

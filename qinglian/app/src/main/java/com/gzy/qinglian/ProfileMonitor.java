@@ -16,6 +16,7 @@ final class ProfileMonitor {
  static volatile Profile current;
  static volatile String status="正在同步面板配置";
  private static final ExecutorService worker=Executors.newSingleThreadExecutor();
+ private static final Object fetchLock=new Object();
  private static boolean busy;private static long attempted;
  static boolean configured(Context context)throws IOException{
   try(InputStream in=context.getAssets().open("profile.json")){return true;}catch(FileNotFoundException missing){return false;}
@@ -30,15 +31,18 @@ final class ProfileMonitor {
   if(accelerated){if(!primaryRevision.matches("[0-9a-f]{64}"))throw new IOException("无效的兼容节点版本");revision=ApiEndpoint.hex(java.security.MessageDigest.getInstance("SHA-256").digest((revision+":"+primaryRevision).getBytes(java.nio.charset.StandardCharsets.US_ASCII)));}
   String label=json.getString("label").replaceAll("\\p{Cntrl}"," ");if(label.length()>128)label=label.substring(0,128);
   if(label.trim().isEmpty())label="专属节点";
+  if(accelerated)label=label.replace(" · 性能实验","")+ ("aggressive-v1".equals(node.optString("hy2Performance"))?" · 高性能":" · 保守");
   return new Profile(node.toString(),label,revision);
  }
- private static Profile fetch(Context context)throws Exception{
+ private static Profile fetch(Context context)throws Exception{synchronized(fetchLock){
+  Hy2Settings.Selection owner=TunnelService.profileSelection();Hy2Settings.Selection selection=owner==null?Hy2Settings.saved(context):owner;JSONObject options=selection.options();
   boolean guest=ExportClient.token(context).isEmpty();
   JSONObject response=null;
-  for(int attempt=0;attempt<10;attempt++){response=guest?GuestClient.profile(context):ExportClient.request(context,"profile",LabSettings.profileOptions(context),ExportClient.token(context));if(response.optBoolean("ready"))break;if(attempt==9)throw new IOException("账号节点启动中，请稍后重试");Thread.sleep(500);}
-  if(LabSettings.profileOptions(context).optBoolean("labHy2")&&!response.optBoolean("labHy2"))throw new IOException("服务器尚未支持HY2性能实验，请关闭实验或联系管理员");
-  Profile profile=parse(response,accelerated(context));current=profile;status="已同步面板 · "+NodeConfig.protocol(new JSONObject(profile.node)).toUpperCase(java.util.Locale.ROOT);return profile;
- }
+  for(int attempt=0;attempt<10;attempt++){if(TunnelService.profileSelection()!=owner)throw new InterruptedIOException("连接已切换");response=guest?GuestClient.profile(context,options):ExportClient.request(context,"profile",options,ExportClient.token(context));if(response.optBoolean("ready"))break;if(attempt==9)throw new IOException("账号节点启动中，请稍后重试");Thread.sleep(500);}
+  if(TunnelService.profileSelection()!=owner)throw new InterruptedIOException("连接已切换");
+  Hy2Settings.confirm(selection,response);
+  Profile profile=parse(response,selection.accelerated);current=profile;status="已同步面板 · "+NodeConfig.protocol(new JSONObject(profile.node)).toUpperCase(java.util.Locale.ROOT);return profile;
+ }}
  static Profile forConnection(Context context)throws Exception{
   if(configured(context))return fetch(context); // A configured endpoint failure never falls back to an obsolete embedded UUID.
   String node;try(InputStream in=context.getAssets().open("node.json")){node=Io.readUtf8(in);}NodeConfig.build(node);

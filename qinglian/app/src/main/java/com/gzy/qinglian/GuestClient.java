@@ -14,10 +14,10 @@ final class GuestClient {
  static void begin(Context c){end(c);current=new Session();}
  static String identity(){Session s=current;return s==null?"":s.key;}
  private static JSONObject request(Context c,Session s,String path,JSONObject body)throws Exception{return ApiEndpoint.guest(c,path,path.equals("start")?null:s.key).request(body,ExportClient.device(c));}
- static JSONObject profile(Context c)throws Exception{
+ static JSONObject profile(Context c,JSONObject options)throws Exception{
   Session s=current;if(s==null)throw new IOException("访客会话已结束");
   if(!s.started){request(c,s,"start",new JSONObject().put("requestId",s.request).put("sessionKey",s.key));s.started=true;if(current!=s){stop(c,s);throw new IOException("连接已取消");}}
-  JSONObject response=request(c,s,"profile",LabSettings.profileOptions(c));if(current!=s)throw new IOException("连接已取消");accept(c,s,response.optJSONObject("quota"));return response;
+  JSONObject response=request(c,s,"profile",options);if(current!=s)throw new IOException("连接已取消");accept(c,s,response.optJSONObject("quota"));return response;
  }
  static ApiEndpoint speedEndpoint(Context c)throws Exception{Session s=current;if(s==null||!s.started)throw new IOException("访客会话已结束");return ApiEndpoint.guest(c,"speed",s.key);}
  static void quota(Context c)throws Exception{Session s=current;if(s!=null&&s.started)accept(c,s,request(c,s,"quota",null));}

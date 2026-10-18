@@ -27,6 +27,8 @@ public class TunnelService extends VpnService {
  public static volatile String routingStatus="全局模式";
  private final ExecutorService worker=Executors.newSingleThreadExecutor();
  private volatile boolean cancelled=false;
+ private volatile Hy2Settings.Selection selectedProfile;
+ static Hy2Settings.Selection profileSelection(){TunnelService service=activeService;return service==null||service.cancelled?null:service.selectedProfile;}
  private ParcelFileDescriptor tun;
  private volatile java.lang.Process relay;
  private volatile CoreController core;
@@ -47,7 +49,7 @@ public class TunnelService extends VpnService {
   if(i!=null&&"STOP".equals(i.getAction())) {cancelled=true;status("stopping","正在断开连接");worker.execute(()->{cleanup();stopSelf();});return START_NOT_STICKY;}
   if(!state.equals("disconnected")&&!state.equals("error"))return START_NOT_STICKY;
   if(ExportClient.token(this).isEmpty())GuestClient.begin(this);
-  cancelled=false;verified=false;connectionEpoch++;recoveryBudget.reset();status("connecting","正在启动专属通道");
+  cancelled=false;selectedProfile=Hy2Settings.saved(this);verified=false;connectionEpoch++;recoveryBudget.reset();status("connecting","正在启动专属通道");
   NotificationManager nm=getSystemService(NotificationManager.class);
   nm.createNotificationChannel(new NotificationChannel("vpn","VPN 连接状态",NotificationManager.IMPORTANCE_LOW));
   if(Build.VERSION.SDK_INT>=34)startForeground(1,notification("正在连接"),ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
