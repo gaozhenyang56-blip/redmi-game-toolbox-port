@@ -26,7 +26,7 @@ try:
   with os.fdopen(fd,'w') as f:json.dump(cfg,f)
  for name in ['hysteria','hy2_manager.py']:
   replacement=root/('.'+name+'.new');shutil.copyfile(stage/name,replacement);replacement.chmod(0o755 if name=='hysteria' else 0o644);os.replace(replacement,root/name)
- unit.write_text('[Unit]\nDescription=Qinglian panel-managed Hysteria2\nAfter=network-online.target x-ui.service\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=/usr/bin/python3 /usr/local/lib/qinglian/hy2_manager.py\nRestart=on-failure\nRestartSec=5\nKillMode=control-group\nRuntimeDirectory=qinglian-hy2\nRuntimeDirectoryMode=0700\nUMask=0077\nNoNewPrivileges=true\nPrivateTmp=true\nProtectHome=true\nProtectSystem=strict\nReadWritePaths=/etc/x-ui /run/qinglian-hy2\nCapabilityBoundingSet=CAP_NET_BIND_SERVICE\nMemoryMax=512M\n\n[Install]\nWantedBy=multi-user.target\n')
+ unit.write_text('[Unit]\nDescription=Qinglian panel-managed Hysteria2\nAfter=network-online.target x-ui.service\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=/usr/bin/python3 /usr/local/lib/qinglian/hy2_manager.py\nRestart=on-failure\nRestartSec=5\nKillMode=control-group\nRuntimeDirectory=qinglian-hy2\nRuntimeDirectoryMode=0700\nUMask=0077\nNoNewPrivileges=true\nPrivateTmp=true\nProtectHome=true\nProtectSystem=strict\nReadWritePaths=/etc/x-ui /run/qinglian-hy2\nCapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_DAC_OVERRIDE\nMemoryMax=512M\n\n[Install]\nWantedBy=multi-user.target\n')
  subprocess.run(['systemctl','daemon-reload'],check=True);subprocess.run(['systemctl','enable','qinglian-hy2'],check=True,capture_output=True);subprocess.run(['systemctl','restart','qinglian-hy2'],check=True)
  for i in range(30):
   try:status=request('/status');break

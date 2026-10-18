@@ -24,7 +24,7 @@ manifest={'deviceDatabase':device_path,'restoreDevices':'Use devices-consistent.
  'restoreDatabase':'Use database-consistent.db only if required. Binary-only rollback preserves live counters.'}
 (root/'manifest.json').write_text(json.dumps(manifest))
 with tarfile.open(root/'server-backup.tar.gz','w:gz') as archive:
- for name in ['/usr/local/x-ui','/etc/x-ui','/etc/systemd/system/x-ui.service','/etc/systemd/system/x-ui.service.d','/etc/nginx','/etc/caddy']:
+ for name in ['/usr/local/x-ui','/etc/x-ui','/etc/systemd/system/x-ui.service','/etc/systemd/system/x-ui.service.d','/usr/local/lib/qinglian','/etc/systemd/system/qinglian-hy2.service','/etc/nginx','/etc/caddy']:
   if Path(name).exists():archive.add(name,arcname=name.lstrip('/'))
  if (root/'devices-consistent.db').is_file():archive.add(root/'devices-consistent.db',arcname='devices-consistent.db')
  archive.add(root/'database-consistent.db',arcname='database-consistent.db');archive.add(root/'manifest.json',arcname='manifest.json')
