@@ -48,6 +48,24 @@ if db.is_file():
     connection.close()
 diagnostic=subprocess.run(['journalctl','-u','qinglian-hy2','-n','100','--no-pager','-o','cat'],capture_output=True,text=True,timeout=10).stdout
 result['hy2Errors']=[line.strip()[:220] for line in diagnostic.splitlines() if re.match(r'^(?:sqlite3\.)?(?:PermissionError|FileNotFoundError|OperationalError|NameError|ModuleNotFoundError|SyntaxError|ImportError):',line.strip())]
+# Aggregate-only incident telemetry: never user names, tokens, addresses or domains.
+result['exportsService']=run(['systemctl','show','qinglian-exports','-p','ActiveState','-p','Result','-p','NRestarts','-p','MemoryCurrent','-p','MemoryPeak','-p','MemoryMax','-p','OOMPolicy','-p','ControlGroup'])
+cgroup=run(['systemctl','show','qinglian-exports','-p','ControlGroup','--value'])
+if cgroup.startswith('/'):
+ for field in ('memory.events','memory.peak','memory.current','memory.max'):
+  path=Path('/sys/fs/cgroup'+cgroup)/field
+  if path.is_file():result[field]=path.read_text()[:1024]
+journal=run(['journalctl','-u','qinglian-exports','--since','12 hours ago','--no-pager','-o','cat'])
+result['serviceIncidentCounts']={word:len(re.findall(word,journal,re.I)) for word in ['oom','killed','memory','failed','restart','traceback']}
+stat=os.statvfs('/etc/x-ui');result['availableDiskBytes']=stat.f_bavail*stat.f_frsize
+config=Path('/etc/x-ui/qinglian.json')
+if config.is_file():
+ cfg=json.loads(config.read_text());connection=sqlite3.connect('file:'+cfg['statePath']+'?mode=ro',uri=True)
+ result['nodeStates']=[list(row) for row in connection.execute('SELECT kind,protocol,status,COUNT(*),MAX(up+down) FROM exports GROUP BY kind,protocol,status')]
+ result['nodeDataTypes']=[list(row) for row in connection.execute('SELECT typeof(up),typeof(down),COUNT(*) FROM exports GROUP BY typeof(up),typeof(down)')]
+ connection.close()
+ connection=sqlite3.connect('file:/etc/x-ui/x-ui.db?mode=ro',uri=True)
+ result['parentQuotaStates']=[list(row) for row in connection.execute('SELECT enable,total,up,down,expiry_time FROM inbounds')];connection.close()
 print(json.dumps(result,ensure_ascii=False))
 PY'''
     _,out,err=client.exec_command(script,timeout=30)
