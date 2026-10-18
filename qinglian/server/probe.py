@@ -72,6 +72,12 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
     while len(data)<count:
      part=stream.recv(count-len(data));assert part;data+=part
     return data
+   service_checks=[]
+   if os.environ.get('QINGLIAN_SERVICE_CHECK')=='1':
+    targets=[('github-avatar','https://avatars.githubusercontent.com/u/583231?v=4'),('google-avatar','https://lh3.googleusercontent.com/a/default-user=s96-c'),('google-static','https://www.gstatic.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png'),('chatgpt','https://chatgpt.com/'),('codex','https://chatgpt.com/codex'),('openai-static','https://cdn.oaistatic.com/')]
+    for label,target in targets:
+     result=subprocess.run(args+['--max-time','15','--output',str(root/'service-body'),'--write-out','%{http_code} %{size_download} %{time_total} %{content_type}',target],capture_output=True,timeout=20)
+     service_checks.append({'service':label,'curlExit':result.returncode,'response':result.stdout.decode(errors='replace')[:120]})
    dns_times=[]
    with socket.create_connection(('127.0.0.1',socks_port),5) as control,socket.socket(socket.AF_INET,socket.SOCK_DGRAM) as udp:
     control.settimeout(5);udp.bind(('127.0.0.1',0));udp.settimeout(12)
@@ -91,7 +97,7 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
      assert answers>0 if qtype==1 else answers==0,'DNS IPv4 policy failed'
      dns_times.append(round((time.monotonic()-start)*1000,2))
    print(json.dumps({'proxyHttps204':True,'protocol':n.get('protocol','vmess'),'requestMilliseconds':elapsed,'proxiedDownloadBytes':8388608,'proxiedDownloadMbps':round(8388608*8/download_elapsed/1e6,2),'directFallback':False,
-    'appGeneratedConfiguration':True,'udpDnsViaCore':True,'ipv6DnsNoData':True,'dnsMillisecondsColdWarmAAAA':dns_times}))
+    'appGeneratedConfiguration':True,'udpDnsViaCore':True,'ipv6DnsNoData':True,'dnsMillisecondsColdWarmAAAA':dns_times,'serviceChecks':service_checks}))
   finally:
    core.terminate()
    try:core.wait(timeout=5)
