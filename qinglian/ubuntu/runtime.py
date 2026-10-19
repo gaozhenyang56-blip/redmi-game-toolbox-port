@@ -73,13 +73,19 @@ PROXY_VALUES = {
 def restore_proxy(path):
     state = read(path)
     if not state: return
-    # Leave settings changed by another proxy client alone. Restore mode last.
+    # Treat host/port/mode as one profile. Another proxy often changes its port
+    # while keeping mode=manual: restoring just mode would disable that proxy.
+    try: observed={(e['schema'],e['key']):gs(e['schema'],e['key']) for e in state}
+    except subprocess.CalledProcessError: return  # Keep the snapshot for the next desktop session.
+    foreign=any(e['schema'].startswith('org.gnome.system.proxy') and e['key'] in ('host','port','mode') and observed[(e['schema'],e['key'])]!=e['ours'] for e in state)
+    failed=False
     for entry in state:
+        if foreign and entry['schema'].startswith('org.gnome.system.proxy'): continue
         try:
-            if gs(entry['schema'], entry['key']) == entry['ours']:
+            if observed[(entry['schema'],entry['key'])] == entry['ours']:
                 gs(entry['schema'], entry['key'], entry['before'])
-        except subprocess.CalledProcessError: pass
-    Path(path).unlink(missing_ok=True)
+        except subprocess.CalledProcessError: failed=True
+    if not failed: Path(path).unlink(missing_ok=True)
 
 class ProxySettings:
     def __init__(self): self.guard = None; self.path = STATE/'proxy-restore.json'

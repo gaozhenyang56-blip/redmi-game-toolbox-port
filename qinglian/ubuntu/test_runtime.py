@@ -73,6 +73,21 @@ class RuntimeTests(unittest.TestCase):
                 writes.append((k,v))
             with patch.object(runtime,'gs',side_effect=gs): runtime.restore_proxy(p)
             self.assertEqual(writes,[('owned','old')]); self.assertFalse(p.exists())
+    def test_other_proxy_new_port_does_not_get_disabled(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'restore.json'
+            runtime.save(p,[dict(schema='org.gnome.system.proxy.http',key='port',ours='10809',before='0'),dict(schema='org.gnome.system.proxy',key='mode',ours="'manual'",before="'none'")])
+            writes=[]
+            def gs(s,k,v=None):
+                if v is None: return '7897' if k=='port' else "'manual'"
+                writes.append((k,v))
+            with patch.object(runtime,'gs',side_effect=gs): runtime.restore_proxy(p)
+            self.assertEqual(writes,[]); self.assertFalse(p.exists())
+    def test_missing_desktop_bus_retains_recovery_snapshot(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'restore.json'; runtime.save(p,[dict(schema='s',key='k',ours='x',before='y')])
+            with patch.object(runtime,'gs',side_effect=subprocess.CalledProcessError(1,'gsettings')): runtime.restore_proxy(p)
+            self.assertTrue(p.exists())
     def test_tun_core_no_cn_direct_loop(self):
         source=(Path(__file__).parent/'runtime.py').read_text()
         self.assertIn('v2_config(node,rule and not tun)',source)
