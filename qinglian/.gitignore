@@ -25,3 +25,7 @@ __pycache__/
 app/src/main/assets/updates.json
 
 app/src/main/assets/*.dat
+
+ubuntu/.cache/
+ubuntu/build/
+ubuntu/*.deb

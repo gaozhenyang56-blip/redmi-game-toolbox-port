@@ -1,0 +1,152 @@
+import importlib.util
+import io
+import json
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import tempfile
+import threading
+import unittest
+from unittest.mock import patch, MagicMock
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+import runtime
+import tun
+
+class RuntimeTests(unittest.TestCase):
+    def test_private_atomic_state(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'private'/'state.json'; runtime.save(p,{'token':'not-a-real-token'})
+            self.assertEqual(p.stat().st_mode&0o777,0o600)
+            self.assertEqual(p.parent.stat().st_mode&0o777,0o700)
+            self.assertEqual(runtime.read(p),{'token':'not-a-real-token'})
+    def test_no_bearer_redirect(self):
+        self.assertIsNone(runtime.NoRedirect().redirect_request(None,None,302,'',{},'https://elsewhere.invalid'))
+    def test_hy2_exact_windows_and_tls(self):
+        n=dict(add='203.0.113.1',port=443,auth='fixture',sni='example.test',caPem='public',hy2Performance='aggressive-v1')
+        c=runtime.hy_config(n,'/private/ca.pem')
+        self.assertEqual(c['congestion'],{'type':'bbr','bbrProfile':'aggressive'})
+        self.assertEqual(c['quic']['maxStreamReceiveWindow'],33554432)
+        self.assertEqual(c['quic']['maxConnReceiveWindow'],67108864)
+        self.assertFalse(c['tls']['insecure']); self.assertNotIn('bandwidth',c)
+        n.pop('hy2Performance'); c=runtime.hy_config(n,'/private/ca.pem')
+        self.assertNotIn('maxConnReceiveWindow',c['quic']); self.assertEqual(c['congestion']['bbrProfile'],'conservative')
+    @staticmethod
+    def profile(high=True):
+        return dict(ready=True,labHy2=high,node={'protocol':'vmess'},revision='a'*64,acceleration=dict(node={'protocol':'hysteria2',**({'hy2Performance':'aggressive-v1'} if high else {})},revision='b'*64))
+    def test_server_double_ack(self):
+        good=self.profile(); selected=runtime.select_profile(good,True,True)
+        self.assertEqual(selected[0]['compatibility'],good['node'])
+        good['labHy2']=False
+        with self.assertRaises(RuntimeError): runtime.select_profile(good,True,True)
+        good=self.profile(); good['acceleration']['node'].pop('hy2Performance')
+        with self.assertRaises(RuntimeError): runtime.select_profile(good,True,True)
+        with self.assertRaises(RuntimeError): runtime.select_profile(self.profile(),True,False)
+    def test_channel_retains_compatibility_and_waits(self):
+        self.assertIsNone(runtime.select_profile({'ready':False},True,True))
+        self.assertEqual(runtime.select_profile(self.profile(),False,False)[0]['protocol'],'vmess')
+        with self.assertRaises(RuntimeError): runtime.select_profile(dict(ready=True,node={}),True,False)
+    def test_restore_only_our_settings(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'restore.json'
+            runtime.save(p,[dict(schema='s',key='owned',ours='ours',before='old'),dict(schema='s',key='external',ours='ours',before='old')])
+            writes=[]
+            def gs(s,k,v=None):
+                if v is None: return 'ours' if k=='owned' else 'new-other-app'
+                writes.append((k,v))
+            with patch.object(runtime,'gs',side_effect=gs): runtime.restore_proxy(p)
+            self.assertEqual(writes,[('owned','old')]); self.assertFalse(p.exists())
+    def test_tun_core_no_cn_direct_loop(self):
+        source=(Path(__file__).parent/'runtime.py').read_text()
+        self.assertIn('v2_config(node,rule and not tun)',source)
+        self.assertIn("any(n.get('add')!=server",source)
+    def test_guest_manual_session_and_recovery(self):
+        api=runtime.Api.__new__(runtime.Api); api.account={}; api.guest=None
+        api.request=MagicMock(return_value={})
+        api.begin(); first=api.guest.copy(); api.current('profile',{'labHy2':True}); api.current('profile',{'labHy2':True})
+        self.assertEqual(api.guest,first)
+        self.assertEqual(len(first['sessionKey']),64)
+        api.end(); self.assertIsNone(api.guest)
+        api.begin(); self.assertNotEqual(api.guest['sessionKey'],first['sessionKey'])
+    def test_fixed_selection_at_renewal(self):
+        # No preferences are read inside the connection worker.
+        import inspect
+        source=inspect.getsource(runtime.Connection.run)
+        self.assertNotIn('settings.json',source)
+        self.assertIn("'labHy2':accelerated and performance",source)
+        self.assertIn("if not self.api.account and quota.get('remainingBytes'",source)
+    def test_chatgpt_no_force_kill_or_sandbox_bypass(self):
+        c=runtime.Connection(MagicMock(),lambda *_:None); c.connected=True
+        with patch.object(runtime.shutil,'which',return_value='/usr/bin/chatgpt'),patch.object(runtime.Path,'glob',return_value=[]),patch.object(runtime.subprocess,'Popen') as launch:
+            c.launch_chatgpt()
+            args,kw=launch.call_args
+            self.assertIn('--proxy-server=http://127.0.0.1:10809',args[0])
+            self.assertIn('--disable-quic',args[0]); self.assertNotIn('--no-sandbox',args[0])
+            self.assertEqual(kw['env']['HTTPS_PROXY'],'http://127.0.0.1:10809')
+    def test_chatgpt_existing_instance_refused(self):
+        c=runtime.Connection(MagicMock(),lambda *_:None); c.connected=True
+        item=MagicMock(); item.read_text.return_value='chatgpt\n'
+        with patch.object(runtime.shutil,'which',return_value='/usr/bin/chatgpt'),patch.object(runtime.Path,'glob',return_value=[item]),patch.object(runtime.subprocess,'Popen') as launch:
+            with self.assertRaises(RuntimeError): c.launch_chatgpt()
+            launch.assert_not_called()
+    def test_speed_requires_active_connection_and_bounds(self):
+        c=runtime.Connection(MagicMock(),lambda *_:None)
+        with self.assertRaises(RuntimeError): c.speed(1,threading.Event(),lambda *_:None)
+        c.connected=True
+        for size in (0,2049):
+            with self.assertRaises(ValueError): c.speed(size,threading.Event(),lambda *_:None)
+    def test_speed_no_direct_and_exact_size(self):
+        api=MagicMock(); api.account={'token':'fixture'}; api.base='https://example.invalid/api/v1/'; api.device='f'*64
+        c=runtime.Connection(api,lambda *_:None); c.connected=True
+        response=MagicMock(); response.__enter__.return_value=response
+        response.headers={'X-Qinglian-Speed':'server-v1','Content-Length':str(1048576)}
+        response.read.side_effect=[b'x'*65536]*16
+        opener=MagicMock(); opener.open.return_value=response
+        sizes=[]
+        with patch.object(runtime.urllib.request,'build_opener',return_value=opener):
+            result=c.speed(1,threading.Event(),lambda p,t:sizes.append(p))
+        self.assertEqual(sizes[-1],1); self.assertIn('已完成',result)
+        self.assertEqual(opener.open.call_args.args[0].full_url,'https://example.invalid/api/v1/exports/speed?bytes=1048576')
+    def test_speed_failure_not_retried_direct(self):
+        api=MagicMock(); api.account={'token':'fixture'}; api.base='https://example.invalid/api/v1/'
+        c=runtime.Connection(api,lambda *_:None); c.connected=True
+        opener=MagicMock(); opener.open.side_effect=OSError('fixture')
+        with patch.object(runtime.urllib.request,'build_opener',return_value=opener):
+            with self.assertRaises(OSError): c.speed(1,threading.Event(),lambda *_:None)
+        self.assertEqual(opener.open.call_count,1)
+
+class TunTests(unittest.TestCase):
+    def exercise(self,fail=None,conflict=False):
+        calls=[]
+        def run(*args,check=True):
+            calls.append(args)
+            if fail and fail in args: raise subprocess.CalledProcessError(1,args)
+            if '-j' in args: return subprocess.CompletedProcess(args,0,json.dumps([{'priority':11091}] if conflict else []),'')
+            if args[:3]==('/usr/sbin/ip','link','show'): return subprocess.CompletedProcess(args,1,'','')
+            return subprocess.CompletedProcess(args,0,'','')
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d); (root/'profile.json').write_text(json.dumps({'url':'https://203.0.113.1/api/v1/profile'}))
+            old=Path.read_text
+            def text(p,*a,**kw): return 'nameserver 127.0.0.53' if str(p)=='/etc/resolv.conf' else old(p,*a,**kw)
+            p=MagicMock(); p.poll.return_value=None
+            with patch.object(tun,'ROOT',root),patch.object(tun,'run',side_effect=run),patch.object(tun.os,'geteuid',return_value=0),patch.object(tun.os,'open',return_value=17),patch.object(tun.fcntl,'flock'),patch.object(tun.sys,'argv',['qinglian-tun']),patch.object(tun.Path,'read_text',text),patch.object(tun.Path,'iterdir',return_value=[]),patch.object(tun.subprocess,'Popen',return_value=p),patch.object(tun.select,'select',return_value=([1],[],[])),patch.object(tun.os,'read',return_value=b''),patch.object(tun.sys,'stdout',io.StringIO()):
+                try: result=tun.main()
+                except subprocess.CalledProcessError: result=-1
+        return result,calls
+    def test_full_cleanup_on_disconnect(self):
+        result,calls=self.exercise(); self.assertEqual(result,0)
+        for family in ('-4','-6'):
+            self.assertIn(('/usr/sbin/ip',family,'rule','del','pref','11091'),calls)
+        self.assertIn(('/usr/sbin/ip','-4','rule','del','pref','11090'),calls)
+        self.assertIn(('/usr/bin/resolvectl','revert','qltun0'),calls)
+        self.assertIn(('/usr/sbin/ip','link','delete','qltun0'),calls)
+    def test_partial_dns_failure_rolls_back(self):
+        result,calls=self.exercise(fail='dns'); self.assertEqual(result,-1)
+        self.assertIn(('/usr/sbin/ip','-4','rule','del','pref','11090'),calls)
+        self.assertIn(('/usr/sbin/ip','link','delete','qltun0'),calls)
+    def test_existing_policy_not_overwritten(self):
+        result,calls=self.exercise(conflict=True); self.assertEqual(result,1)
+        self.assertFalse(any('add' in c or 'delete' in c for c in calls))
+
+if __name__=='__main__': unittest.main()

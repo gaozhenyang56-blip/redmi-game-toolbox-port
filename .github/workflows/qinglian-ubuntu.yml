@@ -1,0 +1,56 @@
+name: Qinglian Ubuntu GUI and TUN verification
+on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['qinglian/ubuntu/**', '.github/workflows/qinglian-ubuntu.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ubuntu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian
+      - name: Install build and native GUI dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y openjdk-17-jdk-headless python3-gi gir1.2-gtk-3.0 xvfb dbus-x11
+      - name: Build isolated fixture package (no live credentials)
+        run: |
+          mkdir -p "$RUNNER_TEMP/assets"
+          cp qinglian/app/src/test/resources/tls-ca.pem "$RUNNER_TEMP/assets/ca.pem"
+          printf '%s' '{"url":"https://203.0.113.1/api/v1/profile","clientToken":"public-ci-fixture-not-a-real-token","caAsset":"ca.pem"}' > "$RUNNER_TEMP/assets/profile.json"
+          python3 qinglian/ubuntu/build.py --assets "$RUNNER_TEMP/assets" --output "$RUNNER_TEMP/qinglian-fixture-test.deb"
+          sudo apt-get install -y "$RUNNER_TEMP/qinglian-fixture-test.deb"
+      - name: Runtime behavior and packaged native TLS protocols
+        env:
+          QINGLIAN_TEST_LIB: /usr/lib/qinglian
+        run: |
+          /usr/bin/python3 -m unittest discover -s qinglian/ubuntu -p test_runtime.py -v
+          /usr/bin/python3 -m unittest discover -s qinglian/ubuntu -p test_native.py -v
+      - name: Actual GTK pages, themes and launcher
+        env:
+          QINGLIAN_TEST_LIB: /usr/lib/qinglian
+          QINGLIAN_SCREENSHOT: /tmp/qinglian-ubuntu.png
+        run: |
+          xvfb-run -a dbus-run-session -- /usr/bin/python3 qinglian/ubuntu/test_gui.py
+          timeout 5s xvfb-run -a dbus-run-session -- qinglian || test "$?" = 124
+      - name: Real TUN in isolated namespace, never runner routing
+        run: sudo unshare --net /usr/bin/python3 qinglian/ubuntu/test_tun_namespace.py
+      - name: Verify desktop files and package removal
+        run: |
+          dpkg-deb --info "$RUNNER_TEMP/qinglian-fixture-test.deb"
+          test -x /usr/lib/qinglian/qinglian-tun
+          test -x /usr/lib/qinglian/tun2socks
+          sudo apt-get remove -y qinglian
+          test ! -f /usr/bin/qinglian
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: qinglian-ubuntu-gui-preview
+          path: /tmp/qinglian-ubuntu.png
+          if-no-files-found: warn
