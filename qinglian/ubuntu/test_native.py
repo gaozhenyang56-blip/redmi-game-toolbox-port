@@ -70,6 +70,9 @@ class NativeTests(unittest.TestCase):
                             account={'token':'public-fixture'}; guest=None
                             def begin(self): pass
                             def end(self): pass
+                            def verify_proxy(self):
+                                r=subprocess.run(['curl','-fsS','--max-time','5','--noproxy','','--proxy','http://127.0.0.1:10809','http://127.0.0.1:'+str(origin.server_port)+'/'],capture_output=True)
+                                if r.returncode: raise RuntimeError('fixture proxy verification failed')
                             def current(self,path,body=None):
                                 if path=='profile': return response
                                 return {'remainingBytes':0,'cumulativeTotalBytes':1} # Empty export budget must not stop account VPN.

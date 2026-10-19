@@ -36,16 +36,11 @@ def read(path, default=None):
     try: return json.loads(Path(path).read_text())
     except FileNotFoundError: return default
 
-def child_setup():
-    # Linux guarantees cores die if their GUI owner exits unexpectedly.
-    import ctypes
-    parent = os.getppid()
-    ctypes.CDLL(None).prctl(1, signal.SIGTERM)
-    if os.getppid() != parent: os._exit(1)
-
 def spawn(args, **kwargs):
-    return subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL, preexec_fn=child_setup, **kwargs)
+    # Do not use preexec_fn from a multithreaded GTK process: imports after fork can deadlock.
+    wrapper=['/usr/bin/python3','-I',str(Path(__file__).resolve()),'--core-owner',str(os.getpid())]
+    return subprocess.Popen(wrapper+args, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL, **kwargs)
 
 def stop_process(p):
     if not p: return
@@ -154,6 +149,17 @@ class Api:
     def logout(self):
         self.request('exports/logout',{})
         self.account = {}; (STATE/'account.json').unlink(missing_ok=True)
+    def verify_proxy(self):
+        token=self.account.get('token') or self.guest['sessionKey']
+        group='exports' if self.account else 'guest'
+        request=urllib.request.Request(urllib.parse.urljoin(self.base,group+'/speed?bytes=1'),headers={'Authorization':'Bearer '+token,'X-Qinglian-Device':self.device,'Accept-Encoding':'identity'})
+        opener=urllib.request.build_opener(urllib.request.ProxyHandler({'https':'http://127.0.0.1:10809'}),urllib.request.HTTPSHandler(context=self.context),NoRedirect())
+        try:
+            with opener.open(request,timeout=10) as r:
+                if r.headers.get('X-Qinglian-Speed')!='server-v1' or r.headers.get('Content-Length')!='1' or len(r.read(2))!=1:
+                    raise RuntimeError('代理链路验证响应无效')
+        except Exception:
+            raise RuntimeError('代理链路验证失败，未显示连接成功；请切换兼容通道或检查网络。') from None
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args): return None
@@ -259,7 +265,9 @@ class Connection:
                         if helper.stdout.readline().strip()!='READY': raise RuntimeError('TUN 接管失败')
                         break
                 else: raise RuntimeError('TUN 授权超时')
-            else: self.proxy.enable()
+            self.notify('state','正在验证代理链路…')
+            self.api.verify_proxy()
+            if not tun: self.proxy.enable()
             if self.cancel.is_set(): raise RuntimeError('已取消连接')
             self.connected=True; self.notify('connected',('HY2 高性能' if accelerated and performance else 'HY2 保守' if accelerated else node.get('protocol','VMess').upper())+' · '+('TUN 全局' if tun else '系统代理 / '+('规则' if rule else '全局')))
             failures=0
@@ -344,3 +352,10 @@ class Connection:
 if __name__=='__main__' and len(os.sys.argv)==3 and os.sys.argv[1]=='--proxy-guard':
     try: os.sys.stdin.buffer.read()
     finally: restore_proxy(Path(os.sys.argv[2]))
+elif __name__=='__main__' and len(os.sys.argv)>4 and os.sys.argv[1]=='--core-owner':
+    import ctypes
+    owner=int(os.sys.argv[2])
+    if os.getppid()!=owner: raise SystemExit(1)
+    if ctypes.CDLL(None).prctl(1,signal.SIGTERM)!=0: raise SystemExit(1)
+    if os.getppid()!=owner: raise SystemExit(1)
+    os.execv(os.sys.argv[3],os.sys.argv[3:])

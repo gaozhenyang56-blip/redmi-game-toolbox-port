@@ -35,7 +35,10 @@ def child(work,fail):
     Path.read_text=lambda p,*a,**kw:'nameserver 127.0.0.53' if str(p)=='/etc/resolv.conf' else original(p,*a,**kw)
     sys.argv=['qinglian-tun']
     try: code=tun.main()
-    except Exception: code=1
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        code=1
     raise SystemExit(code)
 
 class Origin(http.server.BaseHTTPRequestHandler):
@@ -67,7 +70,7 @@ if __name__=='__main__':
             runtime.wait_port(10809,processes[-1],threading.Event())
             before4=ip('-4','-j','rule','show'); before6=ip('-6','-j','rule','show')
             for fail in (False,True):
-                helper=subprocess.Popen(['/usr/bin/python3',str(HERE/'test_tun_namespace.py'),'helper',str(root),'fail' if fail else 'ok'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
+                helper=subprocess.Popen(['/usr/bin/python3',str(HERE/'test_tun_namespace.py'),'helper',str(root),'fail' if fail else 'ok'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True)
                 try:
                     if not fail:
                         assert select.select([helper.stdout],[],[],10)[0], 'helper ready timeout'
