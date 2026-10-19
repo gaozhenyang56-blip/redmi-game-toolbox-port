@@ -25,5 +25,8 @@ TUN助手被SIGKILL/系统异常不保证自动恢复，需重启或管理员确
 ## 最终交付
 
 - 最新代码0996a1fa的Ubuntu24.04工作流39331825014成功：23项逻辑检查、包内原生六配置传输、实际GTK/安装入口、隔离TUN/清理、卸载。此前39331400872代理外部切换恢复回归成功；39330914391包含公网三通道3MiB和真实配额计量成功。最后的设备摘要改为machine-id+UID应用范围，不改变既有协议或服务端；普通App重装保留标识，无有效ID才回退随机。
-- 正式私有API资产构建的deb：20,844,228字节，SHA256 `3f8f0b97e80c3413b125eeadf09fc429b9305fb725886078bc6c0b07e8706d11`。包内root所有权、允许的私有资产、固定依赖校验通过；原APK/签名未打入deb。
+- 本地预备私有API资产构建的deb：20,844,228字节，SHA256 `3f8f0b97e80c3413b125eeadf09fc429b9305fb725886078bc6c0b07e8706d11`。包内root所有权、允许的私有资产、固定依赖校验通过；原APK/签名未打入deb。
 - 发布标签 `qinglian-ubuntu-v1.0.0-preview1`，GitHub Release独立交付，不写Android APK更新接口。
+
+- 最终Release由工作流39332403116（源码86e4fc4f）构建/发布成功。工作区GitHub连接上传附件返回401，改用仓库Actions身份；无须用户重配Secret。最终公网包20,845,464字节，SHA256 `6899b58d56ff50b0159a57219c4fda425cc5483c58e0179c355b1c2092b69260`。已从公开Release重新下载并通过随附SHA256SUMS；包内App/核心/TUN源码与已验代码一致、API配置/CA与既有私有资产一致、root所有权和资产允许清单再次核对。工作区交付文件已替换为同一公开包。两次构建的jar/归档时间不同，不能混用本地预备包哈希与最终公开包哈希。
+- 下载：https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/releases/download/qinglian-ubuntu-v1.0.0-preview1/Qinglian-1.0.0-preview1-amd64.deb

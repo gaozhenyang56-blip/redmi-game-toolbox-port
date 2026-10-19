@@ -1,6 +1,6 @@
 # Ubuntu GUI 1.0.0-preview1（2026-10-19，独立桌面版本）
 
-已完成Ubuntu24.04工作流39331825014（23项逻辑检查、GUI/原生协议/TUN/安装卸载）与公网39330914391（三通道各1MiB/实际计量）。deb为20,844,228字节，SHA256 `3f8f0b97e80c3413b125eeadf09fc429b9305fb725886078bc6c0b07e8706d11`，发布标签`qinglian-ubuntu-v1.0.0-preview1`。
+已完成Ubuntu24.04工作流39331825014（23项逻辑检查、GUI/原生协议/TUN/安装卸载）与公网39330914391（三通道各1MiB/实际计量）。最终Actions发布deb为20,845,464字节，SHA256 `6899b58d56ff50b0159a57219c4fda425cc5483c58e0179c355b1c2092b69260`，发布标签`qinglian-ubuntu-v1.0.0-preview1`。
 
 新增 `ubuntu/`，针对用户另一个仓库 `wayne-hyperos4:ubuntu-to-go`：Ubuntu 24.04 Noble amd64 GNOME，预装官方来源 .deb ChatGPT、启动命令 `chatgpt`，以及 Clash Verge。另一个 `ubuntu-v2ray-guard` 分支只有低占用守护脚本，不提供 GUI。未修改这两个分支、原 Redmi 应用、现有服务器节点或 Android v16；Android 下一版仍至少17。
 
