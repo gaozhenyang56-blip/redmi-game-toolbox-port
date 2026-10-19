@@ -4,6 +4,11 @@ on:
     branches: [codex/qinglian-routing-and-presence]
     paths: ['qinglian/ubuntu/**', '.github/workflows/qinglian-ubuntu.yml']
   workflow_dispatch:
+    inputs:
+      live:
+        description: Also verify real guest connections (3 MiB, no deployment)
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -41,6 +46,16 @@ jobs:
           timeout 5s xvfb-run -a dbus-run-session -- qinglian || test "$?" = 124
       - name: Real TUN in isolated namespace, never runner routing
         run: sudo unshare --net /usr/bin/python3 qinglian/ubuntu/test_tun_namespace.py
+      - name: Real panel and guest connections (explicit only)
+        if: github.event_name == 'workflow_dispatch' && inputs.live
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: |
+          python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+          python3 qinglian/ubuntu/live_smoke.py
       - name: Verify desktop files and package removal
         run: |
           dpkg-deb --info "$RUNNER_TEMP/qinglian-fixture-test.deb"
