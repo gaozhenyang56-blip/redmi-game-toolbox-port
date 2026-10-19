@@ -36,3 +36,9 @@
 v15默认服务器链路测速，经当前代理及原专用CA，需设备账号/访客凭据且原始peer限本机服务器；Cloudflare保留可选。不得直接请求后把直连速度冒充VPN速度。保留v14激进参数，停止测速不能在UI线程同步disconnect。详见HANDOFF首节。
 
 v16已将HY2高性能移出实验室并设为加速通道默认；连接页可选保守，原参数不变。服务端私有labHy2键保持兼容，不要求服务器全局切换。运行中续租必须沿用启动Selection，界面修改仅下次连接生效，不能用新偏好误停当前节点。
+
+## Ubuntu 桌面版
+
+用户授权新增ubuntu/原生GUI，目标为wayne-hyperos4:ubuntu-to-go的Ubuntu24.04 amd64 GNOME/.deb ChatGPT。独立1.0.0-preview1版本，不递增Android versionCode，不用Android签名签deb，也不能通过APK更新接口发布deb。详见HANDOFF首节、ubuntu/README.md和verification/UBUNTU_CHECKS.md。
+
+保留polkit固定root助手权限边界与隔离网络TUN验收。系统代理规则可绕大陆，TUN仅全局且节点必须同服务器；不得删除这个防循环限制而放行任意远端。ChatGPT本机OAuth回调须绕过代理，不禁用沙箱/TLS，不强杀用户实例。UI启动与本机核心就绪不等于远端已可用，须经现有服务器测速1字节验证。

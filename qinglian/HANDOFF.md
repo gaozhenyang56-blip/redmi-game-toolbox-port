@@ -1,3 +1,17 @@
+# Ubuntu GUI 1.0.0-preview1（2026-10-19，独立桌面版本）
+
+新增 `ubuntu/`，针对用户另一个仓库 `wayne-hyperos4:ubuntu-to-go`：Ubuntu 24.04 Noble amd64 GNOME，预装官方来源 .deb ChatGPT、启动命令 `chatgpt`，以及 Clash Verge。另一个 `ubuntu-v2ray-guard` 分支只有低占用守护脚本，不提供 GUI。未修改这两个分支、原 Redmi 应用、现有服务器节点或 Android v16；Android 下一版仍至少17。
+
+- 原生 GTK 3 完整桌面界面：连接、ChatGPT 优化、测速、账号/节点导出、关于，亮/暗/跟随系统。独立 Debian 包，桌面菜单启动，普通用户运行，TUN 通过固定用途 polkit 助手单独授权。
+- 面板继续统一选择节点，无手工订阅/API配置入口。复用原 NodeConfig.java 编译 Java17 转换器；固定 V2Ray5.54.2、HY2.13.0、tun2socks2.6.0 与数据文件，下载校验 SHA256，证书和主机名严格验证。账号/访客 profile、15秒租约、64GiB访客、累计流量和256GiB周导出/7天节点均复用原合同；周导出 remainingBytes 不可当成主连接剩余而停VPN。
+- HY2 默认高性能，保留保守可选；每次连接固定 options，仅服务器双重确认 labHy2/aggressive-v1 才使用同一 v16 窗口与BBR，未继续加大参数。敏感域名和内层UDP443经兼容通道。
+- ChatGPT 专用启动加入 HTTP 代理参数、大小写HTTP/SOCKS环境变量、禁用QUIC；要求先完全退出旧实例，不能强杀用户进程。localhost/127.0.0.1/::1仍直连以保留本机 OAuth 回调。不关闭沙箱/TLS，不清用户资料。
+- 系统代理支持规则（中国/私网绕过）与全局；TUN仅全局，IPv4/IPv6/DNS接管忽略系统代理的软件；TUN时也临时设置GNOME代理，避免遗留Clash本机端口。ROOT助手只读root-owned固定API主机，节点地址必须与API服务器相同；固定qltun0、表22042、优先级11090/11091，不执行用户配置/脚本；拒绝占用与已有TUN。不写原默认路由/resolv.conf；resolved只改自建链路，断开恢复。
+- GUI关闭或崩溃时，独立代理守护恢复仅仍属于本程序的设置；root助手读到stdin EOF清理，核心通过Linux parent-death signal退出（独立Python wrapper，避免GTK多线程preexec_fn死锁）。被SIGKILL的root助手/机器异常不是保证清理的场景，文档保留重启/管理员清理办法。
+- 连接成功前须经本地代理请求服务器1字节测速，严格CA/标记/长度确认，不能只启动核心即声称远端已连。测速1..2048MiB单路分段，180秒预算，明确为服务器链路，不回退直连；停止最多等当前10秒读超时。
+- 账号登录/注册永久域名记录须显式告知；Ubuntu不读IMEI/Android ID/硬盘号，使用machine-id+UID的应用范围SHA256并由原服务器签发会话，不上传原machine-id，正常删除App配置/重装不重置绑定。无有效系统ID时才回退持久随机标识，不是不可伪造硬件绑定。会话/运行配置0700目录/0600文件；导出ZIP强制0600，失败保留幂等申请；过期token也能本机退出并说明服务器撤销是否确认。
+- 完整构建、依赖、限制见ubuntu/README.md，验收记录见verification/UBUNTU_CHECKS.md。桌面包不能上传原APK更新接口；Android签名、面板revision24均不变。
+
 # v16 HY2高性能转为默认功能（2026-10-18，已发布）
 
 版本1.1.7-preview/versionCode16，原签名，下一版至少17；面板revision24。用户反馈现有激进参数提速明显且稳定性未变，要求正式实装。沿用原参数，未追加更激进的调优。

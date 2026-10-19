@@ -108,7 +108,7 @@ class Window(Gtk.Window):
         self.password=Gtk.Entry(); self.password.set_visibility(False); self.password.set_placeholder_text('密码（8..72 UTF-8 字节）')
         self.consent=Gtk.CheckButton(label='我已阅读并同意以下永久域名记录告知')
         self.account_box=self.card(p,self.account_title,self.username,self.password,label(CONSENT),self.consent,row(button('登录',lambda:self.auth('login')),button('注册',lambda:self.auth('register')),button('退出账号',self.logout)),button('刷新账号用量',self.refresh_account))
-        self.account_info=label('未登录也可连接。设备使用本安装生成的随机标识摘要绑定；不读取 IMEI 或硬盘序列号。账号凭据仅保存在本用户私有目录。')
+        self.account_info=label('未登录也可连接。设备以本系统用户范围的 machine-id 应用摘要绑定，仅上传摘要，不上传原值；不读取 IMEI 或硬盘号。缺少系统 ID 时使用持久随机标识。账号凭据保存在本用户私有目录。')
         self.card(p,self.account_info)
         self.protocol=combo(['vmess','vless','trojan','shadowsocks','hysteria2']); self.export_size=Gtk.SpinButton.new_with_range(1,262144,1024); self.export_size.set_value(1024)
         self.remark=Gtk.Entry(); self.remark.set_placeholder_text('导出备注名称（可选）')
@@ -116,7 +116,7 @@ class Window(Gtk.Window):
         self.output=Gtk.TextView(); self.output.set_editable(False); self.output.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         sc=Gtk.ScrolledWindow(); sc.set_min_content_height(180); sc.add(self.output); p.pack_start(sc,True,True,0)
     def about_page(self):
-        p=self.page('关于'); self.card(p,label('轻连 Ubuntu','title'),label('1.0.0-preview · amd64 · Ubuntu 24.04 GNOME\n完整原生 GTK GUI；沿用面板与账号 API。\n核心：V2Ray 5.54.2 / Hysteria 2.13.0 / tun2socks 2.6.0。'),label('高性能模式只请求本设备的独立 HY2 worker，使用原版 aggressive 参数；仍受原配额和共享服务器带宽限制。\n账号域名记录需明确同意；访客不记录域名。\n桌面随机设备标识用于绑定，不是不可伪造的硬件标识。\n关闭窗口会安全断开；不提供隐藏后台连接。'),button('查看开源许可',lambda:self.task(lambda:(ROOT/'THIRD_PARTY.txt').read_text(),self.show_text)))
+        p=self.page('关于'); self.card(p,label('轻连 Ubuntu','title'),label('1.0.0-preview · amd64 · Ubuntu 24.04 GNOME\n完整原生 GTK GUI；沿用面板与账号 API。\n核心：V2Ray 5.54.2 / Hysteria 2.13.0 / tun2socks 2.6.0。'),label('高性能模式只请求本设备的独立 HY2 worker，使用原版 aggressive 参数；仍受原配额和共享服务器带宽限制。\n账号域名记录需明确同意；访客不记录域名。\n桌面设备应用摘要用于绑定，不是不可伪造的硬件标识。\n关闭窗口会安全断开；不提供隐藏后台连接。'),button('查看开源许可',lambda:self.task(lambda:(ROOT/'THIRD_PARTY.txt').read_text(),self.show_text)))
     def show_text(self,text):
         dialog=Gtk.MessageDialog(transient_for=self,modal=True,message_type=Gtk.MessageType.INFO,buttons=Gtk.ButtonsType.OK,text='轻连')
         dialog.format_secondary_text(text[:10000]); dialog.run(); dialog.destroy()
@@ -155,7 +155,7 @@ class Window(Gtk.Window):
         if self.account_busy: self.set_status('账号操作进行中，请稍后连接'); return
         if not self.api.account:
             d=Gtk.MessageDialog(transient_for=self,modal=True,buttons=Gtk.ButtonsType.OK_CANCEL,text='访客连接')
-            d.format_secondary_text('将向服务器提交本安装的随机设备标识摘要以分配会话；本次手动连接最多 64 GiB，自动恢复不重置额度，不记录访问域名。'); reply=d.run(); d.destroy()
+            d.format_secondary_text('将向服务器提交本系统用户范围的设备应用摘要以分配会话（不上传原 machine-id，缺少时使用持久随机标识）；本次手动连接最多 64 GiB，自动恢复不重置额度，不记录访问域名。'); reply=d.run(); d.destroy()
             if reply!=Gtk.ResponseType.OK: return
         self.busy=True
         for c in self.controls: c.set_sensitive(False)

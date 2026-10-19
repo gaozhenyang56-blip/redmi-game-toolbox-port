@@ -15,6 +15,17 @@ import runtime
 import tun
 
 class RuntimeTests(unittest.TestCase):
+    def test_os_scoped_identity_survives_app_data_removal(self):
+        ident='1234567890abcdef1234567890abcdef'
+        with tempfile.TemporaryDirectory() as a,tempfile.TemporaryDirectory() as b:
+            with patch.object(runtime,'STATE',Path(a)): first=runtime.device_identity(ident,1000)
+            with patch.object(runtime,'STATE',Path(b)): second=runtime.device_identity(ident,1000)
+        self.assertEqual(first,second); self.assertEqual(len(first),64); self.assertNotIn(ident,first)
+        self.assertNotEqual(first,runtime.device_identity(ident,1001))
+    def test_missing_system_id_has_persistent_random_fallback(self):
+        with tempfile.TemporaryDirectory() as d,patch.object(runtime,'STATE',Path(d)):
+            first=runtime.device_identity('',1000)
+            self.assertEqual(first,runtime.device_identity('0'*32,1000))
     def test_private_atomic_state(self):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/'private'/'state.json'; runtime.save(p,{'token':'not-a-real-token'})

@@ -37,6 +37,20 @@ def read(path, default=None):
     try: return json.loads(Path(path).read_text())
     except FileNotFoundError: return default
 
+def device_identity(system_id=None, uid=None):
+    # Linux counterpart of Android's app/user-scoped identifier. Reinstalling
+    # just this app must not make ordinary duplicate registration possible.
+    if system_id is None:
+        try: system_id=Path('/etc/machine-id').read_text().strip()
+        except OSError: system_id=''
+    if uid is None: uid=os.getuid()
+    if len(system_id)==32 and all(c in '0123456789abcdef' for c in system_id) and int(system_id,16)!=0:
+        return hashlib.sha256(('qinglian-ubuntu-v1:'+str(uid)+':'+system_id).encode()).hexdigest()
+    fallback=read(STATE/'device.json')
+    if not isinstance(fallback,str) or len(fallback)!=64 or any(c not in '0123456789abcdef' for c in fallback):
+        fallback=secrets.token_hex(32); save(STATE/'device.json',fallback)
+    return fallback
+
 def spawn(args, **kwargs):
     # Do not use preexec_fn from a multithreaded GTK process: imports after fork can deadlock.
     wrapper=['/usr/bin/python3','-I',str(Path(__file__).resolve()),'--core-owner',str(os.getpid())]
@@ -113,11 +127,7 @@ class Api:
         self.context = ssl.create_default_context(cafile=str(ROOT/config['caAsset']))
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), urllib.request.HTTPSHandler(context=self.context), NoRedirect())
         STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
-        self.device = read(STATE/'device.json')
-        if not self.device:
-            # Stable installation identifier; never reads IMEI or machine-id.
-            self.device = hashlib.sha256(('qinglian-ubuntu:'+secrets.token_hex(32)).encode()).hexdigest()
-            save(STATE/'device.json', self.device)
+        self.device = device_identity()
         self.account = read(STATE/'account.json', {})
         self.guest = None
     def request(self, path, body=None, token=None, bootstrap=False):

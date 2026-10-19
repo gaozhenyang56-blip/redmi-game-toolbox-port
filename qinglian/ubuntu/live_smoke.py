@@ -24,7 +24,10 @@ with connection() as ssh,tempfile.TemporaryDirectory() as d:
         (lib/name).symlink_to(LIB/name)
     runtime.save(lib/'profile.json',dict(url='https://'+cfg['host']+':'+str(cfg['port'])+'/api/v1/profile',clientToken=cfg['clientToken'],caAsset='api-ca.pem'))
     runtime.ROOT=lib; runtime.STATE=state
-    api=runtime.Api(); device=api.device
+    api=runtime.Api()
+    # A public probe never impersonates a real system identity, even on a reused runner image.
+    import secrets
+    api.device=secrets.token_hex(32); device=api.device
     try:
         for path in ('online','quota'): assert isinstance(api.request(path,bootstrap=True),dict)
         for accelerated,performance in ((False,False),(True,False),(True,True)):
