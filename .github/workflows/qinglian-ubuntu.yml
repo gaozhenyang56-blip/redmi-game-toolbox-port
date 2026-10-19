@@ -9,6 +9,10 @@ on:
         description: Also verify real guest connections (3 MiB, no deployment)
         type: boolean
         default: false
+      release:
+        description: Publish the verified Ubuntu package to its dedicated prerelease
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -69,3 +73,40 @@ jobs:
           name: qinglian-ubuntu-gui-preview
           path: /tmp/qinglian-ubuntu.png
           if-no-files-found: warn
+  release:
+    if: github.event_name == 'workflow_dispatch' && inputs.release
+    needs: ubuntu
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - name: Restore only the deployed app bootstrap and public CA
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/ubuntu/prepare_release_assets.py "$RUNNER_TEMP/app-assets"
+      - name: Build production desktop package
+        run: |
+          mkdir -p "$RUNNER_TEMP/delivery"
+          python3 qinglian/ubuntu/build.py --assets "$RUNNER_TEMP/app-assets" --output "$RUNNER_TEMP/delivery/Qinglian-1.0.0-preview1-amd64.deb"
+          cp qinglian/ubuntu/README.md "$RUNNER_TEMP/delivery/Qinglian-Ubuntu-Guide.md"
+          cd "$RUNNER_TEMP/delivery"
+          sha256sum Qinglian-1.0.0-preview1-amd64.deb Qinglian-Ubuntu-Guide.md > Qinglian-Ubuntu-SHA256SUMS.txt
+      - name: Publish dedicated Ubuntu prerelease using the repository identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create qinglian-ubuntu-v1.0.0-preview1 -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title '轻连 Ubuntu 1.0.0-preview1' --notes-file qinglian/ubuntu/RELEASE_NOTES.md "$RUNNER_TEMP/delivery/Qinglian-1.0.0-preview1-amd64.deb" "$RUNNER_TEMP/delivery/Qinglian-Ubuntu-SHA256SUMS.txt" "$RUNNER_TEMP/delivery/Qinglian-Ubuntu-Guide.md"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qinglian-ubuntu-production-package
+          path: ${{ runner.temp }}/delivery/
+          if-no-files-found: error
