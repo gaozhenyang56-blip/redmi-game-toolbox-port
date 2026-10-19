@@ -99,6 +99,7 @@ class RuntimeTests(unittest.TestCase):
             args,kw=launch.call_args
             self.assertIn('--proxy-server=http://127.0.0.1:10809',args[0])
             self.assertIn('--disable-quic',args[0]); self.assertNotIn('--no-sandbox',args[0])
+            self.assertIn('--proxy-bypass-list=localhost;127.0.0.1;[::1]',args[0])
             self.assertEqual(kw['env']['HTTPS_PROXY'],'http://127.0.0.1:10809')
     def test_chatgpt_existing_instance_refused(self):
         c=runtime.Connection(MagicMock(),lambda *_:None); c.connected=True

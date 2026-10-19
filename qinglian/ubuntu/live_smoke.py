@@ -39,7 +39,14 @@ with connection() as ssh,tempfile.TemporaryDirectory() as d:
                     if not c.connected: raise RuntimeError('Ubuntu public connection failed: '+next((v for e,v in events if e=='error'),'timeout'))
                     result=c.speed(1,threading.Event(),lambda *_:None)
                     assert result.startswith('已完成')
-                    quota=api.current('quota'); assert quota['limitBytes']==64*1024**3 and quota['usedBytes']>=1048576
+                    # Native worker counters are sampled asynchronously; do not demand
+                    # the API have observed the last packet in the same instant.
+                    for _ in range(30):
+                        quota=api.current('quota')
+                        assert quota['limitBytes']==64*1024**3
+                        if quota['usedBytes']>=1048576: break
+                        time.sleep(.5)
+                    else: raise AssertionError('public guest native counters did not catch up')
                 finally:
                     c.disconnect(); c.thread.join(timeout=30)
                     assert not c.thread.is_alive(), 'connection shutdown timeout'

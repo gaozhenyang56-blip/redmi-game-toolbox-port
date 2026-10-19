@@ -271,7 +271,9 @@ class Connection:
                 else: raise RuntimeError('TUN 授权超时')
             self.notify('state','正在验证代理链路…')
             self.api.verify_proxy()
-            if not tun: self.proxy.enable()
+            # Also replace stale GNOME proxies in TUN mode: traffic to a dead local
+            # Clash port cannot be rescued by an IP tunnel. Restore the old values on exit.
+            self.proxy.enable()
             if self.cancel.is_set(): raise RuntimeError('已取消连接')
             self.connected=True; self.notify('connected',('HY2 高性能' if accelerated and performance else 'HY2 保守' if accelerated else node.get('protocol','VMess').upper())+' · '+('TUN 全局' if tun else '系统代理 / '+('规则' if rule else '全局')))
             failures=0
@@ -316,7 +318,8 @@ class Connection:
         for key in ('http_proxy','https_proxy','HTTP_PROXY','HTTPS_PROXY'): env[key]='http://127.0.0.1:10809'
         for key in ('all_proxy','ALL_PROXY'): env[key]='socks5h://127.0.0.1:10808'
         env['no_proxy']=env['NO_PROXY']='localhost,127.0.0.1,::1'
-        subprocess.Popen([command,'--proxy-server=http://127.0.0.1:10809','--proxy-bypass-list=<-loopback>','--disable-quic'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
+        # Keep local OAuth callbacks local; only remote service traffic uses the proxy.
+        subprocess.Popen([command,'--proxy-server=http://127.0.0.1:10809','--proxy-bypass-list=localhost;127.0.0.1;[::1]','--disable-quic'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
 
     def probe(self):
         if not self.connected: raise RuntimeError('请先连接')
