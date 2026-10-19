@@ -28,6 +28,7 @@ def save(path, value):
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     tmp = path.with_suffix('.tmp')
     fd = os.open(tmp, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0o600)
+    os.fchmod(fd,0o600)
     with os.fdopen(fd, 'w') as f:
         json.dump(value, f, ensure_ascii=False); f.flush(); os.fsync(f.fileno())
     os.replace(tmp, path)
@@ -147,8 +148,11 @@ class Api:
             except Exception: pass
             self.guest = None
     def logout(self):
-        self.request('exports/logout',{})
+        warning=''
+        try: self.request('exports/logout',{})
+        except Exception: warning='已退出本机账号；服务端会话撤销未确认，旧会话将按服务端期限失效。'
         self.account = {}; (STATE/'account.json').unlink(missing_ok=True)
+        return warning
     def verify_proxy(self):
         token=self.account.get('token') or self.guest['sessionKey']
         group='exports' if self.account else 'guest'

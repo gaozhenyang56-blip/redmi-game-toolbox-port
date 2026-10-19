@@ -23,6 +23,22 @@ class RuntimeTests(unittest.TestCase):
             self.assertEqual(runtime.read(p),{'token':'not-a-real-token'})
     def test_no_bearer_redirect(self):
         self.assertIsNone(runtime.NoRedirect().redirect_request(None,None,302,'',{},'https://elsewhere.invalid'))
+    def test_expired_account_can_logout_locally(self):
+        with tempfile.TemporaryDirectory() as d,patch.object(runtime,'STATE',Path(d)):
+            api=runtime.Api.__new__(runtime.Api); api.account={'token':'expired'}
+            runtime.save(Path(d)/'account.json',api.account)
+            api.request=MagicMock(side_effect=RuntimeError('expired'))
+            self.assertIn('撤销未确认',api.logout()); self.assertFalse(api.account)
+            self.assertFalse((Path(d)/'account.json').exists())
+    def test_proxy_verification_requires_exact_private_api_response(self):
+        api=runtime.Api.__new__(runtime.Api); api.account={'token':'fixture'}; api.base='https://example.invalid/api/v1/'; api.device='a'*64; api.context=MagicMock()
+        response=MagicMock(); response.__enter__.return_value=response
+        response.headers={'X-Qinglian-Speed':'server-v1','Content-Length':'1'}; response.read.return_value=b'x'
+        opener=MagicMock(); opener.open.return_value=response
+        with patch.object(runtime.urllib.request,'build_opener',return_value=opener):
+            api.verify_proxy()
+            response.headers['X-Qinglian-Speed']='wrong'
+            with self.assertRaises(RuntimeError): api.verify_proxy()
     def test_hy2_exact_windows_and_tls(self):
         n=dict(add='203.0.113.1',port=443,auth='fixture',sni='example.test',caPem='public',hy2Performance='aggressive-v1')
         c=runtime.hy_config(n,'/private/ca.pem')

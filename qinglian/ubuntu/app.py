@@ -179,8 +179,8 @@ class Window(Gtk.Window):
         if not self.consent.get_active(): self.set_status('登录 / 注册前需明确同意永久域名记录告知'); return
         username=self.username.get_text().strip(); password=self.password.get_text()
         self.account_task(lambda:self.api.auth(action,username,password),self.auth_done)
-    def auth_done(self,*_):
-        self.password.set_text(''); self.account_title.set_text('当前：'+self.api.account.get('username','访客')); self.set_status('账号操作成功')
+    def auth_done(self,result=None):
+        self.password.set_text(''); self.account_title.set_text('当前：'+self.api.account.get('username','访客')); self.set_status(result or '账号操作成功')
     def logout(self): self.account_task(self.api.logout,self.auth_done)
     def refresh_account(self):
         if not self.api.account: self.set_status('请先登录'); return
@@ -217,6 +217,7 @@ class Window(Gtk.Window):
                 time.sleep(.5)
             else: raise RuntimeError('节点已创建，配置尚未就绪；稍后用同一申请重试，不会重复扣额')
             fd=os.open(path,os.O_CREAT|os.O_TRUNC|os.O_WRONLY,0o600)
+            os.fchmod(fd,0o600)
             with os.fdopen(fd,'wb') as out,zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED) as z:
                 for name,value in [('node.json',profile['node']),('share-uri.txt',profile['uri']),('qinglian-ca.pem',profile['caPem']),('client-config.json',profile['clientConfig'])]: z.writestr(name,json.dumps(value,ensure_ascii=False,indent=2) if isinstance(value,dict) else value)
             (STATE/'pending-export.json').unlink(missing_ok=True)

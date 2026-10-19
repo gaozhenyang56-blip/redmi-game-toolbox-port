@@ -58,6 +58,7 @@ if __name__=='__main__':
     processes=[]
     with tempfile.TemporaryDirectory() as d:
         root=Path(d); runtime.ROOT=LIB
+        (root/'tun2socks').symlink_to(LIB/'tun2socks')
         # Public, local-only VMess fixture; production nodes retain verified TLS.
         uid='11111111-1111-4111-8111-111111111111'
         server={'log':{'loglevel':'none'},'inbounds':[{'listen':'127.0.0.1','port':24142,'protocol':'vmess','settings':{'clients':[{'id':uid}]}}],'outbounds':[{'protocol':'freedom','settings':{'redirect':'127.0.0.1:'+str(origin.server_port)}}]}
