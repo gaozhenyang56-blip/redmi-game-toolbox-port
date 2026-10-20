@@ -4,7 +4,9 @@
 
 Go race通过：主/访客TCP对照、严格请求值、默认凭据不旋转、周导出不扣、访客多协议合计64GiB。真实V2Ray原生8场景通过（含VLESS TCP TLS、VMess/VLESS Mux及TLS/SNI敏感服务路由）；两个真实Hysteria客户端通过App balancer均实际收流量，服务端合并计量、父额度耗尽关闭共同worker。
 
-构建原签名APK 28,351,422字节，SHA256 `ae0a9c9e6730cfbfb79290af9646234776b6d3dcb18e2c04fb35e14d3dc2d4fe`。服务端备份/部署与公网2.5MiB/最终发布待补录；原v16保留。无新增实体手机升级、切网或速度AB测试，不承诺增速/无缝。
+构建原签名APK 28,351,422字节，SHA256 `ae0a9c9e6730cfbfb79290af9646234776b6d3dcb18e2c04fb35e14d3dc2d4fe`。服务端备份升级39502475591成功，配置/原入站/计数及API权限验证保留；公网39503352519成功：VLESS/Trojan TLS、VLESS Mux、同凭据双HY2两标签均实收流量，共2.5MiB，原访客64GiB合并计量、无域名记录。随机测试访客精确清理，不修改真实用户节点。面板revision27发布v17；39503677955重新下载原CA验证APK哈希/签名/版本并发布独立GitHub Release。已从公开GitHub Release重新下载，SHA256SUMS与原签名验证通过，公开包与工作区交付APK逐字节一致。原v16保留。无新增实体手机升级、切网或速度AB测试，不承诺增速/无缝。 四路测速的600Mbps是请求合计，不是单连接能力，也不代表4条独立HY2隧道。
+
+下载：https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/releases/download/qinglian-android-v1.1.8-preview-v17/Qinglian-1.1.8-preview-v17.apk
 
 # v16 默认高性能与续租选择验证（2026-10-18，已发布）
 
