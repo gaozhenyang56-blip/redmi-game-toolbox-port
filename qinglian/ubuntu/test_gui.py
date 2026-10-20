@@ -42,10 +42,11 @@ with tempfile.TemporaryDirectory() as d:
     began=w.started_at
     w.simple_switch.set_active(True); drain(.45)
     assert w.compact and not w.nav_layer.get_visible() and not w.sidebar.get_visible()
-    assert w.performance_box.get_visible() and w.mode_card.get_visible()
+    assert w.classic_connection.get_visible() and not w.connection_columns.get_visible()
     assert w.classic_bar.get_visible() and not w.header_layer.get_visible()
     assert w.channel.classic_combo.get_visible() and w.classic_tabs.get_n_pages()==6
-    assert w.hero.get_visible() and w.transport_card.get_visible()
+    assert w.connect_button.get_mapped() and w.channel.classic_combo.get_visible()
+    assert w.classic_tabs.get_mapped()
     w.classic_tabs.set_current_page(w.classic_order.index('account')); assert w.stack.get_visible_child_name()=='account'
     assert w.username.get_text()=='unsent-draft' and w.consent.get_active()
 

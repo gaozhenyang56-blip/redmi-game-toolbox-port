@@ -124,7 +124,7 @@ class Window(Gtk.Window):
         self.sidebar.set_margin_top(112); self.sidebar.set_margin_bottom(18); self.sidebar.set_margin_start(18); self.sidebar.show_all(); self.sidebar.set_no_show_all(True); self.overlay.add_overlay(self.sidebar)
     def build_classic_navigation(self):
         self.classic_bar=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
-        self.classic_bar.set_valign(Gtk.Align.START); self.classic_bar.set_no_show_all(True)
+        self.classic_bar.set_valign(Gtk.Align.START)
         tools=Gtk.Box(spacing=12); tools.set_border_width(8)
         tools.pack_start(label('轻连 · 简约界面','card-title'),True,True,8)
         tools.pack_end(button('切换完整界面',lambda:self.simple_switch.set_active(False)),False,False,0)
@@ -136,7 +136,7 @@ class Window(Gtk.Window):
             self.classic_tabs.append_page(Gtk.Box(),Gtk.Label(label=title))
         self.classic_tabs.connect('switch-page',self.classic_page_changed)
         self.classic_bar.pack_start(self.classic_tabs,False,False,0)
-        self.classic_bar.show_all(); self.overlay.add_overlay(self.classic_bar)
+        self.classic_bar.show_all(); self.classic_bar.set_no_show_all(True); self.overlay.add_overlay(self.classic_bar)
     def classic_page_changed(self,_,page,index):
         if not self.compact: return
         self.syncing_classic=True
@@ -176,6 +176,7 @@ class Window(Gtk.Window):
         else: style.remove_class('classic')
         self.header_layer.set_visible(not self.compact); self.classic_bar.set_visible(self.compact)
         for w in self.full_details: w.show()
+        self.classic_connection_layout()
         for segment in self.segments: segment.set_classic(self.compact)
         def arrange(widget):
             if isinstance(widget,Columns): widget.single(self.compact)
@@ -190,6 +191,37 @@ class Window(Gtk.Window):
         self.adapt_layout()
         self.navigate(self.stack.get_visible_child_name() or 'connect')
         self.update_summary()
+    def classic_connection_layout(self):
+        if not hasattr(self,'classic_connection'):
+            p=self.pages['connect']['body']
+            self.classic_connection=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14)
+            self.classic_connection.get_style_context().add_class('card')
+            p.pack_start(self.classic_connection,False,True,0)
+            self.classic_connection.pack_start(label('轻连，随时连接','title'),False,False,0)
+            self.classic_connection.pack_start(label('节点由现有面板统一管理 · 单次访客 64 GiB','subtitle'),False,False,0)
+            self.classic_channel_row=Gtk.Box(spacing=12,homogeneous=True)
+            self.classic_tun_row=row(label('TUN 全局接管（需系统授权）'))
+            self.classic_slots=[]
+            for widget in [self.state_label,self.channel,self.performance,self.route,self.tun,self.connect_button,self.quota_label]:
+                parent=widget.get_parent(); self.classic_slots.append((widget,parent,parent.get_children().index(widget),parent.query_child_packing(widget)))
+            self.classic_connection.set_no_show_all(True)
+        if self.compact and not getattr(self,'classic_reparented',False):
+            for widget,parent,index,packing in self.classic_slots: parent.remove(widget)
+            self.classic_connection.pack_start(self.state_label,False,False,0)
+            self.classic_channel_row.pack_start(self.channel,True,True,0); self.classic_channel_row.pack_start(self.performance,True,True,0)
+            self.classic_connection.pack_start(self.classic_channel_row,False,False,0)
+            self.classic_connection.pack_start(self.route,False,False,0)
+            self.classic_tun_row.pack_end(self.tun,False,False,0); self.classic_connection.pack_start(self.classic_tun_row,False,False,0)
+            self.classic_connection.pack_start(self.connect_button,False,False,0); self.classic_connection.pack_start(self.quota_label,False,False,0)
+            self.classic_connection.set_no_show_all(False); self.classic_connection.show_all(); self.classic_connection.set_no_show_all(True)
+            self.classic_reparented=True
+        elif not self.compact and getattr(self,'classic_reparented',False):
+            for widget,parent,index,packing in self.classic_slots:
+                widget.get_parent().remove(widget); parent.pack_start(widget,*packing[:3]); parent.reorder_child(widget,index)
+            self.classic_connection.remove(self.classic_channel_row); self.classic_connection.remove(self.classic_tun_row)
+            self.classic_reparented=False
+        self.classic_connection.set_visible(self.compact)
+        for widget in [self.connection_columns,self.simple_summary,self.quick_actions]: widget.set_visible(not self.compact)
     def adapt_layout(self,*_):
         if not hasattr(self,'status_layer'): return
         wide=self.get_allocated_width()>=1040 and not self.compact
