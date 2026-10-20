@@ -1,5 +1,8 @@
 name: Qinglian Android channel and multipath verification
 on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['.github/workflows/qinglian-channel-check.yml']
   workflow_dispatch:
     inputs:
       live:
