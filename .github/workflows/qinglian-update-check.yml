@@ -4,6 +4,11 @@ on:
     branches: [codex/qinglian-routing-and-presence]
     paths: ['.github/workflows/qinglian-update-check.yml','qinglian/server/update_release_probe.py']
   workflow_dispatch:
+    inputs:
+      release:
+        description: Publish the verified original-signed Android v17 APK
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -18,8 +23,34 @@ jobs:
       - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
       - name: Verify private-CA download and original signed APK
         env:
+          QINGLIAN_EXPECTED_VERSION: ${{ inputs.release && '17' || '' }}
+          QINGLIAN_DELIVERY_DIR: ${{ inputs.release && format('{0}/delivery', runner.temp) || '' }}
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
           QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
           QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
         run: python3 qinglian/server/update_release_probe.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: github.event_name == 'workflow_dispatch' && inputs.release
+        with:
+          name: qinglian-android-v17-verified
+          path: ${{ runner.temp }}/delivery/
+          if-no-files-found: error
+  release:
+    if: github.event_name == 'workflow_dispatch' && inputs.release
+    needs: verify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: qinglian-android-v17-verified
+          path: delivery
+      - name: Publish the verified Android package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd delivery
+          sha256sum -c SHA256SUMS.txt
+          gh release create qinglian-android-v1.1.8-preview-v17 -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title '轻连 Android 1.1.8-preview · v17' --notes '连接页新增VLESS/Trojan TLS协议对照、可选TCP复用、保活优化及自动选择；关于→速度实验室新增默认关闭的双HY2隧道。双隧道按连接分担，不为单个下载叠加带宽。自动切换有失败阈值、冷却和回退，可能中断下载。原签名、原HY2高性能参数、账号与访客64GiB配额保持。103项Android测试、真实核心和公网小流量验证通过；尚无实体手机速度AB或覆盖升级验收。' Qinglian-1.1.8-preview-v17.apk SHA256SUMS.txt

@@ -28,6 +28,13 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
   assert verified.returncode==0 and '2e90d97183fbe26c05a8bd67454b0a5d0f5c01633609a335fdff693a4774a870' in verified.stdout.lower().replace(':','')
   badging=subprocess.run([str(signer.parent/'aapt'),'dump','badging',str(path)],capture_output=True,text=True,timeout=30);assert badging.returncode==0
   assert "name='com.gzy.qinglian'" in badging.stdout and "versionCode='"+str(apk['versionCode'])+"'" in badging.stdout
+  if os.environ.get('QINGLIAN_EXPECTED_VERSION'):assert apk['versionCode']==int(os.environ['QINGLIAN_EXPECTED_VERSION'])
+  if os.environ.get('QINGLIAN_DELIVERY_DIR'):
+   assert apk['versionCode']==17 and apk['versionName']=='1.1.8-preview'
+   delivery=Path(os.environ['QINGLIAN_DELIVERY_DIR']);delivery.mkdir(parents=True,exist_ok=True)
+   import shutil
+   filename='Qinglian-1.1.8-preview-v17.apk';shutil.copyfile(path,delivery/filename)
+   (delivery/'SHA256SUMS.txt').write_text(digest+'  '+filename+'\n')
   print(json.dumps({'publicTlsUpdateDownload':True,'sizeAndDigestMatch':True,'originalApkSignatureVerified':True,'packageAndVersionMatch':True,'versionCode':apk['versionCode']}))
 except Exception as error:
  print('Update release verification failed:',type(error).__name__,'; private details suppressed.',file=sys.stderr);sys.exit(1)
