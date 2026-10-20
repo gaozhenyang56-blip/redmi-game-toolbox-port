@@ -5,11 +5,19 @@
 ## 安装和使用
 
 ```sh
-sudo apt install ./Qinglian-1.0.0-preview1-amd64.deb
+sudo apt install ./Qinglian-1.0.0-preview2-amd64.deb
 qinglian
 ```
 
 也可在应用列表点击“轻连”。安装时通过 Ubuntu 包管理器安装 Python/GTK、Java 运行时和 polkit 等依赖；GUI 无需 root。首次连接可以不登录，明确告知后创建单次 64 GiB 访客会话。账号登录/注册前必须明确同意服务器永久保存域名和时间的告知。
+
+## 界面与简约模式
+
+完整界面采用类似 FlClash 的桌面侧栏和双栏卡片，配色、圆角和滑块延续手机版 Material 3。宽窗口显示左侧导航，窄窗口自动使用底部导航和单栏内容；账号和 ChatGPT 为独立页面。顶部“简约”切换第一版的传统桌面标签页、下拉选择和表单，保留全部功能，选择会持续保存。切换界面不重建连接、不改变通道、TUN 或账号输入。preview1 的协议、模式和主题设置继续保留。
+
+顶部与导航玻璃实时取样本应用内容并做高斯模糊，不读取其他窗口或桌面；最多约每秒12次、缩小取样、像素未变时复用，隐藏/最小化时停止计算。亮色、暗色、跟随系统均可选。需要发行版的 python3-gi-cairo、python3-cairo 和 python3-pil，安装 deb 时自动安装。
+
+快捷键：Ctrl+1..4 切换连接/测速/分流/关于，Ctrl+Shift+M 切换简约，Esc 返回，Ctrl+Q 断开退出。并排滑块可点按、横拖松手提交，也保留原生单选按钮的键盘操作和辅助功能语义。
 
 连接页选择兼容或 HY2、高性能或保守、规则或全局。系统代理仅影响支持 GNOME / HTTP / SOCKS 代理的软件。更换配置需断开后重新连接；续租沿用启动参数。HY2 高性能使用现有服务端按设备隔离的 aggressive-v1，而非全局调优服务器。
 
@@ -28,7 +36,7 @@ TUN 固定使用 `qltun0`、路由表 22042、策略优先级 11090/11091，拒�
 ## 开发 / 构建
 
 ```sh
-python3 ubuntu/build.py --assets /private/api-assets --output /tmp/Qinglian-1.0.0-preview1-amd64.deb
+python3 ubuntu/build.py --assets /private/api-assets --output /tmp/Qinglian-1.0.0-preview2-amd64.deb
 ```
 
 JDK 17+、Python 3、dpkg-deb。私有资产目录只需 `profile.json` 与其 `caAsset` 证书；不得提交 token 或节点凭据。固定公开下载经 SHA256 校验。复用同一 `NodeConfig.java`，随包编译成 Java 17 字节码，避免另写一套协议转换。

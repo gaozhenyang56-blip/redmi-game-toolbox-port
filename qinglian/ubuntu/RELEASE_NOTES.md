@@ -1,6 +1,8 @@
-轻连 Ubuntu 1.0.0-preview1，适配 Ubuntu 24.04 amd64 GNOME（含 ubuntu-to-go 分支的系统）。这是独立桌面版，Android v16 和现有面板更新保持原状。
+轻连 Ubuntu 1.0.0-preview2，适配 Ubuntu 24.04 amd64 GNOME（含 ubuntu-to-go 分支的系统）。这是独立桌面版，Android v16 和现有面板更新保持原状。
 
-- 原生 GUI：连接、ChatGPT 优化、测速、账号/导出、关于；亮色/暗色/跟随系统。
+- 界面更新：类似 FlClash 的桌面左侧导航和双栏卡片，延续手机版 Material 3 配色、圆角与玻璃滑块；窄窗口切为底部导航和单栏。连接、测速、分流、关于、ChatGPT、账号六个页面。
+- 内置第一版风格的简约模式：传统桌面标签页、下拉框与单栏表单，保留全部功能并持久保存（顶部按钮 / Ctrl+Shift+M）；切换不重建连接、不改变配置或丢失账号输入。兼容 preview1 的设置。
+- 本应用内容实时高斯毛玻璃，最多12Hz、低分辨率取样与未变像素复用，隐藏/最小化停止计算；亮色/暗色/跟随系统。页面与滑块动画保留鼠标和键盘操作。
 - 共用现有面板：VMess、VLESS、Trojan、Shadowsocks、HY2；加速默认高性能，保守可选；免登录单次64GiB，账号累计用量和五协议节点导出。
 - ChatGPT 专用启动附加显式代理与环境变量、关闭QUIC，保留本机OAuth回调；完整退出旧实例后使用。忽略代理的软件可选TUN全局接管（需系统授权，先关闭其他VPN/Clash）。系统代理模式支持大陆/私网绕过规则。
 - 连接成功前验证实际代理链路，断开恢复原系统代理/自建路由；服务器链路测速大小可自定义1..2048MiB，显示Mbps。
@@ -9,7 +11,7 @@
 下载 deb 后，在安装包所在目录执行：
 
 ```sh
-sudo apt install ./Qinglian-1.0.0-preview1-amd64.deb
+sudo apt install ./Qinglian-1.0.0-preview2-amd64.deb
 qinglian
 ```
 

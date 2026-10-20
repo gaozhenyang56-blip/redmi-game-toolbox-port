@@ -5,25 +5,19 @@ import os
 from pathlib import Path
 import subprocess
 import threading
+import time
 import uuid
 import zipfile
 import gi
 gi.require_version('Gtk','3.0')
-from gi.repository import Gtk, Gdk, GLib, Gio
+from gi.repository import Gtk, Gdk, GLib, Gio, Pango
 from runtime import Api, Connection, STATE, ROOT, CONSENT, read, save, restore_proxy
+from ui import CSS, Icon, Clamp, Columns, Segments, FrostedPanel, Sparkline
 
-CSS=b'''
-window { background: #f7f9fc; color: #18212e; }
-headerbar { padding: 10px; } .title { font-size: 30px; font-weight: 700; }
-.subtitle { color: #687588; } .card { background: alpha(#ffffff,.85); border-radius: 18px; padding: 24px; }
-button { border-radius: 12px; padding: 10px 18px; } button.suggested-action { background: #176b56; color: white; }
-label { padding: 2px; } entry,combobox { margin: 4px 0; } notebook > header { padding: 8px; }
-window.dark { background: #171d26; color: #e4eaf2; } .dark .card { background: #242e3b; }
-.dark .subtitle { color: #a9b8cb; } textview text { color: #18212e; background: #f7f9fc; }
-'''
+VERSION='1.0.0-preview2'
 
 def label(text='',style=None):
-    w=Gtk.Label(label=text,xalign=0); w.set_line_wrap(True); w.set_selectable(True)
+    w=Gtk.Label(label=text,xalign=0); w.set_line_wrap(True); w.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR); w.set_max_width_chars(64)
     if style: w.get_style_context().add_class(style)
     return w
 
@@ -33,7 +27,7 @@ def button(text,callback,primary=False):
     return w
 
 def row(*widgets):
-    w=Gtk.Box(spacing=12)
+    w=Gtk.Box(spacing=12,homogeneous=True)
     for x in widgets: w.pack_start(x,True,True,0)
     return w
 
@@ -42,81 +36,259 @@ def combo(items):
     for item in items: w.append_text(item)
     w.set_active(0); return w
 
+def icon_button(name,tooltip,callback):
+    b=Gtk.Button(); glyph=Icon(name); b.add(glyph); glyph.show(); b.set_valign(Gtk.Align.CENTER); b.set_tooltip_text(tooltip); b.get_style_context().add_class('icon-button'); b.connect('clicked',lambda _:callback()); return b
+
+def centered(text='',style=None):
+    w=label(text,style); w.set_xalign(.5); w.set_justify(Gtk.Justification.CENTER); return w
+
 class Window(Gtk.Window):
+    MAIN=('connect','speed','routing','about')
     def __init__(self):
-        super().__init__(title='轻连 Qinglian')
-        self.set_default_size(960,740); self.set_position(Gtk.WindowPosition.CENTER)
+        super().__init__(title='轻连 Qinglian'); self.get_style_context().add_class('qinglian')
+        self.set_icon_name('qinglian'); self.set_position(Gtk.WindowPosition.CENTER)
         STATE.mkdir(parents=True,exist_ok=True,mode=0o700)
         self.instance=open(STATE/'gui.lock','a')
         try: fcntl.flock(self.instance,fcntl.LOCK_EX|fcntl.LOCK_NB)
         except BlockingIOError: raise RuntimeError('轻连已在运行，请使用现有窗口。')
         restore_proxy(STATE/'proxy-restore.json')
-        self.api=Api(); self.conn=Connection(self.api,self.on_event); self.busy=False; self.quitting=False
+        self.api=Api(); self.conn=Connection(self.api,self.on_event); self.busy=False; self.quitting=False; self.started_at=None
         self.test_cancel=threading.Event(); self.test_running=False; self.account_busy=False
-        self.settings=read(STATE/'settings.json',{})
+        self.settings=read(STATE/'settings.json',{}); self.compact=bool(self.settings.get('compact',False))
+        self.set_default_size(960 if self.compact else 1200,740 if self.compact else 860)
+        self.pages={}; self.segments=[]; self.return_page='connect'; self.popover=None
         self.desktop_settings=Gio.Settings.new('org.gnome.desktop.interface')
         self.desktop_settings.connect('changed::color-scheme',lambda *_:self.set_theme())
         provider=Gtk.CssProvider(); provider.load_from_data(CSS)
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        head=Gtk.HeaderBar(title='轻连',subtitle='Ubuntu · 1.0.0-preview'); head.set_show_close_button(True); self.set_titlebar(head)
-        self.theme=combo(['亮色','暗色','跟随系统']); self.theme.set_active(self.settings.get('theme',0)); self.theme.connect('changed',self.set_theme); head.pack_end(self.theme)
-        outer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8); self.add(outer)
-        self.tabs=Gtk.Notebook(); self.tabs.set_scrollable(True); outer.pack_start(self.tabs,True,True,0)
-        self.status=label('就绪 · 无需登录可连接，单次 64 GiB','subtitle'); self.status.set_margin_start(24); self.status.set_margin_bottom(12); outer.pack_end(self.status,False,False,0)
-        self.connection_page(); self.chatgpt_page(); self.speed_page(); self.account_page(); self.about_page()
-        self.connect('delete-event',self.on_close); self.set_theme(); self.show_all()
-    def page(self,title):
+        chrome=Gtk.HeaderBar(title='轻连 · Ubuntu'); chrome.set_show_close_button(True); chrome.set_decoration_layout('menu:minimize,maximize,close'); self.set_titlebar(chrome)
+        self.overlay=Gtk.Overlay(); self.add(self.overlay)
+        self.stack=Gtk.Stack(); self.stack.get_style_context().add_class('content-stack'); self.stack.set_homogeneous(True)
+        self.stack.set_transition_type(Gtk.StackTransitionType.NONE); self.stack.set_transition_duration(200); self.overlay.add(self.stack)
+        self.connection_page(); self.chatgpt_page(); self.speed_page(); self.routing_page(); self.account_page(); self.about_page()
+        self.build_header(); self.build_navigation(); self.build_classic_navigation()
+        self.status=label('就绪 · 免登录可连接，单次 64 GiB','small'); self.status.get_style_context().add_class('status-message')
+        self.message=Gtk.Revealer(); self.message.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP); self.message.add(self.status)
+        self.status_layer=Clamp(self.message,760); self.status_layer.set_valign(Gtk.Align.END); self.status_layer.set_margin_start(20); self.status_layer.set_margin_end(20); self.overlay.add_overlay(self.status_layer); self.overlay.set_overlay_pass_through(self.status_layer,True)
+        self.theme.connect('changed',self.set_theme)
+        for c in (self.channel,self.performance,self.route): c.connect('changed',self.save_choices)
+        self.tun.connect('notify::active',self.save_choices)
+        self.connect('delete-event',self.on_close); self.connect('key-press-event',self.key_press)
+        self.connect('size-allocate',self.adapt_layout)
+        self.clock_timer=GLib.timeout_add_seconds(1,self.update_clock); self.connect('destroy',self.destroy_timers)
+        self.show_all(); self.set_theme(); self.apply_compact(resize=False); self.navigate('connect')
+    def page(self,title,name):
         sc=Gtk.ScrolledWindow(); sc.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC)
-        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=16); box.set_border_width(24); sc.add(box)
-        self.tabs.append_page(sc,Gtk.Label(label=title)); return box
-    def card(self,parent,*children):
-        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10); box.get_style_context().add_class('card')
+        body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=16)
+        body.set_margin_start(20); body.set_margin_end(20); body.set_margin_top(112); body.set_margin_bottom(168)
+        clamp=Clamp(body,1040); sc.add(clamp); self.stack.add_named(sc,name); self.pages[name]={'scroll':sc,'body':body,'clamp':clamp}
+        if title: body.pack_start(label(title,'title'),False,False,0)
+        return body
+    def card(self,parent,*children,style=None):
+        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12); box.get_style_context().add_class('card')
+        if style: box.get_style_context().add_class(style)
         for c in children: box.pack_start(c,False,False,0)
-        parent.pack_start(box,False,False,0); return box
+        parent.pack_start(box,False,True,0); return box
+    def segment(self,titles):
+        s=Segments(titles); self.segments.append(s); return s
+    def build_header(self):
+        controls=Gtk.Box(spacing=5); controls.get_style_context().add_class('glass-controls')
+        self.back_button=icon_button('back','返回',lambda:self.navigate(self.return_page)); self.back_button.set_no_show_all(True); controls.pack_start(self.back_button,False,False,0)
+        controls.pack_start(label('轻连','brand'),False,False,5)
+        filler=Gtk.Box(); controls.pack_start(filler,True,True,0)
+        self.simple_switch=Gtk.ToggleButton(label='简约'); self.simple_switch.get_style_context().add_class('mode-switch'); self.simple_switch.set_tooltip_text('简约 / 完整界面 · Ctrl+Shift+M'); self.simple_switch.set_active(self.compact); self.simple_switch.connect('toggled',lambda *_:self.apply_compact())
+        self.simple_switch.set_valign(Gtk.Align.CENTER)
+        controls.pack_end(icon_button('more','更多功能与页面',self.open_menu),False,False,0)
+        self.theme_button=icon_button('theme','切换亮色 / 暗色 / 系统',lambda:self.theme.set_active((self.theme.get_active()+1)%3)); controls.pack_end(self.theme_button,False,False,0)
+        controls.pack_end(self.simple_switch,False,False,2)
+        controls.pack_end(icon_button('account','账号 / 节点导出',lambda:self.navigate('account')),False,False,0)
+        self.header_glass=FrostedPanel(self.stack,controls,76)
+        self.header_layer=Clamp(self.header_glass,1040); self.header_layer.set_valign(Gtk.Align.START); self.header_layer.set_margin_top(14); self.header_layer.set_margin_start(16); self.header_layer.set_margin_end(16); self.overlay.add_overlay(self.header_layer)
+    def build_navigation(self):
+        self.nav=Segments(['连接','测速','分流','关于'],['connect','speed','routing','about'],height=82); self.segments.append(self.nav)
+        self.nav.connect('changed',lambda *_:self.navigate(self.MAIN[self.nav.get_active()]))
+        self.nav_glass=FrostedPanel(self.stack,self.nav,86)
+        self.nav_layer=Clamp(self.nav_glass,660); self.nav_layer.set_valign(Gtk.Align.END); self.nav_layer.set_margin_bottom(16); self.nav_layer.set_margin_start(16); self.nav_layer.set_margin_end(16); self.nav_layer.set_no_show_all(True); self.overlay.add_overlay(self.nav_layer)
+        self.nav_glass.show_all()
+        rail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8); rail.get_style_context().add_class('rail-controls')
+        rail.pack_start(label('工作空间','subtitle'),False,False,8); self.rail_buttons=[]; group=None
+        for i,(title,icon) in enumerate(zip(['连接','测速','分流','关于'],['connect','speed','routing','about'])):
+            b=Gtk.RadioButton.new_from_widget(group); group=group or b; b.set_mode(False); b.get_style_context().add_class('rail-option')
+            content=Gtk.Box(spacing=14); content.pack_start(Icon(icon,22),False,False,0); content.pack_start(Gtk.Label(label=title),False,False,0); b.add(content)
+            b.connect('toggled',lambda btn,index=i:self.navigate(self.MAIN[index]) if btn.get_active() else None); rail.pack_start(b,False,False,0); self.rail_buttons.append(b)
+        rail.pack_start(Gtk.Box(),True,True,0)
+        rail.pack_start(button('ChatGPT 优化',lambda:self.navigate('chatgpt')),False,False,0)
+        rail.pack_start(button('我的账号',lambda:self.navigate('account')),False,False,0)
+        rail.pack_start(label('轻连 · Ubuntu\n面板统一管理','subtitle'),False,False,10)
+        self.sidebar=FrostedPanel(self.stack,rail,420); self.sidebar.set_size_request(174,-1); self.sidebar.set_halign(Gtk.Align.START); self.sidebar.set_valign(Gtk.Align.FILL)
+        self.sidebar.set_margin_top(112); self.sidebar.set_margin_bottom(18); self.sidebar.set_margin_start(18); self.sidebar.show_all(); self.sidebar.set_no_show_all(True); self.overlay.add_overlay(self.sidebar)
+    def build_classic_navigation(self):
+        self.classic_bar=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+        self.classic_bar.set_valign(Gtk.Align.START); self.classic_bar.set_no_show_all(True)
+        tools=Gtk.Box(spacing=12); tools.set_border_width(8)
+        tools.pack_start(label('轻连 · 简约界面','card-title'),True,True,8)
+        tools.pack_end(button('切换完整界面',lambda:self.simple_switch.set_active(False)),False,False,0)
+        tools.pack_end(button('亮 / 暗 / 系统',lambda:self.theme.set_active((self.theme.get_active()+1)%3)),False,False,0)
+        self.classic_bar.pack_start(tools,False,False,0)
+        self.classic_tabs=Gtk.Notebook(); self.classic_tabs.set_scrollable(True)
+        self.classic_order=['connect','chatgpt','speed','routing','account','about']
+        for title in ['连接','ChatGPT 优化','测速','分流','账号 / 导出','关于']:
+            self.classic_tabs.append_page(Gtk.Box(),Gtk.Label(label=title))
+        self.classic_tabs.connect('switch-page',self.classic_page_changed)
+        self.classic_bar.pack_start(self.classic_tabs,False,False,0)
+        self.classic_bar.show_all(); self.overlay.add_overlay(self.classic_bar)
+    def classic_page_changed(self,_,page,index):
+        if not self.compact: return
+        self.syncing_classic=True
+        try: self.navigate(self.classic_order[index])
+        finally: self.syncing_classic=False
+    def navigate(self,name):
+        if name not in self.pages: return
+        current=self.stack.get_visible_child_name()
+        if self.compact and not getattr(self,'syncing_classic',False) and self.classic_tabs.get_current_page()!=self.classic_order.index(name): self.classic_tabs.set_current_page(self.classic_order.index(name))
+        if name not in self.MAIN and current in self.MAIN: self.return_page=current
+        self.stack.set_visible_child_name(name)
+        if current!=name: self.animate_page()
+        if name in self.MAIN:
+            index=self.MAIN.index(name); self.nav.set_active(index); self.rail_buttons[index].set_active(True)
+        self.back_button.set_visible(name not in self.MAIN)
+    def animate_page(self):
+        if getattr(self,'page_tick',0):
+            self.page_widget.remove_tick_callback(self.page_tick); self.page_widget.set_opacity(1); self.page_tick=0
+        if self.compact or not Gtk.Settings.get_default().get_property('gtk-enable-animations'): return
+        widget=self.stack.get_visible_child(); self.page_widget=widget; widget.set_opacity(0); began=time.monotonic()
+        def frame(*_):
+            progress=min(1,(time.monotonic()-began)/.18); widget.set_opacity(progress)
+            if progress>=1: self.page_tick=0; return False
+            return True
+        self.page_tick=widget.add_tick_callback(frame)
+    def open_menu(self):
+        if self.popover: self.popover.destroy()
+        self.popover=Gtk.Popover.new(self.header_glass); box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5); box.set_border_width(10)
+        for text,name in [('连接 · Ctrl+1','connect'),('测速 · Ctrl+2','speed'),('分流 · Ctrl+3','routing'),('关于 · Ctrl+4','about'),('账号 / 节点导出','account'),('ChatGPT 优化','chatgpt')]:
+            def go(page=name): self.navigate(page); self.popover.popdown()
+            box.pack_start(button(text,go),False,False,0)
+        self.popover.add(box); self.popover.show_all(); self.popover.popup()
+    def apply_compact(self,resize=True):
+        self.compact=self.simple_switch.get_active(); self.settings['compact']=self.compact; save(STATE/'settings.json',self.settings)
+        style=self.get_style_context()
+        if self.compact: style.add_class('classic')
+        else: style.remove_class('classic')
+        self.header_layer.set_visible(not self.compact); self.classic_bar.set_visible(self.compact)
+        for w in self.full_details: w.show()
+        for segment in self.segments: segment.set_classic(self.compact)
+        def arrange(widget):
+            if isinstance(widget,Columns): widget.single(self.compact)
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children(): arrange(child)
+        arrange(self.stack)
+        for name,page in self.pages.items():
+            page['clamp'].set_limit(1040)
+            page['body'].set_margin_bottom(84 if self.compact else 168)
+        self.status_layer.set_margin_bottom(18 if self.compact else 112)
+        if resize and not self.is_maximized(): self.resize(960 if self.compact else 1200,740 if self.compact else 860)
+        self.adapt_layout()
+        self.navigate(self.stack.get_visible_child_name() or 'connect')
+        self.update_summary()
+    def adapt_layout(self,*_):
+        if not hasattr(self,'status_layer'): return
+        wide=self.get_allocated_width()>=1040 and not self.compact
+        self.sidebar.set_visible(wide); self.nav_layer.set_visible(not wide and not self.compact)
+        for name,page in self.pages.items():
+            margin=212 if wide else 20
+            if page['body'].get_margin_start()!=margin: page['body'].set_margin_start(margin)
+            bottom=84 if self.compact else 72 if wide else 168
+            if page['body'].get_margin_bottom()!=bottom: page['body'].set_margin_bottom(bottom)
+            limit=1040 if self.compact else 1280 if wide else 1040
+            if page['clamp'].limit!=limit: page['clamp'].set_limit(limit)
+        self.status_layer.set_margin_bottom(18 if self.compact or wide else 112)
     def set_theme(self,*_):
-        index=self.theme.get_active(); settings=Gtk.Settings.get_default()
-        dark=index==1 or (index==2 and self.desktop_settings.get_string('color-scheme')=='prefer-dark')
-        settings.set_property('gtk-application-prefer-dark-theme',dark)
+        index=self.theme.get_active(); dark=index==1 or (index==2 and self.desktop_settings.get_string('color-scheme')=='prefer-dark')
+        Gtk.Settings.get_default().set_property('gtk-application-prefer-dark-theme',dark)
         style=self.get_style_context()
         if dark: style.add_class('dark')
         else: style.remove_class('dark')
         self.settings['theme']=index; save(STATE/'settings.json',self.settings)
+        for s in self.segments: s.set_dark(dark)
+        self.header_glass.set_dark(dark); self.nav_glass.set_dark(dark); self.sidebar.set_dark(dark); self.chart.dark=dark; self.chart.queue_draw()
+        self.theme_button.set_tooltip_text('当前：'+['亮色','暗色','跟随系统'][index]+' · 点击切换')
+    def save_choices(self,*_):
+        for key,c in [('channel',self.channel),('performance',self.performance),('route',self.route)]: self.settings[key]=c.get_active()
+        self.settings['tun']=self.tun.get_active(); save(STATE/'settings.json',self.settings); self.update_summary()
+    def update_summary(self):
+        mode='TUN 全局' if self.tun.get_active() else ('规则分流' if self.route.get_active()==0 else '全局代理')
+        channel='兼容通道' if self.channel.get_active()==0 else ('HY2 高性能' if self.performance.get_active()==0 else 'HY2 保守')
+        self.simple_summary.set_text(channel+' · '+mode)
+        self.route_note.set_text('规则：系统代理自动绕过大陆与私网，其余走代理。' if self.route.get_active()==0 else '全局：使用系统代理的请求均经代理转发。')
+    def key_press(self,w,event):
+        ctrl=bool(event.state&Gdk.ModifierType.CONTROL_MASK); shift=bool(event.state&Gdk.ModifierType.SHIFT_MASK)
+        if ctrl and event.keyval in (Gdk.KEY_1,Gdk.KEY_2,Gdk.KEY_3,Gdk.KEY_4): self.navigate(self.MAIN[event.keyval-Gdk.KEY_1]); return True
+        if ctrl and shift and event.keyval in (Gdk.KEY_m,Gdk.KEY_M): self.simple_switch.set_active(not self.compact); return True
+        if ctrl and event.keyval in (Gdk.KEY_q,Gdk.KEY_Q): self.close(); return True
+        if event.keyval==Gdk.KEY_Escape and self.stack.get_visible_child_name() not in self.MAIN: self.navigate(self.return_page); return True
+        return False
+    def update_clock(self):
+        seconds=int(time.monotonic()-self.started_at) if self.started_at is not None else 0
+        self.clock.set_text('%02d:%02d:%02d'%(seconds//3600,seconds//60%60,seconds%60)); return True
+    def destroy_timers(self,*_):
+        if self.clock_timer: GLib.source_remove(self.clock_timer); self.clock_timer=0
+        if getattr(self,'toast_timer',0): GLib.source_remove(self.toast_timer); self.toast_timer=0
+        if getattr(self,'page_tick',0): self.page_widget.remove_tick_callback(self.page_tick); self.page_tick=0
     def connection_page(self):
-        p=self.page('连接'); self.card(p,label('轻连，随时连接','title'),label('节点由现有面板统一管理；支持 VMess / VLESS / Trojan / Shadowsocks / HY2。','subtitle'))
-        self.channel=combo(['兼容通道','HY2 加速通道']); self.channel.set_active(self.settings.get('channel',0))
-        self.performance=combo(['高性能（默认）','保守']); self.performance.set_active(self.settings.get('performance',0))
-        self.route=combo(['规则：绕过大陆 / 私网','全局代理']); self.route.set_active(self.settings.get('route',0))
-        self.tun=Gtk.CheckButton(label='TUN 全局接管（需系统授权，接管忽略系统代理的应用）')
-        self.state_label=label('未连接','title'); self.quota_label=label('访客单次限额 64 GiB；登录后按账号统一统计。')
-        self.connect_button=button('连接',self.toggle_connection,True)
+        p=self.page('', 'connect'); self.connection_columns=Columns(); p.pack_start(self.connection_columns,False,True,0); left,right=self.connection_columns.columns
+        self.state_label=centered('未连接','hero-title'); self.caption=centered('准备就绪 · 专属通道','subtitle'); self.clock=centered('00:00:00','small')
+        self.connect_button=button('连接',self.toggle_connection,True); self.connect_button.set_tooltip_text('连接 / 断开当前通道')
+        self.hero=self.card(left,centered('专属连接','small'),Icon('connect',54),self.state_label,self.caption,self.connect_button,self.clock,style='hero')
+        self.quota_label=label('访客单次限额 64 GiB。\n账号登录后显示服务端累计用量。','subtitle')
+        self.overview=self.card(left,label('连接概览','card-title'),self.quota_label)
+        self.route=self.segment(['规则','全局']); self.route.set_active(self.settings.get('route',0)); self.route_note=label('','subtitle')
+        self.mode_card=self.card(right,label('连接模式','card-title'),self.route,self.route_note)
+        self.channel=self.segment(['兼容','加速']); self.channel.set_active(self.settings.get('channel',0))
+        self.performance=self.segment(['高性能','保守']); self.performance.set_active(self.settings.get('performance',0))
+        self.performance_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10); self.performance_box.pack_start(label('HY2 配置','card-title'),False,False,0); self.performance_box.pack_start(self.performance,False,False,0); self.performance_box.pack_start(label('只对本设备生效，沿用已验证的高性能参数。','subtitle'),False,False,0)
+        self.transport_card=self.card(right,label('传输通道','card-title'),self.channel,self.performance_box)
+        self.simple_summary=centered('','subtitle'); p.pack_start(self.simple_summary,False,False,0)
+        self.quick_actions=row(button('ChatGPT 优化',lambda:self.navigate('chatgpt')),button('账号 / 节点导出',lambda:self.navigate('account'))); p.pack_start(self.quick_actions,False,False,0)
+        self.full_details=[self.overview,self.mode_card,self.performance_box]
+    def routing_page(self):
+        p=self.page('分流规则','routing'); cols=Columns(); p.pack_start(cols,False,True,0); left,right=cols.columns
+        self.tun=Gtk.Switch(); self.tun.set_active(bool(self.settings.get('tun',False))); self.tun.set_halign(Gtk.Align.END); self.tun.set_valign(Gtk.Align.CENTER)
+        self.card(left,label('连接接管方式','card-title'),row(label('TUN 全局接管'),self.tun),label('启用后接管忽略系统代理的软件，连接时由系统弹窗请求本机管理员授权。请先关闭其他 VPN / Clash TUN。','subtitle'))
+        self.card(right,label('规则与全局','card-title'),label('规则：系统代理绕过大陆域名、IP 和私网。\n全局：使用代理的请求均经服务器。\nTUN：始终全局，不受规则模式影响。'),button('返回连接页选择模式',lambda:self.navigate('connect')))
+        self.card(p,label('Ubuntu 分流说明','card-title'),label('这里对应桌面的系统代理 / TUN 接管，不提供手机版的应用黑白名单。所有选项在下次连接时生效；连接中修改界面显示模式不会改变正在运行的通道。','subtitle'))
         self.controls=[self.channel,self.performance,self.route,self.tun]
-        self.card(p,self.state_label,row(self.channel,self.performance),self.route,self.tun,label('TUN 使用全局转发；规则绕过仅在系统代理模式生效。其他 VPN / Clash TUN 请先关闭。','subtitle'),self.connect_button,self.quota_label)
-        self.card(p,label('连接提示'),label('系统代理适用于 GNOME 及支持代理的软件。已运行的 ChatGPT 可能不会读取新代理，请到“ChatGPT 优化”页重新启动，或使用 TUN。断开时恢复原代理和路由。'))
     def chatgpt_page(self):
-        p=self.page('ChatGPT 优化')
-        self.card(p,label('为你的 Linux ChatGPT 优化','title'),label('已适配 ubuntu-to-go 分支的 Ubuntu 24.04 amd64、.deb 安装及 chatgpt 命令。'),label('1. 先连接轻连。\n2. 完全退出原 ChatGPT（包括后台）。\n3. 使用下方入口启动，附加 HTTP 代理、代理环境变量并禁用 QUIC。\n4. 若登录子进程或应用更新器仍绕过代理，断开后勾选 TUN 再连接。'),row(button('使用代理启动 ChatGPT',lambda:self.task(self.conn.launch_chatgpt)),button('检查 ChatGPT HTTPS 路径',lambda:self.task(self.conn.probe,self.chat_result.set_text))))
-        self.chat_result=label('HY2 下 ChatGPT / OpenAI 与静态资源域名走兼容通道，保持证书校验。检查结果只代表 HTTPS 可达性，不代表账号已登录。')
-        self.card(p,self.chat_result,label('不强制结束进程，不禁用应用沙箱，不绕过 TLS。Snap / Flatpak 及其他安装方式建议使用 TUN；此处专用启动按钮不会修改全局启动文件。','subtitle'))
+        p=self.page('ChatGPT 优化','chatgpt'); cols=Columns(); p.pack_start(cols,False,True,0); left,right=cols.columns
+        self.card(left,label('使用当前代理启动','card-title'),label('适配 Ubuntu .deb 版 ChatGPT，使用系统中的 chatgpt 命令。'),label('先连接轻连，完全退出原 ChatGPT（包括后台），再从这里启动。'),button('使用代理启动 ChatGPT',lambda:self.task(self.conn.launch_chatgpt),True),label('附加代理参数与环境变量、禁用 QUIC，保留本机 OAuth 回调；不关闭沙箱或 TLS。','subtitle'))
+        self.chat_result=label('检查结果只表示 HTTPS 路径可达，不代表账号已登录。','subtitle')
+        self.card(right,label('检查连接路径','card-title'),self.chat_result,button('检查 ChatGPT HTTPS',lambda:self.task(self.conn.probe,self.chat_result.set_text)),label('HY2 下 ChatGPT / OpenAI 及静态资源域名使用兼容通道。','subtitle'))
+        self.card(p,label('仍然不走代理？','card-title'),label('断开轻连，在“分流”页开启 TUN 后重新连接。TUN 可接管忽略系统代理的登录子进程或更新器。Snap / Flatpak 等其他安装方式也建议使用 TUN。'),button('打开分流 / TUN 设置',lambda:self.navigate('routing')))
     def speed_page(self):
-        p=self.page('测速'); self.speed_label=label('尚未测速','title'); self.progress=Gtk.ProgressBar()
+        p=self.page('网络测速','speed'); self.speed_label=label('尚未测速','hero-title'); self.progress=Gtk.ProgressBar(); self.chart=Sparkline()
         self.size=Gtk.SpinButton.new_with_range(1,2048,1); self.size.set_value(64)
-        self.speed_start=button('开始服务器链路测速',self.start_speed,True)
-        self.card(p,label('服务器链路测速','title'),label('测本机 ↔ VPN 服务器链路，所有数据经过当前代理并正常计量；不是外网网站下载速度。'),row(label('总下载大小（MiB）'),self.size),self.speed_label,self.progress,row(self.speed_start,button('停止测速',self.test_cancel.set)),label('单路分段，每段最多 32 MiB，最长 180 秒；失败后不回退直连。停止可能等待当前网络读取超时（最多约 10 秒）。','subtitle'))
+        self.speed_start=button('开始下载测速',self.start_speed,True)
+        self.card(p,label('下载速度','card-title'),self.speed_label,self.chart,label('平均速率变化 · Mbps','small'),self.progress,row(label('总下载大小（MiB）'),self.size),row(self.speed_start,button('停止测速',self.test_cancel.set)),style='accent')
+        self.card(p,label('测速说明','card-title'),label('数据通过当前代理获取，正常计量。此源测试本机至服务器链路，不等于 GitHub 等外网站点下载速度。单路分段、最长 180 秒，不回退直连；停止最多等待当前 10 秒读超时。','subtitle'))
     def account_page(self):
-        p=self.page('账号 / 导出'); self.account_title=label('当前：'+self.api.account.get('username','访客'),'title')
+        p=self.page('我的账号','account'); cols=Columns(); p.pack_start(cols,False,True,0); left,right=cols.columns
+        self.account_title=label('当前：'+self.api.account.get('username','访客'),'card-title')
         self.username=Gtk.Entry(); self.username.set_placeholder_text('用户名（3..32 字符）')
         self.password=Gtk.Entry(); self.password.set_visibility(False); self.password.set_placeholder_text('密码（8..72 UTF-8 字节）')
-        self.consent=Gtk.CheckButton(label='我已阅读并同意以下永久域名记录告知')
-        self.account_box=self.card(p,self.account_title,self.username,self.password,label(CONSENT),self.consent,row(button('登录',lambda:self.auth('login')),button('注册',lambda:self.auth('register')),button('退出账号',self.logout)),button('刷新账号用量',self.refresh_account))
-        self.account_info=label('未登录也可连接。设备以本系统用户范围的 machine-id 应用摘要绑定，仅上传摘要，不上传原值；不读取 IMEI 或硬盘号。缺少系统 ID 时使用持久随机标识。账号凭据保存在本用户私有目录。')
-        self.card(p,self.account_info)
+        self.consent=Gtk.CheckButton(label='我已阅读并同意永久域名记录告知')
+        self.account_box=self.card(left,self.account_title,self.username,self.password,label(CONSENT,'subtitle'),self.consent,row(button('登录',lambda:self.auth('login'),True),button('注册',lambda:self.auth('register'))),button('退出账号',self.logout))
+        self.account_info=label('未登录也可连接。设备使用系统用户范围的应用摘要，仅上传摘要，不上传原 machine-id。缺少系统 ID 时使用持久随机标识。','subtitle')
+        self.card(left,label('账号用量','card-title'),self.account_info,button('刷新服务端用量',self.refresh_account))
         self.protocol=combo(['vmess','vless','trojan','shadowsocks','hysteria2']); self.export_size=Gtk.SpinButton.new_with_range(1,262144,1024); self.export_size.set_value(1024)
         self.remark=Gtk.Entry(); self.remark.set_placeholder_text('导出备注名称（可选）')
-        self.card(p,label('独立节点导出'),label('每周 256 GiB 导出预留额度；创建时扣除，节点有效 7 天，不影响现有节点。'),row(self.protocol,self.export_size),label('上方为协议及 MiB，1024 MiB = 1 GiB。','subtitle'),self.remark,row(button('创建并保存节点 ZIP',self.export_node),button('查看现有导出节点',lambda:self.fetch_account('nodes')),button('查看本人域名记录',lambda:self.fetch_account('history'))))
+        self.card(right,label('独立节点导出','card-title'),label('每周 256 GiB 预留额度，创建时扣除；节点有效 7 天，保留现有节点。','subtitle'),self.protocol,row(label('额度（MiB）'),self.export_size),self.remark,button('创建并保存节点 ZIP',self.export_node,True),button('查看现有导出节点',lambda:self.fetch_account('nodes')),button('查看本人域名记录',lambda:self.fetch_account('history')))
         self.output=Gtk.TextView(); self.output.set_editable(False); self.output.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        sc=Gtk.ScrolledWindow(); sc.set_min_content_height(180); sc.add(self.output); p.pack_start(sc,True,True,0)
+        sc=Gtk.ScrolledWindow(); sc.set_min_content_height(180); sc.add(self.output); self.card(p,label('节点 / 域名观察记录','card-title'),sc)
     def about_page(self):
-        p=self.page('关于'); self.card(p,label('轻连 Ubuntu','title'),label('1.0.0-preview · amd64 · Ubuntu 24.04 GNOME\n完整原生 GTK GUI；沿用面板与账号 API。\n核心：V2Ray 5.54.2 / Hysteria 2.13.0 / tun2socks 2.6.0。'),label('高性能模式只请求本设备的独立 HY2 worker，使用原版 aggressive 参数；仍受原配额和共享服务器带宽限制。\n账号域名记录需明确同意；访客不记录域名。\n桌面设备应用摘要用于绑定，不是不可伪造的硬件标识。\n关闭窗口会安全断开；不提供隐藏后台连接。'),button('查看开源许可',lambda:self.task(lambda:(ROOT/'THIRD_PARTY.txt').read_text(),self.show_text)))
+        p=self.page('关于轻连','about'); cols=Columns(); p.pack_start(cols,False,True,0); left,right=cols.columns
+        self.card(left,label('轻连','hero-title'),label(VERSION+' · Ubuntu 24.04 amd64\nV2Ray / v2fly 与 Hysteria2 核心。'),label('与手机版统一的卡片、导航与玻璃滑块。桌面宽屏双栏，窄窗口自动单栏。','subtitle'),button('账号 / 节点导出',lambda:self.navigate('account')),button('ChatGPT 优化',lambda:self.navigate('chatgpt')))
+        self.theme=self.segment(['亮色','暗色','系统']); self.theme.set_active(self.settings.get('theme',0))
+        self.card(right,label('界面与外观','card-title'),self.theme,label('顶部“简约”切换第一版的传统桌面标签页与表单，保留全部功能，设置自动保存。Ctrl+Shift+M 切换简约，Ctrl+1..4 切换主页面。','subtitle'),label('顶部和底部导航实时模糊本应用内容；后台隐藏或最小化时停止取样。','subtitle'))
+        self.card(p,label('连接与隐私','card-title'),label('账号永久域名记录需明确同意，访客不记录域名。高性能模式仅请求本设备独立 HY2 worker，仍受原配额和共享带宽限制。关闭窗口会断开并恢复网络设置。','subtitle'),button('查看开源许可',lambda:self.task(lambda:(ROOT/'THIRD_PARTY.txt').read_text(),self.show_text)))
     def show_text(self,text):
         dialog=Gtk.MessageDialog(transient_for=self,modal=True,message_type=Gtk.MessageType.INFO,buttons=Gtk.ButtonsType.OK,text='轻连')
         dialog.format_secondary_text(text[:10000]); dialog.run(); dialog.destroy()
@@ -128,15 +300,21 @@ class Window(Gtk.Window):
             except Exception as e:
                 msg=str(e); GLib.idle_add(lambda:self.set_status(msg))
         threading.Thread(target=run,daemon=True).start()
-    def set_status(self,text): self.status.set_text(text); return False
+    def set_status(self,text):
+        self.status.set_text(text); self.message.set_reveal_child(True)
+        if getattr(self,'toast_timer',0): GLib.source_remove(self.toast_timer)
+        def hide(): self.message.set_reveal_child(False); self.toast_timer=0; return False
+        self.toast_timer=GLib.timeout_add_seconds(8,hide); return False
     def on_event(self,event,value): GLib.idle_add(self.handle_event,event,value)
     def handle_event(self,event,value):
-        if event in ('state','connected'): self.state_label.set_text(value)
-        if event in ('state','error','warning','connected'): self.status.set_text(value)
-        if event=='connected': self.connect_button.set_label('断开连接')
+        if event=='state': self.state_label.set_text('正在连接'); self.caption.set_text(value)
+        if event in ('error','warning'): self.caption.set_text(value); self.set_status(value)
+        if event=='connected':
+            self.state_label.set_text('已连接'); self.caption.set_text(value); self.connect_button.set_label('断开连接'); self.started_at=time.monotonic()
         if event=='quota': self.quota_label.set_text(('账号累计用量 / 周导出额度（与主连接额度分开）\n' if self.api.account else '访客本次 64 GiB\n')+self.format_quota(value))
         if event=='stopped':
             self.busy=False; self.state_label.set_text('未连接'); self.connect_button.set_label('连接')
+            self.started_at=None; self.update_clock()
             for c in self.controls: c.set_sensitive(True)
             self.account_box.set_sensitive(True)
             if self.quitting: Gtk.main_quit()
@@ -226,14 +404,22 @@ class Window(Gtk.Window):
     def start_speed(self):
         if self.test_running or not self.conn.connected: self.set_status('请先连接，且同一时间只运行一个测速'); return
         self.test_running=True; self.test_cancel.clear(); total=self.size.get_value_as_int(); self.speed_start.set_sensitive(False)
-        def progress(frac,text): GLib.idle_add(self.speed_progress,frac,text)
+        self.chart.clear(); last=[0.]
+        def progress(frac,text):
+            now=time.monotonic()
+            if now-last[0]>=.2 or frac>=1:
+                last[0]=now; GLib.idle_add(self.speed_progress,frac,text)
         def work():
             try:
                 result=self.conn.speed(total,self.test_cancel,progress)
             except Exception as e: result='测速失败（不代表 VPN 断开）：'+str(e)
             GLib.idle_add(self.speed_done,result)
         threading.Thread(target=work,daemon=True).start()
-    def speed_progress(self,frac,text): self.progress.set_fraction(frac); self.speed_label.set_text(text); return False
+    def speed_progress(self,frac,text):
+        self.progress.set_fraction(frac); self.speed_label.set_text(text)
+        try: self.chart.append(float(text.split()[0]))
+        except (ValueError,IndexError): pass
+        return False
     def speed_done(self,text): self.test_running=False; self.speed_start.set_sensitive(True); self.speed_label.set_text(text); return False
     def on_close(self,*_):
         self.test_cancel.set()

@@ -46,7 +46,7 @@ def main():
     if Path(ca).name!=ca or not ca.endswith('.pem'): raise ValueError('Invalid CA asset')
     with tempfile.TemporaryDirectory(prefix='qinglian-deb-') as tmp:
         root=Path(tmp)/'package'; lib=root/'usr/lib/qinglian'; lib.mkdir(parents=True)
-        for name in ('app.py','runtime.py','README.md'): shutil.copy2(HERE/name,lib/name)
+        for name in ('app.py','runtime.py','ui.py','README.md'): shutil.copy2(HERE/name,lib/name)
         shutil.copy2(HERE/'tun.py',lib/'qinglian-tun'); (lib/'qinglian-tun').chmod(0o755)
         for name in ('profile.json',ca): shutil.copy2(a.assets/name,lib/name)
         for name in ('json.jar','hysteria'): shutil.copy2(fetch(name,a.cache),lib/name)
@@ -59,7 +59,7 @@ def main():
         subprocess.run(['jar','--create','--file',str(lib/'node-config.jar'),'-C',str(classes),'.'],check=True)
         # Ship corresponding integration source and licenses. Never include private assets in source archives.
         src=lib/'source'; src.mkdir()
-        for name in ('app.py','runtime.py','tun.py','build.py','test_runtime.py','test_native.py','test_gui.py','test_tun_namespace.py','README.md'): shutil.copy2(HERE/name,src/name)
+        for name in ('app.py','runtime.py','ui.py','tun.py','build.py','test_runtime.py','test_native.py','test_gui.py','test_tun_namespace.py','README.md'): shutil.copy2(HERE/name,src/name)
         shutil.copy2(PROJECT/'app/src/main/java/com/gzy/qinglian/NodeConfig.java',src/'NodeConfig.java')
         shutil.copy2(PROJECT/'server/NodeConfigCli.java',src/'NodeConfigCli.java')
         shutil.copy2(PROJECT/'app/src/main/assets/THIRD_PARTY.txt',lib/'THIRD_PARTY.txt')
@@ -86,13 +86,13 @@ def main():
         control=root/'DEBIAN'; control.mkdir()
         size=sum(p.stat().st_size for p in root.rglob('*') if p.is_file())//1024
         (control/'control').write_text(f'''Package: qinglian
-Version: 1.0.0~preview1
+Version: 1.0.0~preview2
 Section: net
 Priority: optional
 Architecture: amd64
 Maintainer: Qinglian contributors
 Installed-Size: {size}
-Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-3.0, default-jre-headless (>= 2:1.17), iproute2, polkitd, pkexec, systemd-resolved, gsettings-desktop-schemas, dconf-gsettings-backend, ca-certificates
+Depends: python3 (>= 3.10), python3-gi, python3-gi-cairo, python3-cairo, python3-pil, gir1.2-gtk-3.0, default-jre-headless (>= 2:1.17), iproute2, polkitd, pkexec, systemd-resolved, gsettings-desktop-schemas, dconf-gsettings-backend, ca-certificates
 Description: Qinglian native Ubuntu VPN GUI
  Panel-managed multi-protocol client with ChatGPT launch integration and TUN.
 ''')

@@ -1,3 +1,9 @@
+# Ubuntu 1.0.0-preview2 验证（2026-10-20）
+
+本次仅Ubuntu界面、原生GTK/Cairo/Pillow组件和包依赖，runtime/TUN/原生核心/Android/面板不变。保留preview1已完成的公网三通道3MiB计量基线，不以UI fixture冒充公网连接。
+
+新增真实GTK检查：六页面导航；宽屏侧栏/双栏和窄屏底栏/单栏；preview1设置升级；第一版风格的简约标签页/下拉框及全部功能、保存/重开；模拟连接状态下切换界面保持同一连接对象、开始时间、选项和账号草稿且不调用启动/断开；原生RadioButton、拖拽提交/取消；主题；账号同意门槛；真实账号页面滚动导致玻璃采样像素变化；隐藏停止/显示重启采样。连接状态仅UI fixture。工作流继续验证23项runtime、六种原生配置传输、隔离IPv4/IPv6 TUN、包安装/启动/卸载。最终结果和公开包信息发布后补录。
+
 # Ubuntu 1.0.0-preview1 验证（2026-10-19）
 
 目标：用户仓库 `gaozhenyang56-blip/wayne-hyperos4` 的 `ubuntu-to-go` 分支，Noble Ubuntu24.04 amd64 GNOME，.deb ChatGPT 的 `chatgpt` 命令。仅参考，没有修改该分支、磁盘镜像、守护脚本或原 Redmi 工程。
