@@ -180,7 +180,7 @@ public class TunnelService extends VpnService {
   try{worker.execute(()->{try{
    while(!cancelled&&epoch==connectionEpoch){
     long delay=recoveryBudget.nextDelay(SystemClock.elapsedRealtime());
-    if(delay<0){fail("通道反复异常，已停止重试，请重新连接");return;}
+    if(delay<0){if(selectedProfile!=null&&selectedProfile.automatic&&channelPolicy.reserve(SystemClock.elapsedRealtime())){performChannelSwitch(epoch);return;}fail("通道反复异常，已停止重试，请重新连接");return;}
     verified=false;uploadRate=downloadRate=0;status("reconnecting","通道异常，正在自动恢复");
     getSystemService(NotificationManager.class).notify(1,notification(message));
     try{
@@ -228,20 +228,24 @@ public class TunnelService extends VpnService {
   if(cancelled||!selectedProfile.automatic||!recovering.compareAndSet(false,true))return;
   if(!channelPolicy.reserve(SystemClock.elapsedRealtime())){recovering.set(false);return;}
   final long epoch=connectionEpoch;
-  try{worker.execute(()->{Hy2Settings.Selection previous=selectedProfile;ProfileMonitor.Profile old=new ProfileMonitor.Profile(runningNode,activeProfileLabel,activeProfileRevision);boolean stopped=false;
-   try{
-    ProfileMonitor.Bundle candidates=candidates();ProfileMonitor.Profile next=previous.accelerated?candidates.tcp:candidates.hy2;
-    if(next==null||cancelled||epoch!=connectionEpoch)return;
-    status("reconnecting","连续链路失败，正在自动切换通道");verified=false;stopRelay();stopCore();stopped=true;
-    synchronized(ProfileMonitor.fetchLock){selectedProfile=previous.withChannel(!previous.accelerated);}
-    configureProfile(next);startCore();probe(1);if(cancelled)return;startRelay();
-    verified=true;statsTick=SystemClock.elapsedRealtime();status("connected","通道已自动切换 · 网络验证成功");channelStatus="自动选择："+activeProtocol+" · 已切换，冷却3分钟";
-   }catch(Exception failure){
-    if(cancelled||epoch!=connectionEpoch)return;
-    if(stopped){try{stopRelay();stopCore();synchronized(ProfileMonitor.fetchLock){selectedProfile=previous;}configureProfile(old);startCore();probe(1);if(cancelled)return;startRelay();verified=true;status("connected","自动切换失败，已恢复原通道");}catch(Exception rollback){if(!cancelled)fail("通道切换与恢复失败，请重新连接");}}
-    channelStatus="自动切换未成功 · 保留原通道，等待冷却";
-   }finally{recovering.set(false);}
-  });}catch(RejectedExecutionException stopped){recovering.set(false);}
+  try{worker.execute(()->{try{performChannelSwitch(epoch);}finally{recovering.set(false);}});}catch(RejectedExecutionException stopped){recovering.set(false);}
+ }
+ private void performChannelSwitch(long epoch){
+  Hy2Settings.Selection previous=selectedProfile;ProfileMonitor.Profile old=new ProfileMonitor.Profile(runningNode,activeProfileLabel,activeProfileRevision);boolean stopped=false;
+  try{
+   if(cancelled||epoch!=connectionEpoch)return;
+   ProfileMonitor.Bundle candidates=candidates();ProfileMonitor.Profile next=previous.accelerated?candidates.tcp:candidates.hy2;
+   if(next==null)throw new IOException("无可用备用通道");if(cancelled||epoch!=connectionEpoch)return;
+   status("reconnecting","连续链路失败，正在自动切换通道");verified=false;stopRelay();stopCore();stopped=true;
+   synchronized(ProfileMonitor.fetchLock){selectedProfile=previous.withChannel(!previous.accelerated);}
+   configureProfile(next);startCore();probe(1);if(cancelled)return;startRelay();
+   verified=true;statsTick=SystemClock.elapsedRealtime();status("connected","通道已自动切换 · 网络验证成功");channelStatus="自动选择："+activeProtocol+" · 已切换，冷却3分钟";
+  }catch(Exception failure){
+   if(cancelled||epoch!=connectionEpoch)return;
+   if(stopped){try{stopRelay();stopCore();synchronized(ProfileMonitor.fetchLock){selectedProfile=previous;}configureProfile(old);startCore();probe(1);if(cancelled)return;startRelay();verified=true;status("connected","自动切换失败，已恢复原通道");}catch(Exception rollback){if(!cancelled)fail("通道切换与恢复失败，请重新连接");}}
+   else if(!state.equals("connected")){fail("通道恢复失败且备用通道不可用，请重新连接");}
+   channelStatus="自动切换未成功 · 等待冷却或手动重连";
+  }
  }
  static long measureDelay()throws Exception{
   TunnelService service=activeService;
