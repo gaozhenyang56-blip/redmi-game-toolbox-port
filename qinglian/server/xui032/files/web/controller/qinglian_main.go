@@ -14,13 +14,18 @@ import (
 // Main traffic consumes the panel-selected parent quota, never export allocation.
 func (a *QinglianController) accountProfile(c *gin.Context) {
 	var options struct {
-		LabHy2 bool `json:"labHy2"`
+		LabHy2      bool   `json:"labHy2"`
+		TCPProtocol string `json:"tcpProtocol"`
 	}
 	if c.Request.Body != nil {
 		if e := json.NewDecoder(io.LimitReader(c.Request.Body, 4096)).Decode(&options); e != nil && e != io.EOF {
 			c.Status(400)
 			return
 		}
+	}
+	if options.TCPProtocol != "" && options.TCPProtocol != "vless" && options.TCPProtocol != "trojan" {
+		c.Status(400)
+		return
 	}
 	device := qValidDevice(c)
 	if options.LabHy2 && device == "" {
@@ -44,6 +49,9 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 	protocol, _ := selected["protocol"].(string)
 	if protocol == "" {
 		protocol = "vmess"
+	}
+	if options.TCPProtocol != "" {
+		protocol = options.TCPProtocol
 	}
 	user := c.GetString("exportUser")
 	kind := "main"
@@ -179,6 +187,8 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 		primary["quota"] = guestQuota
 	}
 	primary["labHy2"] = options.LabHy2 && primary["acceleration"] != nil
+	primary["tcpProtocol"] = options.TCPProtocol
+	primary["transportOptions"] = []string{"panel", "vless", "trojan"}
 	primary["ready"] = ready
 	c.JSON(200, primary)
 }

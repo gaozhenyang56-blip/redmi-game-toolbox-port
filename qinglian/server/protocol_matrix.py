@@ -32,7 +32,7 @@ class Origin(BaseHTTPRequestHandler):
 origin=ThreadingHTTPServer(('127.0.0.1',0),Origin);threading.Thread(target=origin.serve_forever,daemon=True).start()
 fixtures=ROOT/'app/src/test/resources';uid='11111111-1111-4111-8111-111111111111';results=[]
 try:
- for proto,network,tls,kind in [('vmess','tcp',False,'http'),('vmess','ws',True,'none'),('vless','tcp',False,'none'),('vless','ws',True,'none'),('trojan','tcp',True,'none'),('shadowsocks','tcp',False,'none')]:
+ for proto,network,tls,kind in [('vmess','tcp',False,'http'),('vmess','ws',True,'none'),('vless','tcp',False,'none'),('vless','tcp',True,'none'),('vless','ws',True,'none'),('trojan','tcp',True,'none'),('shadowsocks','tcp',False,'none')]:
   with tempfile.TemporaryDirectory() as temp:
    root=Path(temp);server_port=port();http_port=port();socks_port=port();password='public-test-fixture-only'
    node={'protocol':proto,'add':'127.0.0.1','port':server_port,'id':uid,'password':password,'method':'chacha20-ietf-poly1305','net':network,'type':kind,'path':'/fixture','tls':'tls' if tls else 'none','sni':'127.0.0.1'}
@@ -47,14 +47,15 @@ try:
    client=None
    try:
     wait(server_port,server)
-    converted=subprocess.run(['java','-cp',str(jar)+':'+str(classes),'NodeConfigCli'],input=json.dumps(node).encode(),capture_output=True,check=True)
+    reuse=tls and proto in ('vmess','vless')
+    converted=subprocess.run(['java','-cp',str(jar)+':'+str(classes),'NodeConfigCli']+(['mux'] if reuse else []),input=json.dumps(node).encode(),capture_output=True,check=True)
     config=json.loads(converted.stdout)
     for inbound in config['inbounds']:inbound['port']=http_port if inbound['protocol']=='http' else socks_port
     if tls:config['outbounds'][0]['streamSettings']['tlsSettings']['certificates']=[{'usage':'verify','certificate':(fixtures/'tls-ca.pem').read_text().splitlines()}]
     client=launch(config,root,'client');wait(http_port,client)
     result=subprocess.run(['curl','-fsS','--max-time','8','--noproxy','','--proxy','http://127.0.0.1:'+str(http_port),'http://127.0.0.1:'+str(origin.server_port)],capture_output=True,timeout=10)
     assert result.returncode==0 and result.stdout==b'qinglian-end-to-end-protocol-matrix\n'*2048,proto+' end-to-end transfer failed: '+result.stderr.decode()
-    results.append({'protocol':proto,'network':network,'tls':tls,'verifiedTransfer':True})
+    results.append({'protocol':proto,'network':network,'tls':tls,'reuse':reuse,'verifiedTransfer':True})
    finally:
     if client:client.terminate();client.wait(timeout=5)
     server.terminate();server.wait(timeout=5)

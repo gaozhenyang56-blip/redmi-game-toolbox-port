@@ -1,0 +1,43 @@
+name: Qinglian Android channel and multipath verification
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: Verify the deployed profile API and 2.5MiB real guest traffic
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  channels:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - name: Pinned dependencies and exact Android converter
+        env:
+          QINGLIAN_TEST_CACHE: ${{ runner.temp }}/qinglian-channel-cache
+        run: |
+          PYTHONPATH=qinglian/server/github python3 -c 'from pathlib import Path; import os,channel_smoke; channel_smoke.dependencies(Path(os.environ["QINGLIAN_TEST_CACHE"]))'
+      - name: Native TLS, Mux and sensitive-service routes
+        env:
+          QINGLIAN_TEST_CACHE: ${{ runner.temp }}/qinglian-channel-cache
+        run: python3 qinglian/server/protocol_matrix.py
+      - name: Both HY2 lanes, server accounting and combined quota stop
+        env:
+          QINGLIAN_TEST_CACHE: ${{ runner.temp }}/qinglian-channel-cache
+          QINGLIAN_TEST_HY2_BINARY: ${{ runner.temp }}/qinglian-channel-cache/hysteria
+        run: python3 -m unittest discover -s qinglian/server -p test_multi_hy2.py -v
+      - name: Deployed real TCP, Mux and double-HY2 guest (explicit only)
+        if: inputs.live
+        env:
+          QINGLIAN_TEST_CACHE: ${{ runner.temp }}/qinglian-channel-cache
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/server/github/channel_smoke.py

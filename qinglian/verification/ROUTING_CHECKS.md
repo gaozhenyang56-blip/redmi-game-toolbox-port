@@ -1,3 +1,11 @@
+# v17 Android连接优化（2026-10-20）
+
+102项Android测试通过，lint0错误/41警告；新增启动小流量选择、3失败/20%滞回/冷却/频次、切换保持访客身份/用量/开始时间、失败恢复精确原Selection、实验室双HY2默认关闭、正式TCP/复用/自动入口、两端口限制、DNS/敏感/大陆规则、旧服务未确认TCP拒绝等回归。Service测试只用状态fixture，不代表实体VPN。
+
+Go race通过：主/访客TCP对照、严格请求值、默认凭据不旋转、周导出不扣、访客多协议合计64GiB。真实V2Ray原生8场景通过（含VLESS TCP TLS、VMess/VLESS Mux及TLS/SNI敏感服务路由）；两个真实Hysteria客户端通过App balancer均实际收流量，服务端合并计量、父额度耗尽关闭共同worker。
+
+构建原签名APK 28,351,494字节，SHA256 `a829ee4d74d129f6a1b6df3645654cfab4399643f41d1ecd038d46861beb2b47`。服务端备份/部署与公网2.5MiB/最终发布待补录；原v16保留。无新增实体手机升级、切网或速度AB测试，不承诺增速/无缝。
+
 # v16 默认高性能与续租选择验证（2026-10-18，已发布）
 
 - 1.1.7-preview/versionCode16，assembleRelease/testReleaseUnitTest/lintRelease通过，92项Android测试0失败/错误，lint0错误/39警告。默认高性能脱离旧实验开关；明确保守持久化、兼容通道不申请高性能、服务器响应/节点标记双重确认与不匹配拒绝通过。

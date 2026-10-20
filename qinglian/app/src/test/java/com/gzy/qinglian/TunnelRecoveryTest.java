@@ -15,6 +15,7 @@ public class TunnelRecoveryTest {
  public static class Service extends TunnelService {
   int coreStarts,relayStarts;boolean healthy=true,failRelay;
   volatile Network[] selected;
+  @Override long probe(long bytes){return 1;}
   @Override boolean coreHealthy(){return healthy;}
   @Override void startCore(){coreStarts++;healthy=true;}
   @Override void stopCore(){healthy=false;}

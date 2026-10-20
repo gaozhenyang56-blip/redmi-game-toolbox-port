@@ -7,9 +7,12 @@ import org.json.*;
 
 /** Native pinned Hysteria client, confined to this app UID and private files. */
 final class Hy2Client implements AutoCloseable {
- private Process process;private final File config,ca;private final Context context;
- Hy2Client(Context c){context=c;config=new File(c.getFilesDir(),"hy2-client.json");ca=new File(c.getFilesDir(),"hy2-ca.pem");}
- static JSONObject configuration(JSONObject n,String caPath)throws Exception{
+ private Process process;private final File config,ca;private final Context context;private final int lane;
+ Hy2Client(Context c){this(c,0);}
+ Hy2Client(Context c,int lane){if(lane<0||lane>1)throw new IllegalArgumentException();this.lane=lane;context=c;config=new File(c.getFilesDir(),"hy2-client-"+lane+".json");ca=new File(c.getFilesDir(),"hy2-ca-"+lane+".pem");}
+ static JSONObject configuration(JSONObject n,String caPath)throws Exception{return configuration(n,caPath,0);}
+ static JSONObject configuration(JSONObject n,String caPath,int lane)throws Exception{
+  if(lane<0||lane>1)throw new IllegalArgumentException();
   NodeConfig.validate(n);if(!NodeConfig.protocol(n).equals("hysteria2"))throw new IOException("协议无效");
   String host=n.getString("add");if(host.contains(":"))host="["+host+"]";
   JSONObject tls=new JSONObject().put("sni",n.optString("sni",n.getString("add"))).put("insecure",false);
@@ -17,7 +20,7 @@ final class Hy2Client implements AutoCloseable {
   boolean performance=n.optString("hy2Performance").equals("aggressive-v1");
   JSONObject quic=new JSONObject().put("disablePathMTUDiscovery",true).put("keepAlivePeriod","10s").put("maxIdleTimeout","30s");if(performance)Hy2Settings.quic(quic);
   return new JSONObject().put("server",host+":"+n.getInt("port")).put("auth",n.getString("auth")).put("tls",tls).put("lazy",true).put("congestion",new JSONObject().put("type","bbr").put("bbrProfile",performance?"aggressive":"conservative")).put("quic",quic)
-   .put("socks5",new JSONObject().put("listen","127.0.0.1:10810").put("disableUDP",false));
+   .put("socks5",new JSONObject().put("listen","127.0.0.1:"+(10810+lane)).put("disableUDP",false));
  }
  void start(String node)throws Exception{
   close();if(Build.VERSION.SDK_INT<29)throw new IOException("加速通道需要Android 10或更高版本");JSONObject n=new JSONObject(node);
@@ -25,13 +28,13 @@ final class Hy2Client implements AutoCloseable {
    byte[] bytes=n.getString("caPem").getBytes(java.nio.charset.StandardCharsets.US_ASCII);if(bytes.length>16384)throw new IOException("证书无效");
    ApiEndpoint.trustCa(new ByteArrayInputStream(bytes));write(ca,bytes);
   }
-  write(config,configuration(n,ca.getAbsolutePath()).toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+  write(config,configuration(n,ca.getAbsolutePath(),lane).toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
   try{
    process=new ProcessBuilder(new File(context.getApplicationInfo().nativeLibraryDir,"libhysteria.so").getAbsolutePath(),"client","--config",config.getAbsolutePath(),"--log-level","error","--disable-update-check").redirectErrorStream(true).start();
    Process started=process;Thread drain=new Thread(()->{try(InputStream in=started.getInputStream()){byte[] buffer=new byte[1024];while(in.read(buffer)!=-1){} }catch(IOException ignored){}});drain.setDaemon(true);drain.start();
    for(int i=0;i<50;i++){
     if(Thread.currentThread().isInterrupted()||!started.isAlive())throw new IOException("加速通道启动失败");
-    try(Socket socket=new Socket()){socket.connect(new InetSocketAddress("127.0.0.1",10810),100);return;}catch(IOException wait){Thread.sleep(50);}
+    try(Socket socket=new Socket()){socket.connect(new InetSocketAddress("127.0.0.1",10810+lane),100);return;}catch(IOException wait){Thread.sleep(50);}
    }throw new IOException("加速通道启动超时");
   }catch(Exception failure){close();throw failure;}
  }

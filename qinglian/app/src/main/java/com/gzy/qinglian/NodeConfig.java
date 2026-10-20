@@ -23,7 +23,9 @@ public final class NodeConfig {
   if(p.equals("trojan")&&!tls.equals("tls"))throw new IllegalArgumentException("Trojan需要TLS");
  }
  public static String build(String node)throws Exception{return build(node,false);}
- public static String build(String node,boolean bypassChina)throws Exception{
+ public static String build(String node,boolean bypassChina)throws Exception{return build(node,bypassChina,1,false);}
+ public static String build(String node,boolean bypassChina,int lanes,boolean reuse)throws Exception{
+  if(lanes<1||lanes>2)throw new IllegalArgumentException("最多两条HY2隧道");
   JSONObject n=new JSONObject(node);validate(n);String p=protocol(n);JSONObject outbound;
   if(p.equals("hysteria2")){
    outbound=new JSONObject().put("protocol","socks").put("settings",new JSONObject().put("servers",new JSONArray().put(new JSONObject().put("address","127.0.0.1").put("port",10810))));
@@ -57,7 +59,9 @@ public final class NodeConfig {
     }
     stream.put("tlsSettings",security);
    }
+   stream.put("sockopt",new JSONObject().put("tcpKeepAliveIdle",60).put("tcpKeepAliveInterval",20));
    outbound=new JSONObject().put("protocol",p).put("settings",settings).put("streamSettings",stream);
+   if(reuse&&(p.equals("vmess")||p.equals("vless")))outbound.put("mux",new JSONObject().put("enabled",true).put("concurrency",4));
   }
   outbound.put("tag","proxy");
   JSONArray ins=new JSONArray().put(new JSONObject().put("tag","socks").put("listen","127.0.0.1").put("port",10808).put("protocol","socks").put("settings",new JSONObject().put("auth","noauth").put("udp",true)))
@@ -68,7 +72,7 @@ public final class NodeConfig {
   JSONArray rules=new JSONArray().put(dnsRule),outbounds=new JSONArray().put(outbound).put(dnsOutbound);
   if(p.equals("hysteria2")&&n.has("compatibility")){
    JSONObject fallback=n.getJSONObject("compatibility");if(protocol(fallback).equals("hysteria2"))throw new IllegalArgumentException("兼容节点不能递归指向加速通道");
-   JSONObject compatibility=new JSONObject(build(fallback.toString())).getJSONArray("outbounds").getJSONObject(0);compatibility.put("tag","compatibility");outbounds.put(compatibility);
+   JSONObject compatibility=new JSONObject(build(fallback.toString(),false,1,reuse)).getJSONArray("outbounds").getJSONObject(0);compatibility.put("tag","compatibility");outbounds.put(compatibility);
    rules.put(new JSONObject().put("type","field").put("network","udp").put("port","443").put("outboundTag","compatibility"));
    JSONArray domains=new JSONArray();for(String domain:new String[]{"googleusercontent.com","ggpht.com","githubusercontent.com","github.com","githubassets.com","chatgpt.com","openai.com","oaistatic.com","oaiusercontent.com"})domains.put("domain:"+domain);domains.put("full:ssl.gstatic.com");
    rules.put(new JSONObject().put("type","field").put("domain",domains).put("outboundTag","compatibility"));
@@ -86,7 +90,14 @@ public final class NodeConfig {
    dns.put("servers",new JSONArray().put(new JSONObject().put("address","223.5.5.5").put("domains",new JSONArray().put("geosite:cn").put("geosite:private")).put("expectIPs",new JSONArray().put("geoip:cn"))).put("tcp://1.1.1.1").put("tcp://8.8.8.8"));
    for(int i=0;i<ins.length();i++)ins.getJSONObject(i).put("sniffing",new JSONObject().put("enabled",true).put("destOverride",new JSONArray().put("http").put("tls")));
   }
-  return new JSONObject().put("dns",dns).put("routing",new JSONObject().put("domainStrategy",bypassChina?"IPIfNonMatch":"AsIs").put("rules",rules)).put("log",new JSONObject().put("loglevel","none"))
+  JSONObject routing=new JSONObject().put("domainStrategy",bypassChina?"IPIfNonMatch":"AsIs").put("rules",rules);
+  if(p.equals("hysteria2")&&lanes==2){
+   outbounds.put(new JSONObject().put("tag","hy2-lane-1").put("protocol","socks").put("settings",new JSONObject().put("servers",new JSONArray().put(new JSONObject().put("address","127.0.0.1").put("port",10811)))));
+   routing.put("balancers",new JSONArray().put(new JSONObject().put("tag","hy2-pool").put("selector",new JSONArray().put("proxy").put("hy2-lane-1")).put("strategy",new JSONObject().put("type","random"))));
+   for(int i=0;i<rules.length();i++){JSONObject rule=rules.getJSONObject(i);if("proxy".equals(rule.optString("outboundTag"))){rule.remove("outboundTag");rule.put("balancerTag","hy2-pool");}}
+   rules.put(new JSONObject().put("type","field").put("network","tcp,udp").put("balancerTag","hy2-pool"));
+  }
+  return new JSONObject().put("dns",dns).put("routing",routing).put("log",new JSONObject().put("loglevel","none"))
    .put("inbounds",ins).put("outbounds",outbounds).put("stats",new JSONObject()).put("policy",new JSONObject().put("system",new JSONObject().put("statsOutboundUplink",true).put("statsOutboundDownlink",true))).toString();
  }
 }

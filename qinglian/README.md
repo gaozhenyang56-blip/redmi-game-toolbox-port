@@ -1,6 +1,6 @@
 # 轻连 — 统一面板管理 Android VPN，Codex 交接工程
 
-**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.1.7-preview`，versionCode `16`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
+**先读 [HANDOFF.md](HANDOFF.md)。** 本目录独立于仓库原 Redmi 游戏工具箱项目。版本 `1.1.8-preview`，versionCode `17`，包名 `com.gzy.qinglian`，Android 8.0+ / ARM64。
 
 已完成标准 Material 3、默认亮色和亮色自适应图标；支持浅色/深色/跟随系统切换。包含延迟/下载测速、每秒通知栏速度与本次用量、可选Surfboard风格黑白名单及规则/全局模式。关闭应用分流后规则模式自动绕过大陆/私网。账号为独立页面，免登录每次手动连接64GiB，自动恢复不重置；面板分六页管理。
 
@@ -41,7 +41,7 @@ python3 scripts/prepare_dependencies.py
 python3 scripts/verify_release_signature.py app/build/outputs/apk/release/app-release.apk --apksigner /path/to/apksigner
 ```
 
-外部属性包含 `storeFile`（推荐绝对路径）、`storePassword`、`keyAlias`、`keyPassword`。也可通过 `QINGLIAN_STORE_PASSWORD` / `QINGLIAN_KEY_PASSWORD` 提供密码。没有原私钥时 release 构建为未签名，**不得生成新发布私钥冒充同签名更新**。`assembleDebug` 仅供开发，不能覆盖原发布版。本轮 versionCode 为6，下一次更新继续递增。
+外部属性包含 `storeFile`（推荐绝对路径）、`storePassword`、`keyAlias`、`keyPassword`。也可通过 `QINGLIAN_STORE_PASSWORD` / `QINGLIAN_KEY_PASSWORD` 提供密码。没有原私钥时 release 构建为未签名，**不得生成新发布私钥冒充同签名更新**。`assembleDebug` 仅供开发，不能覆盖原发布版。本轮 versionCode 为17，下一次更新继续递增。
 
 原证书 SHA-256：`2e90d97183fbe26c05a8bd67454b0a5d0f5c01633609a335fdff693a4774a870`。公开证书在 `verification/release-certificate.der`，不含私钥。
 
@@ -75,3 +75,9 @@ python3 scripts/verify_release_signature.py app/build/outputs/apk/release/app-re
 测速默认选择服务器链路（通过当前VPN、原CA和设备会话）；也可选择Cloudflare外网源。四路显示合计，所选MB为总量。服务器源不包含第三方网站上游链路，不能等同所有互联网下载速度。
 
 HY2高性能已转为加速通道默认功能，连接页可切保守配置，修改后重连；实验室仅保留测速选项。高性能沿用原aggressive与32/64MiB窗口，运行中续租不随待重连设置改变。
+
+## v17 连接优化
+
+连接页正式提供TCP协议对照（面板默认 / VLESS TLS / Trojan TLS）、可选TCP复用、自动选择兼容/HY2。Mux默认关闭、仅VMess/VLESS且最多4并发；TCP使用60秒空闲/20秒探测保活，HY2原参数保留。自动选择默认关闭，启动约512KiB对照计入原流量；小样本只表示当时服务器链路表现，不代表外网站点持续下载峰值。连续3次空闲探测失败才切换，有3分钟冷却与10分钟2次上限，切换可能中断下载。
+
+关于→速度实验室新增“双HY2隧道”，默认关闭，仅下次连接生效。最多两条同服务器、同凭据的独立QUIC连接，按连接随机分担；单个下载不叠加，资源/耗电可能增加。三标签用量合并，访客原单次64GiB、账号配额和导出额度保持。节点仍由同一个面板提供，没有手填订阅/节点/API入口。当前V2Fly不提供REALITY。

@@ -70,6 +70,46 @@ func TestQMainCredentialsSeparateUsersAndPreserveExportAllocation(t *testing.T) 
 	if e != nil || quota["allocatedBytes"] != int64(0) {
 		t.Fatal("main deducted weekly allocation")
 	}
+
+	// Each requested TCP protocol is independently metered under the same main parent.
+	for _, protocol := range []string{"vless", "trojan"} {
+		w = qExportRequest(r, "POST", "/main-fixture", `{"tcpProtocol":"`+protocol+`"}`, token, device)
+		var value map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &value)
+		if w.Code != 200 || value["tcpProtocol"] != protocol {
+			t.Fatal("TCP protocol not acknowledged", w.Code)
+		}
+		node := value["node"].(map[string]interface{})
+		if node["protocol"] != protocol || node["tls"] != "tls" || node["caPem"] != "fixture-public-ca" {
+			t.Fatal("TCP protocol or CA changed")
+		}
+	}
+	for _, bad := range []string{`{"tcpProtocol":"reality"}`, `{"tcpProtocol":"hysteria2"}`, `{"tcpProtocol":true}`} {
+		if qExportRequest(r, "POST", "/main-fixture", bad, token, device).Code != 400 {
+			t.Fatal("invalid protocol accepted")
+		}
+	}
+	w = qExportRequest(r, "POST", "/main-fixture", "{}", token, device)
+	json.Unmarshal(w.Body.Bytes(), &next)
+	if next["revision"] != first["revision"] {
+		t.Fatal("default worker rotated by protocol comparison")
+	}
+	quota, e = a.exportQuotaValue("fixture")
+	if e != nil || quota["allocatedBytes"] != int64(0) {
+		t.Fatal("TCP main deducted weekly export budget")
+	}
+	// Guest comparison keeps one 64GiB total instead of allocating per protocol.
+	r.POST("/guest-main-fixture", func(c *gin.Context) { c.Set("exportUser", "fixture"); c.Set("guest", true) }, a.accountProfile)
+	for _, protocol := range []string{"vless", "trojan"} {
+		if qExportRequest(r, "POST", "/guest-main-fixture", `{"tcpProtocol":"`+protocol+`"}`, token, device).Code != 200 {
+			t.Fatal("guest TCP unavailable")
+		}
+	}
+	a.store.db.Exec(`UPDATE exports SET up=100,down=200 WHERE user_id='fixture' AND kind='guest'`)
+	guest, e := a.guestQuotaValue("fixture")
+	if e != nil || guest["usedBytes"] != int64(600) || guest["remainingBytes"] != qGuestBytes-600 {
+		t.Fatal("guest per-protocol quota not combined")
+	}
 	database.GetDB().Model(&parent).Update("enable", false)
 	if qExportRequest(r, "POST", "/main-fixture", "{}", token, device).Code != 503 {
 		t.Fatal("disabled parent allowed main")

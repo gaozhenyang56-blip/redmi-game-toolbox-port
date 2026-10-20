@@ -36,7 +36,12 @@ public class TunnelService extends VpnService {
  private final java.util.concurrent.atomic.AtomicBoolean recovering=new java.util.concurrent.atomic.AtomicBoolean();
  private final RecoveryBudget recoveryBudget=new RecoveryBudget();
  private String runningConfig,runningNode;
- private Hy2Client hy2;
+ private final java.util.List<Hy2Client> hy2Clients=new java.util.ArrayList<>();
+ private boolean bypassChina;
+ private final ChannelPolicy channelPolicy=new ChannelPolicy();
+ private ScheduledExecutorService healthWorker;
+ private volatile boolean forceCoreRestart;
+ public static volatile String channelStatus="手动选择通道";
  private boolean serviceCompatibility;
  public static volatile String activeProtocol="VMess";
  private volatile Network underlying;
@@ -49,7 +54,7 @@ public class TunnelService extends VpnService {
   if(i!=null&&"STOP".equals(i.getAction())) {cancelled=true;status("stopping","正在断开连接");worker.execute(()->{cleanup();stopSelf();});return START_NOT_STICKY;}
   if(!state.equals("disconnected")&&!state.equals("error"))return START_NOT_STICKY;
   if(ExportClient.token(this).isEmpty())GuestClient.begin(this);
-  cancelled=false;selectedProfile=Hy2Settings.saved(this);verified=false;connectionEpoch++;recoveryBudget.reset();status("connecting","正在启动专属通道");
+  cancelled=false;selectedProfile=Hy2Settings.saved(this);channelStatus=selectedProfile.automatic?"准备自动对比通道":"手动选择通道";verified=false;connectionEpoch++;recoveryBudget.reset();status("connecting","正在启动专属通道");
   NotificationManager nm=getSystemService(NotificationManager.class);
   nm.createNotificationChannel(new NotificationChannel("vpn","VPN 连接状态",NotificationManager.IMPORTANCE_LOW));
   if(Build.VERSION.SDK_INT>=34)startForeground(1,notification("正在连接"),ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
@@ -76,9 +81,10 @@ public class TunnelService extends VpnService {
    go.Seq.setContext(getApplicationContext());
    if(routing.bypassChina())GeoAssets.prepare(this);
    Libv2ray.initCoreEnv(getFilesDir().getAbsolutePath(),"");
-   ProfileMonitor.Profile profile=ProfileMonitor.forConnection(this);String node=profile.node;activeProfileRevision=profile.revision;activeProfileLabel=profile.label;
-   String config=NodeConfig.build(node,routing.bypassChina());
-   runningConfig=config;runningNode=node;serviceCompatibility=new org.json.JSONObject(node).has("compatibility");activeProtocol=NodeConfig.protocol(new org.json.JSONObject(node)).toUpperCase(java.util.Locale.ROOT);startCore();
+   bypassChina=routing.bypassChina();
+   ProfileMonitor.Profile profile=selectedProfile.automatic&&ProfileMonitor.configured(this)?chooseInitialChannel():ProfileMonitor.forConnection(this);
+   configureProfile(profile);startCore();
+   probe(1);verified=true;
    if(cancelled){cleanup();return;}
    trackNetwork();
    Builder b=new Builder().setSession("轻连 · 专属节点").setMtu(1500)
@@ -91,7 +97,7 @@ public class TunnelService extends VpnService {
    startRelay();
    if(cancelled){cleanup();return;}
    uploadBytes=0;downloadBytes=0;uploadRate=0;downloadRate=0;statsTick=SystemClock.elapsedRealtime();
-   connectedAt=SystemClock.elapsedRealtime();status("connected","通道已建立 · 请测速确认网络可用");
+   connectedAt=SystemClock.elapsedRealtime();status("connected","网络验证成功 · 专属通道运行中");
    getSystemService(NotificationManager.class).notify(1,notification("已连接 · "+activeProtocol));
    try{
     reporter=DeviceReporter.create(this,()->new DeviceReporter.Sample(uploadBytes,downloadBytes,uploadRate,downloadRate));
@@ -104,8 +110,9 @@ public class TunnelService extends VpnService {
      long now=SystemClock.elapsedRealtime(),dt=Math.max(1,now-statsTick);statsTick=now;
      synchronized(coreLock){
       if(core==null)return;
-      if(!core.getIsRunning()||(hy2!=null&&!hy2.alive())||relay==null||!relay.isAlive()){requestRecovery();return;}
+      if(!coreHealthy()||relay==null||!relay.isAlive()){requestRecovery();return;}
       long up=Math.max(0,core.queryStats("proxy","uplink")),down=Math.max(0,core.queryStats("proxy","downlink"));
+      if(selectedProfile!=null&&selectedProfile.multipath&&NodeConfig.protocol(new org.json.JSONObject(runningNode)).equals("hysteria2")){up+=Math.max(0,core.queryStats("hy2-lane-1","uplink"));down+=Math.max(0,core.queryStats("hy2-lane-1","downlink"));}
       if(serviceCompatibility){up+=Math.max(0,core.queryStats("compatibility","uplink"));down+=Math.max(0,core.queryStats("compatibility","downlink"));}
       uploadBytes+=up;downloadBytes+=down;uploadRate=up*1000.0/dt;downloadRate=down*1000.0/dt;
      }
@@ -113,13 +120,14 @@ public class TunnelService extends VpnService {
      getSystemService(NotificationManager.class).notify(1,notification("已连接"));
     }catch(Exception ignored){}
    },1,1,TimeUnit.SECONDS);
+   if(selectedProfile.automatic){healthWorker=Executors.newSingleThreadScheduledExecutor();healthWorker.scheduleWithFixedDelay(this::checkChannel,45,45,TimeUnit.SECONDS);}
   }catch(Throwable e){fail(e.getMessage()!=null&&e.getMessage().startsWith("请先")?e.getMessage():"连接失败，请检查网络或重新连接");}
  }
  void trackNetwork(){
    cm=getSystemService(ConnectivityManager.class);
    final long epoch=connectionEpoch;
    callback=new ConnectivityManager.NetworkCallback(){
-    private void select(Network n){if(cancelled||connectionEpoch!=epoch)return;underlying=n;try{setUnderlyingNetworks(new Network[]{n});}catch(Exception ignored){}}
+    private void select(Network n){if(cancelled||connectionEpoch!=epoch)return;Network previous=underlying;underlying=n;try{setUnderlyingNetworks(new Network[]{n});}catch(Exception ignored){}if(previous!=null&&!previous.equals(n)&&state.equals("connected")){forceCoreRestart=true;requestRecovery();}}
     @Override public void onAvailable(Network n){select(n);}
     @Override public void onCapabilitiesChanged(Network n,NetworkCapabilities caps){select(n);}
     @Override public void onLost(Network n){if(cancelled||connectionEpoch!=epoch||!n.equals(underlying))return;underlying=null;try{setUnderlyingNetworks(null);}catch(Exception ignored){}}
@@ -129,17 +137,17 @@ public class TunnelService extends VpnService {
    cm.requestNetwork(new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN).addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED).build(),callback);
  }
- boolean coreHealthy(){synchronized(coreLock){return core!=null&&core.getIsRunning()&&(hy2==null||hy2.alive());}}
+ boolean coreHealthy(){synchronized(coreLock){if(core==null||!core.getIsRunning())return false;for(Hy2Client client:hy2Clients)if(!client.alive())return false;return true;}}
  void startCore()throws Exception{
   synchronized(coreLock){
-   if(NodeConfig.protocol(new org.json.JSONObject(runningNode)).equals("hysteria2")){hy2=new Hy2Client(this);hy2.start(runningNode);}
+   if(NodeConfig.protocol(new org.json.JSONObject(runningNode)).equals("hysteria2")){int lanes=selectedProfile.multipath?2:1;for(int lane=0;lane<lanes;lane++){Hy2Client client=new Hy2Client(this,lane);hy2Clients.add(client);client.start(runningNode);}}
    core=Libv2ray.newCoreController(new CoreCallbackHandler(){public long startup(){return 0;}public long shutdown(){return 0;}public long onEmitStatus(long n,String s){return 0;}});
    core.startLoop(runningConfig);if(!core.getIsRunning())throw new IOException("核心启动失败");
   }
  }
  void stopCore(){synchronized(coreLock){
-  if(core!=null){try{core.stopLoop();}catch(Exception ignored){}core=null;}
-  if(hy2!=null){hy2.close();hy2=null;}
+  if(core!=null){if(connectedAt>0){try{for(String tag:new String[]{"proxy","hy2-lane-1","compatibility"}){uploadBytes+=Math.max(0,core.queryStats(tag,"uplink"));downloadBytes+=Math.max(0,core.queryStats(tag,"downlink"));}}catch(Exception ignored){}}try{core.stopLoop();}catch(Exception ignored){}core=null;}
+  for(Hy2Client client:hy2Clients)client.close();hy2Clients.clear();
  }}
  void startRelay()throws Exception{
   File sock=new File(getFilesDir(),"relay.sock");sock.delete();
@@ -177,12 +185,63 @@ public class TunnelService extends VpnService {
     getSystemService(NotificationManager.class).notify(1,notification(message));
     try{
      Thread.sleep(delay);if(cancelled||epoch!=connectionEpoch)return;
-     stopRelay();if(!coreHealthy()){stopCore();startCore();}if(cancelled)return;startRelay();if(cancelled)return;
+     stopRelay();if(forceCoreRestart||!coreHealthy()){forceCoreRestart=false;stopCore();startCore();}if(cancelled)return;probe(1);startRelay();if(cancelled)return;verified=true;
      statsTick=SystemClock.elapsedRealtime();status("connected","通道已恢复 · 请继续使用");
      getSystemService(NotificationManager.class).notify(1,notification(message));return;
     }catch(Exception retry){if(cancelled)return;}
    }
   }finally{recovering.set(false);}});}catch(RejectedExecutionException stopped){recovering.set(false);}
+ }
+ ProfileMonitor.Bundle candidates()throws Exception{return ProfileMonitor.candidates(this);}
+ long probe(long bytes)throws Exception{return ConnectionProbe.measure(this,bytes,()->cancelled||Thread.currentThread().isInterrupted());}
+ void configureProfile(ProfileMonitor.Profile profile)throws Exception{
+  runningNode=profile.node;org.json.JSONObject n=new org.json.JSONObject(runningNode);boolean hy2=NodeConfig.protocol(n).equals("hysteria2");
+  runningConfig=NodeConfig.build(runningNode,bypassChina,hy2&&selectedProfile.multipath?2:1,selectedProfile.reuse);
+  serviceCompatibility=n.has("compatibility");activeProtocol=NodeConfig.protocol(n).toUpperCase(java.util.Locale.ROOT)+(hy2&&selectedProfile.multipath?" · 双隧道实验":"");
+  activeProfileRevision=profile.revision;activeProfileLabel=profile.label;ProfileMonitor.publish(profile);
+ }
+ ProfileMonitor.Profile chooseInitialChannel()throws Exception{
+  status("connecting","正在对比TCP与HY2链路 · 最多512KiB，计入流量");
+  ProfileMonitor.Bundle candidates=candidates();long tcp=-1,hy2=-1;
+  for(int i=0;i<2&&!cancelled;i++){
+   ProfileMonitor.Profile candidate=i==0?candidates.tcp:candidates.hy2;if(candidate==null||(i==1&&Build.VERSION.SDK_INT<29))continue;
+   try{configureProfile(candidate);startCore();long result=probe(262144);if(i==0)tcp=result;else hy2=result;}
+   catch(ApiEndpoint.HttpFailure rejected){if(rejected.code==401||rejected.code==403||rejected.code==429)throw rejected;}
+   catch(Exception failed){if(cancelled)throw failed;}
+   finally{stopCore();}
+  }
+  if(cancelled)throw new InterruptedIOException();if(tcp<0&&hy2<0)throw new IOException("TCP与HY2链路均验证失败");
+  boolean accelerated=ChannelPolicy.chooseHy2(tcp,hy2,selectedProfile.accelerated);
+  synchronized(ProfileMonitor.fetchLock){selectedProfile=selectedProfile.withChannel(accelerated);}
+  channelStatus="自动选择："+(accelerated?"HY2":"TCP")+" · 小流量探测，连续3次失败才切换";
+  return accelerated?candidates.hy2:candidates.tcp;
+ }
+ private void checkChannel(){
+  if(cancelled||!state.equals("connected")||recovering.get())return;
+  long epoch=connectionEpoch;CoreController owner=core;
+  if(uploadRate+downloadRate>16384){channelPolicy.success();return;}
+  try{ConnectionProbe.measure(this,1,()->cancelled||epoch!=connectionEpoch||owner!=core);if(owner==core&&epoch==connectionEpoch)channelPolicy.success();}
+  catch(ApiEndpoint.HttpFailure permissions){if(permissions.code!=401&&permissions.code!=403&&permissions.code!=429&&!cancelled&&owner==core&&epoch==connectionEpoch&&channelPolicy.failed(SystemClock.elapsedRealtime()))requestChannelSwitch();}
+  catch(Exception failed){if(!cancelled&&owner==core&&epoch==connectionEpoch&&channelPolicy.failed(SystemClock.elapsedRealtime()))requestChannelSwitch();}
+ }
+ void requestChannelSwitch(){
+  if(cancelled||!selectedProfile.automatic||!recovering.compareAndSet(false,true))return;
+  if(!channelPolicy.reserve(SystemClock.elapsedRealtime())){recovering.set(false);return;}
+  final long epoch=connectionEpoch;
+  try{worker.execute(()->{Hy2Settings.Selection previous=selectedProfile;ProfileMonitor.Profile old=new ProfileMonitor.Profile(runningNode,activeProfileLabel,activeProfileRevision);boolean stopped=false;
+   try{
+    ProfileMonitor.Bundle candidates=candidates();ProfileMonitor.Profile next=previous.accelerated?candidates.tcp:candidates.hy2;
+    if(next==null||cancelled||epoch!=connectionEpoch)return;
+    status("reconnecting","连续链路失败，正在自动切换通道");verified=false;stopRelay();stopCore();stopped=true;
+    synchronized(ProfileMonitor.fetchLock){selectedProfile=previous.withChannel(!previous.accelerated);}
+    configureProfile(next);startCore();probe(1);if(cancelled)return;startRelay();
+    verified=true;statsTick=SystemClock.elapsedRealtime();status("connected","通道已自动切换 · 网络验证成功");channelStatus="自动选择："+activeProtocol+" · 已切换，冷却3分钟";
+   }catch(Exception failure){
+    if(cancelled||epoch!=connectionEpoch)return;
+    if(stopped){try{stopRelay();stopCore();synchronized(ProfileMonitor.fetchLock){selectedProfile=previous;}configureProfile(old);startCore();probe(1);if(cancelled)return;startRelay();verified=true;status("connected","自动切换失败，已恢复原通道");}catch(Exception rollback){if(!cancelled)fail("通道切换与恢复失败，请重新连接");}}
+    channelStatus="自动切换未成功 · 保留原通道，等待冷却";
+   }finally{recovering.set(false);}
+  });}catch(RejectedExecutionException stopped){recovering.set(false);}
  }
  static long measureDelay()throws Exception{
   TunnelService service=activeService;
@@ -204,6 +263,7 @@ public class TunnelService extends VpnService {
   if(reporter!=null){reporter.close();reporter=null;}reportingStatus="已断开 · 离线状态以服务端为准";
   cancelled=true;connectionEpoch++;underlying=null;verified=false;connectedAt=0;uploadRate=0;downloadRate=0;
   if(statsWorker!=null){statsWorker.shutdownNow();statsWorker=null;}
+  if(healthWorker!=null){healthWorker.shutdownNow();healthWorker=null;}
   stopRelay();stopCore();
   if(tun!=null){try{tun.close();}catch(Exception ignored){}tun=null;}
   if(callback!=null&&cm!=null){try{cm.unregisterNetworkCallback(callback);}catch(Exception ignored){}callback=null;}
