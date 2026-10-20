@@ -2,7 +2,7 @@
 
 用户要求手机版风格、桌面适配和简约模式，最新明确类似FlClash。Ubuntu独立preview2：宽屏左侧栏/双栏卡片（窗口1040px、内容800px断点），窄屏底部导航/单栏；六页面，Material3绿/紫亮暗配色，Cairo图标、原生单选语义的动画玻璃滑块。简约模式按用户澄清采用第一版普通桌面标签页/下拉框/单栏表单，保留全部功能并持久化；运行中切换不重建runtime、不改变连接选择/计时/账号草稿。
 
-`ubuntu/ui.py`实现本应用stack的实时小图高斯模糊，排除玻璃自身/外部窗口，不使用屏幕捕获；约12Hz、像素hash复用、隐藏/最小化停止。新增Deb依赖python3-gi-cairo/python3-cairo/python3-pil；不得通过只改透明色冒充实时模糊。连接/runtime.py、tun.py、原生核心/服务端/Android均未修改。23项runtime和实际GTK生命周期/双布局/滚动像素回归及Ubuntu24.04工作流状态见verification/UBUNTU_CHECKS.md。发布前需记录最终公开包哈希与工作流。
+`ubuntu/ui.py`实现本应用stack的实时小图高斯模糊，排除玻璃自身/外部窗口，不使用屏幕捕获；约12Hz、像素hash复用、隐藏/最小化停止。新增Deb依赖python3-gi-cairo/python3-cairo/python3-pil；不得通过只改透明色冒充实时模糊。连接/runtime.py、tun.py、原生核心/服务端/Android均未修改。23项runtime和实际GTK生命周期/双布局/滚动像素回归及Ubuntu24.04工作流状态见verification/UBUNTU_CHECKS.md。已完成Ubuntu24.04工作流39444861380（源码b9d5947c）：23项runtime、GUI、六配置原生传输、隔离TUN及安装卸载全部通过并发布。公开deb 20,861,864字节，SHA256 `dbac16105776f1f7b29eaed42283ebe590d7e7522653da5277ab736e9eb5a07e`；标签`qinglian-ubuntu-v1.0.0-preview2`。已从公开Release重下校验，源码/API资产/root所有权/新增依赖及无签名管理员文件均核对通过。
 
 # Ubuntu GUI 1.0.0-preview1（2026-10-19，独立桌面版本）
 

@@ -2,7 +2,11 @@
 
 本次仅Ubuntu界面、原生GTK/Cairo/Pillow组件和包依赖，runtime/TUN/原生核心/Android/面板不变。保留preview1已完成的公网三通道3MiB计量基线，不以UI fixture冒充公网连接。
 
-新增真实GTK检查：六页面导航；宽屏侧栏/双栏和窄屏底栏/单栏；preview1设置升级；第一版风格的简约标签页/下拉框及全部功能、保存/重开；模拟连接状态下切换界面保持同一连接对象、开始时间、选项和账号草稿且不调用启动/断开；原生RadioButton、拖拽提交/取消；主题；账号同意门槛；真实账号页面滚动导致玻璃采样像素变化；隐藏停止/显示重启采样。连接状态仅UI fixture。工作流继续验证23项runtime、六种原生配置传输、隔离IPv4/IPv6 TUN、包安装/启动/卸载。最终结果和公开包信息发布后补录。
+新增真实GTK检查：六页面导航；宽屏侧栏/双栏和窄屏底栏/单栏；preview1设置升级；第一版风格的简约标签页/下拉框及全部功能、保存/重开；模拟连接状态下切换界面保持同一连接对象、开始时间、选项和账号草稿且不调用启动/断开；原生RadioButton、拖拽提交/取消；主题；账号同意门槛；真实账号页面滚动导致玻璃采样像素变化；隐藏停止/显示重启采样。连接状态仅UI fixture。工作流继续验证23项runtime、六种原生配置传输、隔离IPv4/IPv6 TUN、包安装/启动/卸载。工作流39444861380（源码b9d5947c）全部通过，GTK日志无critical。公网三通道沿用preview1基线，本次未额外创建服务器会话或调参。
+
+公开发布标签`qinglian-ubuntu-v1.0.0-preview2`；deb 20,861,864字节，SHA256 `dbac16105776f1f7b29eaed42283ebe590d7e7522653da5277ab736e9eb5a07e`。从公开Release重下，随附SHA256SUMS两项均通过；包内app/runtime/ui/TUN源码与提交一致、API bootstrap与CA与原资产一致、root所有权/GUI依赖/无签名与管理员文件检查通过。真实截图是本机GTK窗口，不含连接或用量虚构数据。仍未在用户实体Ubuntu桌面点击polkit或登录ChatGPT，原边界不变。
+
+下载：https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/releases/download/qinglian-ubuntu-v1.0.0-preview2/Qinglian-1.0.0-preview2-amd64.deb
 
 # Ubuntu 1.0.0-preview1 验证（2026-10-19）
 
