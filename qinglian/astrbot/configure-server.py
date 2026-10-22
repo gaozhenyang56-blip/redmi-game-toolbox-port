@@ -69,7 +69,7 @@ config['provider_sources']=[s for s in config.get('provider_sources',[]) if s.ge
 config['provider']=[p for p in config.get('provider',[]) if not str(p.get('id','')).startswith('zhipu-free/')]+providers
 agent=config['agent_runner'];agent['runner_type']='local'
 agent['config']['model'].update(provider_id='zhipu-free/'+default,
- fallback_provider_ids=[p['id'] for p in providers if p['model']!=default],request_max_retries=2)
+ fallback_provider_ids=[p['id'] for p in providers if p['model']!=default and p['model'] in available],request_max_retries=2)
 agent['config']['misc']['max_steps']=8
 agent['config']['compression'].update(max_turns=20,trim_turns=2,overflow_strategy='truncate_by_turns')
 config['provider_settings'].update(enable=True,default_image_caption_provider_id='zhipu-free/'+vision_model)
