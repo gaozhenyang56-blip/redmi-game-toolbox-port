@@ -1,0 +1,33 @@
+name: Qinglian AstrBot free Zhipu models
+on:
+  workflow_dispatch:
+    inputs:
+      encrypted_provider:
+        description: AES-GCM encrypted provider credentials
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: qinglian-server-maintenance
+  cancel-in-progress: false
+jobs:
+  configure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            qinglian/astrbot
+            qinglian/server/github
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - name: Configure free models and test text, images and tool calling
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+          ASTRBOT_PROVIDER_ENVELOPE: ${{ inputs.encrypted_provider }}
+        run: python3 qinglian/astrbot/configure.py
