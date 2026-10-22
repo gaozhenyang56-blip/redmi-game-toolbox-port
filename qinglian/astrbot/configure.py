@@ -24,12 +24,14 @@ with connection() as client:
  sftp.put(str(Path(__file__).with_name('configure-server.py')),'/tmp/astrbot-configure.py')
  sftp.chmod('/tmp/astrbot-configure.py',0o600);sftp.close()
  try:
-  command='cd /opt/astrbot && .venv/bin/python /tmp/astrbot-configure.py /tmp/astrbot-provider.json > /var/log/astrbot-configure.log 2>&1'
+  command='umask 077; cd /opt/astrbot && .venv/bin/python /tmp/astrbot-configure.py /tmp/astrbot-provider.json > /var/log/astrbot-configure.log 2>&1'
   _,out,err=client.exec_command(command,timeout=900)
   status=out.channel.recv_exit_status()
   sftp=client.open_sftp()
   with sftp.open('/var/log/astrbot-configure.log') as f:log=f.read().decode(errors='replace')
   sftp.close()
+  for line in log.splitlines():
+   if line.startswith('ASTRBOT_MODEL_TESTS_JSON='):print(line,flush=True)
   summary=next((line.split('=',1)[1] for line in log.splitlines() if line.startswith('ASTRBOT_VERIFY_JSON=')),None)
   if summary:print(json.dumps(json.loads(summary),ensure_ascii=False),flush=True)
   if status or not summary:

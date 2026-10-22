@@ -56,13 +56,15 @@ async def test_models():
    results.append({'model':entry['model'],'available':valid,'imageVerified':valid if visual else None})
   except Exception as e:
    results.append({'model':entry['model'],'available':False,'errorType':type(e).__name__,
-                   'http':getattr(e,'status_code',None)})
+                   'http':getattr(e,'status_code',None),'message':str(e).replace(key,'[redacted]')[:250]})
   finally:await p.terminate()
 asyncio.run(test_models())
+print('ASTRBOT_MODEL_TESTS_JSON='+json.dumps(results,ensure_ascii=False),flush=True)
 available={r['model'] for r in results if r['available']}
 default='glm-4.7-flash' if 'glm-4.7-flash' in available else 'glm-4-flash-250414'
 assert default in available, 'No working free text model'
-assert 'glm-4.6v-flash' in available, 'Primary free vision model unavailable'
+vision_model=next((m for m in ['glm-4.6v-flash','glm-4.1v-thinking-flash'] if m in available),None)
+assert vision_model, 'No working free vision model'
 config['provider_sources']=[s for s in config.get('provider_sources',[]) if s.get('id')!='zhipu-free']+[source]
 config['provider']=[p for p in config.get('provider',[]) if not str(p.get('id','')).startswith('zhipu-free/')]+providers
 agent=config['agent_runner'];agent['runner_type']='local'
@@ -70,7 +72,7 @@ agent['config']['model'].update(provider_id='zhipu-free/'+default,
  fallback_provider_ids=[p['id'] for p in providers if p['model']!=default],request_max_retries=2)
 agent['config']['misc']['max_steps']=8
 agent['config']['compression'].update(max_turns=20,trim_turns=2,overflow_strategy='truncate_by_turns')
-config['provider_settings'].update(enable=True,default_image_caption_provider_id='zhipu-free/glm-4.6v-flash')
+config['provider_settings'].update(enable=True,default_image_caption_provider_id='zhipu-free/'+vision_model)
 backup=config_path.with_name('cmd_config.before-zhipu.json')
 if not backup.exists():shutil.copy2(config_path,backup);os.chmod(backup,0o600)
 subprocess.run(['systemctl','stop','astrbot'],check=True)
@@ -122,7 +124,7 @@ async def tool_test():
  finally:await provider.terminate()
 try:tool_ok=asyncio.run(tool_test())
 except Exception as e:tool_ok=False;tool_error=type(e).__name__
-report={'configured':True,'default':default,'imageModel':'glm-4.6v-flash','models':results,
+report={'configured':True,'default':default,'imageModel':vision_model,'models':results,
  'liveAstrBotProviderTest':True,'toolRoundTrip':tool_ok,
  'service':subprocess.check_output(['systemctl','is-active','astrbot'],text=True).strip(),
  'xui':subprocess.check_output(['systemctl','is-active','x-ui'],text=True).strip()}
