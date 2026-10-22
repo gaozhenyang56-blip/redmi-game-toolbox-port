@@ -1,5 +1,17 @@
 # AstrBot on the existing server
 
+## Current public dashboard (2026-10-22)
+
+The owner requested public access after the initial local-only deployment.
+The dashboard now listens on `0.0.0.0:6185`, accessible at
+http://107.150.7.124:6185 . The existing username and password are preserved.
+External checks returned HTTP 200 with title `AstrBot Dashboard`; unauthenticated
+access to `/api/v1/providers` returned HTTP 401. AstrBot, x-ui and Qinglian exports
+were all active after the change. No SSH tunnel is needed for this public endpoint.
+Evidence: https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/39857613988
+
+The sections below also document the original local-only installation.
+
 This independent deployment uses the existing Qinglian GitHub SSH Secrets and
 the pinned host key in `server/github/server-host-key.sha256`. It does not change
 the Android application, x-ui binary, proxy nodes, databases, or network rules.
