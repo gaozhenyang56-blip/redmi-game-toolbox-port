@@ -1,5 +1,8 @@
 name: Qinglian AstrBot free Zhipu models
 on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['.github/workflows/qinglian-astrbot-models.yml']
   workflow_dispatch:
     inputs:
       encrypted_provider:
@@ -12,7 +15,17 @@ concurrency:
   group: qinglian-server-maintenance
   cancel-in-progress: false
 jobs:
+  validate:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian/astrbot
+      - run: python3 -m py_compile qinglian/astrbot/configure.py qinglian/astrbot/configure-server.py
   configure:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
