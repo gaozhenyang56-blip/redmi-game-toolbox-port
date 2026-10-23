@@ -20,7 +20,8 @@ try:
         run(['apt-get','install','-y','docker.io','python3-venv'],600)
     run(['systemctl','enable','--now','docker'])
     stage='image-pull'
-    run(['docker','pull','mlikiowa/napcat-docker:latest'],900)
+    if not (root/'managed.json').exists():
+        run(['docker','pull','mlikiowa/napcat-docker:latest'],900)
     info=json.loads(run(['docker','image','inspect','mlikiowa/napcat-docker:latest']))[0]
     image=(info.get('RepoDigests') or [info['Id']])[0]
     stage='configuration'
@@ -57,7 +58,7 @@ try:
     stage='portal'
     if not Path('/opt/napcat-login/venv/bin/python').exists():
         run(['python3','-m','venv','/opt/napcat-login/venv'])
-    run(['/opt/napcat-login/venv/bin/python','-m','pip','install','--disable-pip-version-check','aiohttp>=3.12,<4','qrcode>=8,<9'],240)
+    run(['/opt/napcat-login/venv/bin/python','-m','pip','install','--disable-pip-version-check','aiohttp>=3.12,<4','qrcode>=8,<9','pillow>=11,<13'],240)
     service='''[Unit]
 Description=Authenticated NapCat QQ login portal
 After=network.target docker.service astrbot.service
