@@ -4,7 +4,7 @@
 
 后台 `https://107.150.7.124:18443/` 已由专用 `qinglian-remote.service` 部署，记录：https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/40062228900 。原 SSH Secrets / 固定主机密钥复用；服务/目录/证书独立，无原 VPN、x-ui、节点/数据库修改。外网严格CA/IP校验通过页面200、匿名控制401。使用独立自签证书，需要信任交付CA；不能关闭证书校验。根私有配置 `/etc/qinglian-remote`，TOTP绑定状态 `/var/lib/qinglian-remote`，版本化代码 `/opt/qinglian-remote/releases`。新服务不纳入旧备份脚本，后续升级/整机备份需单独覆盖私有配置和绑定状态。
 
-后台初次以管理员令牌生成密钥及otpauth URI，验证码确认才生效；更换需旧码并确认新码，旧会话撤销。初始化令牌/手机密钥仅存在服务器root私有配置及会话私有交付文件，公开Actions仅有RSA/AES-GCM密文。不要提交实际密钥。当前尚未代用户绑定真实验证器。
+后台初次以管理员令牌生成密钥及otpauth URI，验证码确认才生效；更换需旧码并确认新码，旧会话撤销。初始化令牌/手机密钥仅存在服务器root私有配置及会话私有交付文件，公开Actions仅有RSA/AES-GCM密文。不要提交实际密钥。当前尚未代用户绑定真实验证器。当前APK内置专用CA，Ubuntu .deb使用精确证书/主机名/错误类型限定的专用信任；浏览器仍需导入CA。
 
 验证：12项Python/HTTP测试、浏览器实际生成/确认绑定/退出/新页重验/桌面手机布局与零JS异常通过；Android assembleDebug/lintDebug通过（0错误/10警告，含ADB入口内部API兼容性警告），APK签名结构验证通过。**没有真机授权/息屏采集/24小时运行或Ubuntu GTK显示验收**，不得称为这些通过。ADB直接授权App进程重建/重启后可能需重跑授权脚本；Shizuku同样需保持服务有效。截图约1FPS、不绕过密码锁屏。
 

@@ -2,6 +2,7 @@
 """Ubuntu GTK/WebKit client; ephemeral storage forces a new TOTP login on each launch."""
 import argparse
 from urllib.parse import urlsplit
+from pathlib import Path
 
 
 def main():
@@ -17,7 +18,7 @@ def main():
         import gi
         gi.require_version('Gtk', '3.0')
         gi.require_version('WebKit2', '4.1')
-        from gi.repository import Gtk, WebKit2
+        from gi.repository import Gtk, WebKit2, Gio
     except (ImportError, ValueError):
         parser.exit(1, '请安装 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1\n')
     context = WebKit2.WebContext.new_ephemeral()
@@ -34,6 +35,28 @@ def main():
         return False
 
     view.connect('decide-policy', policy)
+    certificate_file = Path(__file__).with_name('server-ca.crt')
+    pinned = Gio.TlsCertificate.new_from_file(str(certificate_file)) if certificate_file.exists() else None
+
+    def tls_failure(_view, failing_uri, certificate, errors):
+        target = urlsplit(failing_uri)
+        # Only the shipped exact certificate may supply its own trust anchor.
+        # Hostname, expiry and all other TLS errors still fail closed.
+        if (pinned is not None and errors == Gio.TlsCertificateFlags.UNKNOWN_CA
+                and (target.scheme, target.hostname, target.port) == origin
+                and certificate.is_same(pinned)):
+            context.allow_tls_certificate_for_host(certificate, url.hostname)
+            view.load_uri(failing_uri)
+            return True
+        dialog = Gtk.MessageDialog(transient_for=window, modal=True,
+            message_type=Gtk.MessageType.ERROR, buttons=Gtk.ButtonsType.CLOSE,
+            text='服务器证书验证失败')
+        dialog.format_secondary_text('请确认后台地址与管理员提供的证书。客户端没有关闭 TLS 验证。')
+        dialog.run()
+        dialog.destroy()
+        return True
+
+    view.connect('load-failed-with-tls-errors', tls_failure)
     window = Gtk.Window(title='轻连 · 手机远控')
     window.set_default_size(1200, 880)
     window.add(view)

@@ -8,6 +8,10 @@
 - 后台点击“生成 / 更换 TOTP 密钥”：首次凭管理员令牌生成密钥及 otpauth URI；用验证器当前码确认后启用并进入会话。未确认不启用。已启用时，更换需旧动态码，确认新密钥后旧会话撤销。生成状态5分钟失效、确认最多5次，绑定数据仅服务端私有目录。管理员令牌不公开在后台页面或 Git 中。
 - 控制命令限白名单，手机重复校验；30秒超时不自动重放；离线40秒清空状态。截图约1FPS、无声音、不绕过锁屏密码。
 
+## Ubuntu 安装包
+
+`python3 build_ubuntu.py --output qinglian-remote_all.deb` 构建独立全架构 GTK 包，`sudo apt install ./qinglian-remote_all.deb` 安装并解析依赖。菜单入口默认连接已部署后台。不自动安装全局根证书。当前环境未安装 GTK/WebKit 显示依赖，未验证 Ubuntu 桌面启动。
+
 ## Android 构建
 
 独立 Gradle 工程 `android-agent/`，不改原轻连 App/签名。JDK17+、SDK35，使用仓库现有 Gradle8.9 wrapper：
@@ -29,7 +33,7 @@ bash qinglian/gradlew -p qinglian/remote-control/android-agent assembleDebug lin
 python3 server.py --relay --host 127.0.0.1 --port 8765
 ```
 
-`qinglian-remote-control.yml` 复用现有 SSH Secrets 和固定主机指纹，部署独立 `qinglian-remote.service`，端口18443、私有配置 `/etc/qinglian-remote`、绑定状态 `/var/lib/qinglian-remote`。版本化目录及原子 current 链接便于回滚；不重启现有服务或改防火墙。当前使用独立自签 CA/IP证书，外网严格证书检查使用随交付提供的 CA，不能关闭验证。浏览器需先信任该证书；手机在 App 内导入该 CA。Ubuntu 系统信任可通过 `sudo cp server-ca.crt /usr/local/share/ca-certificates/qinglian-remote.crt && sudo update-ca-certificates` 安装后重开客户端；不能对未知证书任意点信任。
+`qinglian-remote-control.yml` 复用现有 SSH Secrets 和固定主机指纹，部署独立 `qinglian-remote.service`，端口18443、私有配置 `/etc/qinglian-remote`、绑定状态 `/var/lib/qinglian-remote`。版本化目录及原子 current 链接便于回滚；不重启现有服务或改防火墙。当前使用独立自签 CA/IP证书，外网严格证书检查使用随交付提供的 CA，不能关闭验证。浏览器需先信任该证书；手机可在 App 内导入其他管理员提供的 CA（默认服务器证书已内置）。当前 Android APK 已内置该专用 CA，Ubuntu 包仅在证书逐字匹配内置证书且唯一错误是未知 CA 时接受其作为专用信任锚；主机名/有效期/其他TLS错误仍拒绝。浏览器的系统信任可通过 `sudo cp server-ca.crt /usr/local/share/ca-certificates/qinglian-remote.crt && sudo update-ca-certificates` 安装后重开客户端；不能对未知证书任意点信任。
 
 初始化令牌和手机密钥由部署脚本随机生成，仅保存在服务器 root 私有配置。Actions 只输出以本次交付公钥加密的信封，私钥不进入 Git/Actions，不在公开日志输出密钥。不要删除已经部署服务使用的私有配置；服务代码回滚不等于重置验证器。
 

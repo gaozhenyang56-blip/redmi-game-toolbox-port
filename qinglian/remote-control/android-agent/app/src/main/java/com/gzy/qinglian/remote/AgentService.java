@@ -45,9 +45,9 @@ public final class AgentService extends Service {
             endpoint=endpoint.replaceAll("/+$","");
             if(token==null || token.length()<32) throw new IOException();
             File certificate=new File(getFilesDir(),"server-ca.pem");
-            if(certificate.exists()) {
+            {
                 KeyStore store=KeyStore.getInstance(KeyStore.getDefaultType()); store.load(null);
-                try(InputStream in=new FileInputStream(certificate)) {store.setCertificateEntry("remote",CertificateFactory.getInstance("X.509").generateCertificate(in));}
+                try(InputStream in=certificate.exists() ? new FileInputStream(certificate) : getAssets().open("server-ca.pem")) {store.setCertificateEntry("remote",CertificateFactory.getInstance("X.509").generateCertificate(in));}
                 TrustManagerFactory trust=TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()); trust.init(store);
                 SSLContext context=SSLContext.getInstance("TLS"); context.init(null,trust.getTrustManagers(),null); tls=context.getSocketFactory();
             }

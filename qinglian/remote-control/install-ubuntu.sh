@@ -5,6 +5,7 @@ source_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 install_dir="$HOME/.local/share/qinglian-remote"
 mkdir -p "$install_dir/static" "$HOME/.local/share/applications"
 install -m 644 "$source_dir/server.py" "$source_dir/ubuntu_client.py" "$install_dir/"
+install -m 644 "$source_dir/server-ca.crt" "$install_dir/"
 install -m 644 "$source_dir/static/"* "$install_dir/static/"
 # Desktop spec uses double quotes for paths containing spaces.
 python3 - "$install_dir" "$HOME/.local/share/applications/qinglian-remote.desktop" <<'PY'

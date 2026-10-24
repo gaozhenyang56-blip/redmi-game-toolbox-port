@@ -1,3 +1,5 @@
 .env
 *.token
 known_hosts
+*.deb
+dist/
