@@ -2,6 +2,7 @@
 import concurrent.futures
 import fcntl
 import hashlib
+import http.client
 import json
 import os
 from pathlib import Path
@@ -116,6 +117,30 @@ class ProxySettings:
         stop_process(self.guard); self.guard = None
         restore_proxy(self.path)
 
+class BeforeSendError(OSError):
+    """TCP/TLS setup failed before HTTP headers or a POST body could be sent."""
+
+class ApiConnection(http.client.HTTPSConnection):
+    def connect(self):
+        try:
+            super().connect()
+        except (ssl.SSLCertVerificationError, ssl.CertificateError):
+            raise
+        except OSError as error:
+            raise BeforeSendError('HTTPS连接尚未建立') from error
+
+class ApiHandler(urllib.request.HTTPSHandler):
+    def https_open(self, request):
+        return self.do_open(ApiConnection, request, context=self._context, check_hostname=self._check_hostname)
+
+def api_routes(base):
+    parsed=urllib.parse.urlsplit(base)
+    if parsed.port != 11452:
+        return [base]
+    # The only alternate authority is the exact same host on standard HTTPS.
+    host='['+parsed.hostname+']' if ':' in parsed.hostname else parsed.hostname
+    return [urllib.parse.urlunsplit(parsed._replace(netloc=host+':443')),base]
+
 class Api:
     def __init__(self):
         config = read(ROOT/'profile.json')
@@ -125,7 +150,7 @@ class Api:
         if parsed.scheme != 'https' or parsed.username or parsed.fragment: raise ValueError('无效接口配置')
         self.base = urllib.parse.urljoin(config['url'], './')
         self.context = ssl.create_default_context(cafile=str(ROOT/config['caAsset']))
-        self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), urllib.request.HTTPSHandler(context=self.context), NoRedirect())
+        self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), ApiHandler(context=self.context), NoRedirect())
         STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.device = device_identity()
         self.account = read(STATE/'account.json', {})
@@ -134,17 +159,33 @@ class Api:
         headers = {'Content-Type':'application/json','Accept':'application/json','X-Qinglian-Device':self.device}
         token = self.config['clientToken'] if bootstrap else (token or self.account.get('token'))
         if token: headers['Authorization'] = 'Bearer '+token
-        request = urllib.request.Request(urllib.parse.urljoin(self.base,path), data=None if body is None else json.dumps(body).encode(), headers=headers)
-        try:
-            with self.opener.open(request, timeout=10) as r:
-                data = r.read(524289)
-                if len(data)>524288: raise RuntimeError('接口响应过大')
-                return json.loads(data)
-        except urllib.error.HTTPError as e:
-            messages = {401:'登录已失效，请重新登录',403:'权限或配额不足',409:'设备已注册、请求冲突或资源忙',429:'请求过快或并发已满，请稍后重试'}
-            raise RuntimeError(messages.get(e.code, '面板请求失败（HTTP %d）'%e.code)) from None
-        except (urllib.error.URLError, TimeoutError, OSError):
-            raise RuntimeError('无法连接面板，请检查网络、时间及证书；未回退到直连代理节点。') from None
+        bases=api_routes(urllib.parse.urljoin(self.config['url'],'./'))
+        if self.base in bases:
+            # Remember the working port across polling and guest/account requests.
+            if getattr(self,'route_ready',False): bases.remove(self.base); bases.insert(0,self.base)
+        for index,base in enumerate(bases):
+            request = urllib.request.Request(urllib.parse.urljoin(base,path), data=None if body is None else json.dumps(body).encode(), headers=headers)
+            try:
+                with self.opener.open(request, timeout=5) as r:
+                    data = r.read(524289)
+                    if len(data)>524288: raise RuntimeError('接口响应过大')
+                    result=json.loads(data)
+                    self.base=base; self.route_ready=True
+                    return result
+            except urllib.error.HTTPError as e:
+                messages = {401:'登录已失效，请重新登录',403:'权限或配额不足',409:'设备已注册、请求冲突或资源忙',429:'请求过快或并发已满，请稍后重试'}
+                raise RuntimeError(messages.get(e.code, '面板请求失败（HTTP %d）'%e.code)) from None
+            except (urllib.error.URLError, TimeoutError, OSError) as error:
+                reason=error.reason if isinstance(error,urllib.error.URLError) else error
+                if isinstance(reason,(ssl.SSLCertVerificationError,ssl.CertificateError)):
+                    raise RuntimeError('面板证书校验失败，请检查系统时间或更新安装包；未关闭证书验证。') from None
+                # Never replay a POST after a possible send (registration, export,
+                # login, logout). Pre-send failures can safely try the other port.
+                if body is not None and not isinstance(reason,BeforeSendError):
+                    self.route_ready=False
+                    raise RuntimeError('面板连接中断，操作结果未确认；请刷新状态后重试。') from None
+                if index+1 == len(bases):
+                    raise RuntimeError('面板HTTPS入口均无法连接，请检查网络；未回退到直连代理节点。') from None
     def auth(self, action, username, password):
         result = self.request('exports/'+action, {'username':username,'password':password,'historyConsent':'domains-permanent-v1'})
         if not isinstance(result.get('token'),str) or len(result['token'])!=64: raise RuntimeError('面板未返回有效会话')

@@ -5,7 +5,7 @@
 ## 安装和使用
 
 ```sh
-sudo apt install ./Qinglian-1.0.0-preview2-amd64.deb
+sudo apt install ./Qinglian-1.0.0-preview3-amd64.deb
 qinglian
 ```
 
@@ -36,7 +36,7 @@ TUN 固定使用 `qltun0`、路由表 22042、策略优先级 11090/11091，拒�
 ## 开发 / 构建
 
 ```sh
-python3 ubuntu/build.py --assets /private/api-assets --output /tmp/Qinglian-1.0.0-preview2-amd64.deb
+python3 ubuntu/build.py --assets /private/api-assets --output /tmp/Qinglian-1.0.0-preview3-amd64.deb
 ```
 
 JDK 17+、Python 3、dpkg-deb。私有资产目录只需 `profile.json` 与其 `caAsset` 证书；不得提交 token 或节点凭据。固定公开下载经 SHA256 校验。复用同一 `NodeConfig.java`，随包编译成 Java 17 字节码，避免另写一套协议转换。
@@ -48,3 +48,5 @@ JDK 17+、Python 3、dpkg-deb。私有资产目录只需 `profile.json` 与其 `
 源码和第三方许可随包置于 `/usr/lib/qinglian/source`、`licenses`。原生核心使用固定官方发行版；不是承诺服务器物理带宽或跨境网络稳定性。
 
 ChatGPT 的本机 OAuth 回调（localhost/127.0.0.1/::1）保留直连。TUN 模式也会临时应用轻连的 GNOME 代理，避免系统还指向已退出的 Clash；断开后恢复。连接成功前以当前节点请求服务器 1 字节测速响应验证，保留专用 CA、主机名、响应标记和长度校验，不将本地端口启动冒充远端已连。
+
+面板API优先同服务器TCP443，连接失败时自动尝试11452，并在本次运行内记住可用入口。证书/主机名验证不放宽，HTTP权限/配额错误不触发切换；POST发送后中断不自动重发。此修复不保证所有移动网络均可达，也不改变VPN传输协议或绕过原配额。

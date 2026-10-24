@@ -12,10 +12,10 @@ public class ApiEndpointTest {
   Fixture()throws Exception{super(new URL("https://fixture.invalid/api"));}
   @Override public int getResponseCode(){return code;}
   @Override public InputStream getInputStream(){return new ByteArrayInputStream(response.getBytes(StandardCharsets.UTF_8));}
-  @Override public OutputStream getOutputStream(){return sent;}
+  @Override public OutputStream getOutputStream()throws IOException{return sent;}
   @Override public void disconnect(){disconnected=true;}
   @Override public boolean usingProxy(){return false;}
-  @Override public void connect(){}
+  @Override public void connect()throws IOException{}
  }
  private ApiEndpoint endpoint(Fixture fixture)throws Exception{
   URL url=new URL(null,"https://fixture.invalid/api",new URLStreamHandler(){
@@ -36,6 +36,32 @@ public class ApiEndpointTest {
    Fixture c=new Fixture();c.code=status;if(status==200)c.response=" ".repeat(8193);
    assertThrows(IOException.class,()->endpoint(c).request(null));assertTrue(c.disconnected);
   }
+ }
+ private ApiEndpoint dual(boolean postFailure,int status,int[] connects,int[] sends)throws Exception{
+  URL url=new URL(null,"https://fallback.invalid:11452/api/v1/profile",new URLStreamHandler(){
+   @Override protected URLConnection openConnection(URL u)throws IOException{return openConnection(u,Proxy.NO_PROXY);}
+   @Override protected URLConnection openConnection(URL u,Proxy proxy)throws IOException{
+    try{return new Fixture(){
+     @Override public void connect()throws IOException{connects[0]++;if(u.getPort()==443&&!postFailure)throw new SocketTimeoutException();}
+     @Override public OutputStream getOutputStream()throws IOException{sends[0]++;if(postFailure)throw new SocketTimeoutException();return sent;}
+     @Override public int getResponseCode(){return status;}
+    };}catch(Exception e){throw new IOException(e);}
+   }
+  });return new ApiEndpoint(url,"fixture-token");
+ }
+ @Test public void fallsBackBeforePostButNeverReplaysSentMutation()throws Exception{
+  int[] connects={0},sends={0};
+  assertEquals(2,dual(false,200,connects,sends).request(new JSONObject()).getInt("online"));
+  assertEquals(2,connects[0]);assertEquals(1,sends[0]);
+  connects[0]=0;sends[0]=0;
+  assertThrows(SocketTimeoutException.class,()->dual(true,200,connects,sends).request(new JSONObject()));
+  assertEquals(1,connects[0]);assertEquals(1,sends[0]);
+ }
+ @Test public void neverRetriesAnHttpFailureAndUsesOnlySameHostPorts()throws Exception{
+  int[] connects={0},sends={0};
+  assertThrows(ApiEndpoint.HttpFailure.class,()->dual(true,401,connects,sends).request(null));assertEquals(1,connects[0]);
+  for(URL u:ApiEndpoint.routes(new URL("https://fixed.invalid:11452/api/v1/profile"))){assertEquals("fixed.invalid",u.getHost());assertEquals("/api/v1/profile",u.getPath());assertTrue(u.getPort()==443||u.getPort()==11452);}
+  assertEquals(1,ApiEndpoint.routes(new URL("https://fixed.invalid:18443/api")).length);
  }
  @Test public void requiresHttpsAndNonemptyToken()throws Exception{
   for(String address:new String[]{"http://fixture.invalid/api","https://user:password@fixture.invalid/api","https://fixture.invalid/api#fragment"})

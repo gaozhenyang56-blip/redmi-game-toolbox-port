@@ -15,6 +15,18 @@ final class ApiEndpoint {
  private final URL url;
  private final String token;
  private final SSLSocketFactory tlsFactory;
+ private static final java.util.concurrent.ConcurrentHashMap<String,Integer> workingPorts=new java.util.concurrent.ConcurrentHashMap<>();
+ // Fixed same-host ports only; never consume a redirect or a server-supplied URL.
+ static URL[] routes(URL url)throws MalformedURLException{
+  if(url.getPort()!=11452)return new URL[]{url};
+  URL standard=new URL(url,"https://"+url.getAuthority().replaceFirst(":11452$",":443")+url.getFile());
+  return Integer.valueOf(11452).equals(workingPorts.get(url.getHost()))?new URL[]{url,standard}:new URL[]{standard,url};
+ }
+ private URL preferred()throws MalformedURLException{return routes(url)[0];}
+ private static boolean certificateFailure(Exception error){
+  for(Throwable cause=error;cause!=null;cause=cause.getCause())if(cause instanceof java.security.cert.CertificateException||cause instanceof SSLPeerUnverifiedException||cause instanceof SSLHandshakeException)return true;
+  return false;
+ }
  ApiEndpoint(URL url,String token){this(url,token,null);}
  ApiEndpoint(URL url,String token,SSLSocketFactory tlsFactory){this.url=url;this.token=token;this.tlsFactory=tlsFactory;}
  static ApiEndpoint load(Context context,String asset)throws Exception{
@@ -52,26 +64,37 @@ final class ApiEndpoint {
  }
  JSONObject request(JSONObject body)throws Exception{return request(body,null);}
  JSONObject request(JSONObject body,String device)throws Exception{
-  HttpURLConnection c=(HttpURLConnection)url.openConnection(Proxy.NO_PROXY);
-  try{
-   if(tlsFactory!=null){if(!(c instanceof HttpsURLConnection))throw new IOException("接口必须使用TLS");((HttpsURLConnection)c).setSSLSocketFactory(tlsFactory);}
-   c.setConnectTimeout(3000);c.setReadTimeout(3000);c.setUseCaches(false);c.setInstanceFollowRedirects(false);
-   c.setRequestProperty("Authorization","Bearer "+token);c.setRequestProperty("Accept","application/json");if(device!=null){if(!device.matches("[0-9a-f]{64}"))throw new IOException("设备标识无效");c.setRequestProperty("X-Qinglian-Device",device);}
-   if(body!=null){
-    byte[] bytes=body.toString().getBytes(StandardCharsets.UTF_8);
-    c.setRequestMethod("POST");c.setDoOutput(true);c.setRequestProperty("Content-Type","application/json; charset=utf-8");c.setFixedLengthStreamingMode(bytes.length);
-    try(OutputStream out=c.getOutputStream()){out.write(bytes);}
-   }else c.setRequestMethod("GET");
-   int code=c.getResponseCode();if(code!=200&&!(device!=null&&(code==201||code==202)))throw new HttpFailure(code);
-   byte[] bytes=new byte[device==null?8193:524289];int total=0,n;
-   try(InputStream in=c.getInputStream()){while(total<bytes.length&&(n=in.read(bytes,total,bytes.length-total))!=-1)total+=n;}
-   if(total==bytes.length)throw new IOException("接口响应过大");
-   return new JSONObject(new String(bytes,0,total,StandardCharsets.UTF_8));
-  }finally{c.disconnect();}
+  URL[] candidates=routes(url);
+  for(int index=0;index<candidates.length;index++){
+   if(Thread.currentThread().isInterrupted())throw new InterruptedIOException("接口请求已取消");
+   HttpURLConnection c=(HttpURLConnection)candidates[index].openConnection(Proxy.NO_PROXY);
+   boolean sent=false;
+   try{
+    if(tlsFactory!=null){if(!(c instanceof HttpsURLConnection))throw new IOException("接口必须使用TLS");((HttpsURLConnection)c).setSSLSocketFactory(tlsFactory);}
+    c.setConnectTimeout(4000);c.setReadTimeout(10000);c.setUseCaches(false);c.setInstanceFollowRedirects(false);
+    c.setRequestProperty("Authorization","Bearer "+token);c.setRequestProperty("Accept","application/json");if(device!=null){if(!device.matches("[0-9a-f]{64}"))throw new IOException("设备标识无效");c.setRequestProperty("X-Qinglian-Device",device);}
+    byte[] payload=body==null?null:body.toString().getBytes(StandardCharsets.UTF_8);
+    if(payload!=null){c.setRequestMethod("POST");c.setDoOutput(true);c.setRequestProperty("Content-Type","application/json; charset=utf-8");c.setFixedLengthStreamingMode(payload.length);}else c.setRequestMethod("GET");
+    // connect() completes TCP and TLS before any application body is sent.
+    // A POST may switch ports here, but never after sending may have started.
+    c.connect();sent=true;
+    if(payload!=null)try(OutputStream out=c.getOutputStream()){out.write(payload);}
+    int code=c.getResponseCode();if(code!=200&&!(device!=null&&(code==201||code==202)))throw new HttpFailure(code);
+    workingPorts.put(url.getHost(),candidates[index].getPort());
+    byte[] bytes=new byte[device==null?8193:524289];int total=0,n;
+    try(InputStream in=c.getInputStream()){while(total<bytes.length&&(n=in.read(bytes,total,bytes.length-total))!=-1)total+=n;}
+    if(total==bytes.length)throw new IOException("接口响应过大");
+    return new JSONObject(new String(bytes,0,total,StandardCharsets.UTF_8));
+   }catch(IOException error){
+    if(error instanceof HttpFailure||certificateFailure(error)||sent&&body!=null||index+1==candidates.length||Thread.currentThread().isInterrupted())throw error;
+   }finally{c.disconnect();}
+  }
+  throw new IOException("面板两个HTTPS入口均无法连接，请检查网络；未回退到直连节点");
  }
+
  HttpURLConnection speedConnection(java.net.Proxy proxy,long bytes,String device)throws Exception{
   if(bytes<1||bytes>33554432L)throw new IOException("无效测速大小");
-  URL target=new URL(url.toString()+"?bytes="+bytes+"&nonce="+System.nanoTime());HttpURLConnection c=(HttpURLConnection)target.openConnection(proxy);
+  URL target=new URL(preferred().toString()+"?bytes="+bytes+"&nonce="+System.nanoTime());HttpURLConnection c=(HttpURLConnection)target.openConnection(proxy);
   if(tlsFactory!=null){if(!(c instanceof HttpsURLConnection))throw new IOException("测速必须使用TLS");((HttpsURLConnection)c).setSSLSocketFactory(tlsFactory);}
   c.setRequestProperty("Authorization","Bearer "+token);c.setRequestProperty("X-Qinglian-Device",device);return c;
  }
@@ -80,8 +103,8 @@ final class ApiEndpoint {
  }
  void downloadAPK(String digest,long expected,File output)throws Exception{
   if(!digest.matches("[0-9a-f]{64}")||expected<1||expected>64L*1024*1024)throw new IOException("无效安装包信息");
-  URL target=new URL(url,"apk/"+digest);
-  if(!target.getProtocol().equals(url.getProtocol())||!target.getHost().equals(url.getHost())||target.getPort()!=url.getPort())throw new IOException("不允许跨主机下载");
+  URL source=preferred();URL target=new URL(source,"apk/"+digest);
+  if(!target.getProtocol().equals(source.getProtocol())||!target.getHost().equals(source.getHost())||target.getPort()!=source.getPort())throw new IOException("不允许跨主机下载");
   HttpsURLConnection connection=(HttpsURLConnection)target.openConnection(Proxy.NO_PROXY);
   File partial=new File(output.getPath()+".part");
   try{

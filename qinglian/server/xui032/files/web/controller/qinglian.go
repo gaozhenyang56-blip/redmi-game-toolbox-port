@@ -37,6 +37,7 @@ var qUnavailable = errors.New("qinglian unavailable")
 
 type qTLSConfig struct {
 	Port        int    `json:"port"`
+	HTTPSPort   int    `json:"httpsPort,omitempty"`
 	Certificate string `json:"certificate"`
 	PrivateKey  string `json:"privateKey"`
 }
@@ -240,8 +241,9 @@ func (s *qStore) snapshot(now int64) ([]qDevice, int, error) {
 }
 
 type QinglianController struct {
-	tlsServer *http.Server
-	apiPrefix string
+	tlsServer   *http.Server
+	httpsServer *http.Server
+	apiPrefix   string
 	BaseController
 	cfg        qConfig
 	store      *qStore
@@ -609,7 +611,8 @@ func (a *QinglianController) devices(c *gin.Context) {
 	c.JSON(200, gin.H{"devices": rows, "online": count, "ttl": 30})
 }
 
-// StartTLS exposes only the three App endpoints on a separate TLS listener. Existing panel HTTP stays unchanged.
+// StartTLS exposes only App endpoints. Both listeners use the same TLS and route
+// boundary, preserve the real peer, and leave panel HTTP and HY2 UDP unchanged.
 func (a *QinglianController) StartTLS(engine http.Handler) error {
 	if a.store == nil || a.cfg.TLS.Port == 0 {
 		return nil
@@ -625,7 +628,7 @@ func (a *QinglianController) StartTLS(engine http.Handler) error {
 	if err != nil {
 		return err
 	}
-	a.tlsServer = &http.Server{ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 300 * time.Second, IdleTimeout: 60 * time.Second,
+	server := &http.Server{ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 300 * time.Second, IdleTimeout: 60 * time.Second,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.URL.Path {
 			case a.apiPrefix + "guest/start", a.apiPrefix + "guest/profile", a.apiPrefix + "guest/quota", a.apiPrefix + "guest/stop", a.apiPrefix + "guest/speed", a.apiPrefix + "updates", a.apiPrefix + "online", a.apiPrefix + "quota", a.apiPrefix + "heartbeat", a.apiPrefix + "profile":
@@ -638,15 +641,39 @@ func (a *QinglianController) StartTLS(engine http.Handler) error {
 				}
 			}
 		})}
-	transport := tls.NewListener(listener, &tls.Config{Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS12, NextProtos: []string{"http/1.1"}})
-	go a.tlsServer.Serve(transport)
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS12, NextProtos: []string{"http/1.1"}}
+	// Bind every configured listener before serving any of them. On failure no
+	// half-installed listener or background goroutine may survive.
+	var https net.Listener
+	if port := a.cfg.TLS.HTTPSPort; port != 0 {
+		if port != 443 {
+			listener.Close()
+			return qUnavailable
+		}
+		https, err = net.Listen("tcp", "0.0.0.0:443")
+		if err != nil {
+			listener.Close()
+			return err
+		}
+	}
+	a.tlsServer = server
+	go server.Serve(tls.NewListener(listener, tlsConfig))
+	if https != nil {
+		a.httpsServer = &http.Server{ReadHeaderTimeout: server.ReadHeaderTimeout, ReadTimeout: server.ReadTimeout, WriteTimeout: server.WriteTimeout, IdleTimeout: server.IdleTimeout, Handler: server.Handler}
+		go a.httpsServer.Serve(tls.NewListener(https, tlsConfig))
+	}
 	return nil
 }
 func (a *QinglianController) Close() {
-	if a.tlsServer != nil {
+	if a.tlsServer != nil || a.httpsServer != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		a.tlsServer.Shutdown(ctx)
+		if a.httpsServer != nil {
+			a.httpsServer.Shutdown(ctx)
+		}
+		if a.tlsServer != nil {
+			a.tlsServer.Shutdown(ctx)
+		}
 	}
 	if a.store != nil {
 		a.store.db.Close()

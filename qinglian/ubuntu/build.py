@@ -86,7 +86,7 @@ def main():
         control=root/'DEBIAN'; control.mkdir()
         size=sum(p.stat().st_size for p in root.rglob('*') if p.is_file())//1024
         (control/'control').write_text(f'''Package: qinglian
-Version: 1.0.0~preview2
+Version: 1.0.0~preview3
 Section: net
 Priority: optional
 Architecture: amd64

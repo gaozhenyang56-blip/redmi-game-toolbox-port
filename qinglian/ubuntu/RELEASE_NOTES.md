@@ -1,5 +1,6 @@
-轻连 Ubuntu 1.0.0-preview2，适配 Ubuntu 24.04 amd64 GNOME（含 ubuntu-to-go 分支的系统）。这是独立桌面版，Android v16 和现有面板更新保持原状。
+轻连 Ubuntu 1.0.0-preview3，适配 Ubuntu 24.04 amd64 GNOME（含 ubuntu-to-go 分支的系统）。这是独立桌面版。
 
+- 移动网络连接修复：面板 API 优先标准 HTTPS 443，网络连接失败时自动尝试原11452入口，记住本次可用端口；严格原CA和主机名校验，不跟随重定向。注册、导出等POST仅在确认尚未发送时切换入口，发送后超时提示结果未确认，避免自动重复执行。
 - 界面更新：类似 FlClash 的桌面左侧导航和双栏卡片，延续手机版 Material 3 配色、圆角与玻璃滑块；窄窗口切为底部导航和单栏。连接、测速、分流、关于、ChatGPT、账号六个页面。
 - 内置第一版风格的简约模式：传统桌面标签页、下拉框与单栏表单，保留全部功能并持久保存（顶部按钮 / Ctrl+Shift+M）；切换不重建连接、不改变配置或丢失账号输入。兼容 preview1 的设置。
 - 本应用内容实时高斯毛玻璃，最多12Hz、低分辨率取样与未变像素复用，隐藏/最小化停止计算；亮色/暗色/跟随系统。页面与滑块动画保留鼠标和键盘操作。
@@ -11,7 +12,7 @@
 下载 deb 后，在安装包所在目录执行：
 
 ```sh
-sudo apt install ./Qinglian-1.0.0-preview2-amd64.deb
+sudo apt install ./Qinglian-1.0.0-preview3-amd64.deb
 qinglian
 ```
 

@@ -259,20 +259,41 @@ func TestQSeparateTLSListenerRejectsPanelRoutes(t *testing.T) {
 	}
 	a := &QinglianController{store: store, apiPrefix: "/api/v1/", cfg: qConfig{TLS: qTLSConfig{Port: port, Certificate: certPath, PrivateKey: keyPath}}}
 	defer a.Close()
+	// Invalid secondary ports must release the already-bound original port.
+	a.cfg.TLS.HTTPSPort = 444
+	if a.StartTLS(http.NotFoundHandler()) == nil {
+		t.Fatal("invalid HTTPS port accepted")
+	}
+	check, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	if err != nil {
+		t.Fatal("primary listener leaked on failure:", err)
+	}
+	check.Close()
+	a.cfg.TLS.HTTPSPort = 0
+	ports := []int{port}
+	if available, e := net.Listen("tcp", "0.0.0.0:443"); e == nil {
+		available.Close()
+		a.cfg.TLS.HTTPSPort = 443
+		ports = append(ports, 443)
+	} else {
+		t.Log("443 unavailable to test process; primary boundary still tested")
+	}
 	if err = a.StartTLS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })); err != nil {
 		t.Fatal(err)
 	}
 	pool := x509.NewCertPool()
 	pool.AppendCertsFromPEM(certData)
 	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}}, Timeout: 3 * time.Second}
-	for path, want := range map[string]int{"/api/v1/online": 200, "/api/v1/quota": 200, "/api/v1/heartbeat": 200, "/api/v1/exports/register": 200, "/api/v1/exports/profile": 200, "/api/v1/exports/history": 200, "/api/v1/exports/invalid": 404, "/api/v1/exports/nodes/invalid/revoke": 404, "/xui/qinglian/devices": 404, "/assets/file": 404, "/api/v1/../xui/": 404} {
-		response, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d%s", port, path))
-		if err != nil {
-			t.Fatal(err)
-		}
-		response.Body.Close()
-		if response.StatusCode != want {
-			t.Fatalf("%s returned %d", path, response.StatusCode)
+	for _, port := range ports {
+		for path, want := range map[string]int{"/api/v1/online": 200, "/api/v1/quota": 200, "/api/v1/heartbeat": 200, "/api/v1/exports/register": 200, "/api/v1/exports/profile": 200, "/api/v1/exports/history": 200, "/api/v1/exports/invalid": 404, "/api/v1/exports/nodes/invalid/revoke": 404, "/xui/qinglian/devices": 404, "/assets/file": 404, "/api/v1/../xui/": 404} {
+			response, err := client.Get(fmt.Sprintf("https://127.0.0.1:%d%s", port, path))
+			if err != nil {
+				t.Fatal(err)
+			}
+			response.Body.Close()
+			if response.StatusCode != want {
+				t.Fatalf("%s returned %d", path, response.StatusCode)
+			}
 		}
 	}
 }

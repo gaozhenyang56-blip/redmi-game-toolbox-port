@@ -50,6 +50,42 @@ class RuntimeTests(unittest.TestCase):
             api.verify_proxy()
             response.headers['X-Qinglian-Speed']='wrong'
             with self.assertRaises(RuntimeError): api.verify_proxy()
+    @staticmethod
+    def fallback_api():
+        api=runtime.Api.__new__(runtime.Api)
+        api.config={'url':'https://fixture.invalid:11452/api/v1/profile','clientToken':'fixture'}
+        api.base='https://fixture.invalid:11452/api/v1/';api.device='a'*64;api.account={'token':'fixture'}
+        api.opener=MagicMock()
+        response=MagicMock();response.__enter__.return_value=response;response.read.return_value=b'{"ok":true}'
+        return api,response
+    def test_api_fallback_before_send_keeps_credentials_and_body(self):
+        api,response=self.fallback_api()
+        api.opener.open.side_effect=[runtime.urllib.error.URLError(runtime.BeforeSendError()),response]
+        self.assertTrue(api.request('exports/register',{'username':'fixture'})['ok'])
+        calls=api.opener.open.call_args_list
+        self.assertIn(':443/',calls[0].args[0].full_url);self.assertIn(':11452/',calls[1].args[0].full_url)
+        self.assertEqual(calls[0].args[0].data,calls[1].args[0].data)
+        self.assertEqual(calls[0].args[0].get_header('Authorization'),'Bearer fixture')
+        api.opener.open.side_effect=None;api.opener.open.return_value=response
+        api.request('exports/quota')
+        self.assertIn(':11452/',api.opener.open.call_args.args[0].full_url)
+    def test_api_does_not_replay_a_possibly_sent_post(self):
+        api,response=self.fallback_api();api.opener.open.side_effect=TimeoutError()
+        with self.assertRaisesRegex(RuntimeError,'结果未确认'):api.request('exports/nodes',{'requestId':'fixture'})
+        self.assertEqual(api.opener.open.call_count,1)
+    def test_api_get_network_retry_but_no_http_certificate_or_payload_retry(self):
+        api,response=self.fallback_api();api.opener.open.side_effect=[TimeoutError(),response]
+        self.assertTrue(api.request('exports/quota')['ok']);self.assertEqual(api.opener.open.call_count,2)
+        for error in [runtime.urllib.error.HTTPError('https://fixture.invalid',401,'',{},None),runtime.urllib.error.URLError(runtime.ssl.SSLCertVerificationError('fixture'))]:
+            api,response=self.fallback_api();api.opener.open.side_effect=error
+            with self.assertRaises(RuntimeError):api.request('exports/quota')
+            self.assertEqual(api.opener.open.call_count,1)
+        api,response=self.fallback_api();response.read.return_value=b'x'*524289;api.opener.open.return_value=response
+        with self.assertRaisesRegex(RuntimeError,'响应过大'):api.request('exports/quota')
+        self.assertEqual(api.opener.open.call_count,1)
+    def test_api_routes_cannot_change_host_or_other_service_ports(self):
+        self.assertEqual(runtime.api_routes('https://fixed.invalid:11452/api/v1/'),['https://fixed.invalid:443/api/v1/','https://fixed.invalid:11452/api/v1/'])
+        self.assertEqual(runtime.api_routes('https://fixed.invalid:18443/'),['https://fixed.invalid:18443/'])
     def test_hy2_exact_windows_and_tls(self):
         n=dict(add='203.0.113.1',port=443,auth='fixture',sni='example.test',caPem='public',hy2Performance='aggressive-v1')
         c=runtime.hy_config(n,'/private/ca.pem')
