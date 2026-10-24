@@ -1,3 +1,7 @@
+# 2026-10-24 移动网络连接故障排查（等待客户端信息）
+
+用户称兼容/加速都不能连接，尚未确认Wi-Fi对照、客户端版本/运营商和错误全文。只读40072035438/40072340528及公网40072215503确认服务active、配额未耗尽、API200、CA与App一致且未过期、VLESS/Trojan/双HY2实传成功；不能称用户手机已恢复。仅更新只读诊断和记录，未重启生产/改节点/清额度，未发新App。详见verification/MOBILE_CONNECTIVITY_20261024.md。远端其他会话新增的AstrBot/NapCat/remote-control已同步保留，不修改这些项目。
+
 # 手机客户端远控 0.2（2026-10-24，服务器已部署）
 
 用户最终明确：网页与 Ubuntu 客户端通过手机客户端控制，手机客户端支持 Shizuku 或 ADB 直接授权，控制端每次连接 TOTP，后台可生成 TOTP 密钥。新增独立 `qinglian/remote-control/android-agent`（包名 com.gzy.qinglian.remote、versionCode1、debug 测试签名），手机主动 HTTPS 长轮询中继，不再依赖常开外接 ADB 电脑。手机连接密钥与管理员令牌隔离，只有控制端新会话验证 TOTP；网络传输重连不会重放操作。
