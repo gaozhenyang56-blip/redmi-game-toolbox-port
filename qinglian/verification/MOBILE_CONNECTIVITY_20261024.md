@@ -1,3 +1,11 @@
+# 最终部署与交付（2026-10-24）
+
+- gaozy.tech源站/CDN部署40084429142成功：公开证书、本机域名/原IP边界、原节点与计数、Cloudflare严格HTTPS、公开后台登录/API、自动续期均验证。HTTP到HTTPS边缘跳转40085980537成功，无VPN重启。后台为https://gaozy.tech/，不用11451端口。
+- Android20原签名，108测试、lint0错误/41警告。面板revision32，40085769462通过CDN下载、五类API资产（profile/quota/online/telemetry/updates）CDN完整性、两原IP端口及鉴权、版本/签名/长度哈希，发布v20。公开重下：28,352,238字节，SHA256 394aa314fd19108f45392b30c28f22fe0d6ceb43dace2f0c3dab4f81294c3fb9。v19的心跳配置漏迁已由v20补齐，不覆盖旧签名产物。
+- Ubuntu preview4，40085028187通过31逻辑测试、GUI/原生协议/隔离TUN及真实CDN控制API、三通道各1MiB/访客计量和清理并发布。公开deb重下比对hash/runtime源码/CDN配置与原CA：20,868,388字节，SHA256 3211ce9d547f033e930a5a35f3e178bcebbd985f4f86f3da40e67f978013d239。
+- CDN控制与原IP测速/节点限制分离，保留原CA和公网CA各自验证、禁止重定向、POST发送后不重放；不改原HY2参数或额度，不给普通CDN冒充HY2转发功能。服务器复检40085031068成功。
+- 仍无中国移动用户升级后现场反馈，不能称运营商现场已恢复。下面未部署/等待凭据状态均为历史过程。
+
 # 双端修复进展（2026-10-24）
 
 - 用户确认服务器IP能ping通；这只证明ICMP可达，不证明11452的TCP/TLS可达。Ubuntu照片中的curl(28) SSL connection timeout仍是故障证据，不将其等同证书过期或运营商封锁。

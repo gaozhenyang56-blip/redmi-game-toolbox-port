@@ -4,7 +4,7 @@
 
 ## 必需凭据
 
-Cloudflare 已托管 gaozy.tech；DNS 检查确认代理 A/AAAA 返回 Cloudflare 边缘地址。已用明确 Qinglian 客户端标识观察到 521，尚未部署域名源站。
+Cloudflare 已托管 gaozy.tech；DNS 检查确认代理 A/AAAA 返回 Cloudflare 边缘地址。配置前明确Qinglian客户端标识曾观察到521；2026-10-24部署40084429142后，域名后台/API和严格HTTPS验收通过。
 
 在 https://dash.cloudflare.com/profile/api-tokens 创建令牌，区域限定 **gaozy.tech**，权限：
 
@@ -30,4 +30,6 @@ Cloudflare 已托管 gaozy.tech；DNS 检查确认代理 A/AAAA 返回 Cloudflar
 
 JSON GET 的网络或网关错误可切换；证书/权限错误不切换。POST仅在明确TCP/TLS建立前失败可切换，发送后结果未知不重放，不能重复注册或扣导出额度。
 
-Android候选v19 / Ubuntu候选preview4。当前正式可下载仍是Android18和Ubuntu preview3，域名候选包未交付。完成源站/CDN真实检查、双端测试和公开包核验后才更新发布状态。
+已发布Android20（1.1.11-preview）及Ubuntu preview4，见HANDOFF.md首节。Android全部五类API资产（含telemetry在线心跳）在APK发布验收中逐一检查CDN配置，避免只迁配置/更新而漏心跳。Ubuntu生产资产在域名未部署时拒绝发布。
+
+完整域名部署40084429142通过；仅边缘HTTPS跳转40085980537通过。HTTP访问会在Cloudflare直接跳HTTPS，不依赖源站80端口，不重启VPN。工作流mode=https_redirect只调整该开关，检查失败恢复旧值；完整deploy在最后也执行跳转配置。Android40085769462和Ubuntu40085028187已完成实际CDN/产物验收并发布。尚待用户移动网络现场重试；不能保证原VPN数据通道都可达。

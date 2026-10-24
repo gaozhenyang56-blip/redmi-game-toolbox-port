@@ -1,3 +1,7 @@
+# Ubuntu 1.0.0-preview4（2026-10-24，CDN入口已发布）
+
+40085028187成功：31运行逻辑测试、实际GTK/原生协议/隔离TUN、真实gaozy.tech控制API（平台CA）和原IP测速源（专用CA）分离、兼容/HY2保守/高性能三通道各1MiB传输/访客64GiB计量及清理、生产包构建发布。Ubuntu原权限、ChatGPT/TUN/隐私边界未改，POST发送后不重放。公开deb重下核对hash、版本、runtime/app源码、CDN资产及原CA：20,868,388字节，SHA256 3211ce9d547f033e930a5a35f3e178bcebbd985f4f86f3da40e67f978013d239；标签qinglian-ubuntu-v1.0.0-preview4，下一版至少preview5。未取得用户中国移动现场验收。
+
 # Ubuntu 1.0.0-preview3（2026-10-24）
 
 移动网络控制API入口修复，源722ec5b5。API优先固定同服务器HTTPS443，网络失败尝试11452，保留严格CA/主机名/无重定向；POST仅建立连接前失败才重试，可能发送后不重放。保留UI/ChatGPT/TUN权限边界，不改VPN传输或原HY2参数。

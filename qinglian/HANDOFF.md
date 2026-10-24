@@ -1,3 +1,13 @@
+# 2026-10-24 gaozy.tech已上线，Android20 / Ubuntu preview4已交付
+
+用户配置Cloudflare Token后，域名部署40084429142成功：公开源站证书、Full(strict)、域名后台真实登录、App API鉴权、原IP API白名单、原节点配置/计数及certbot.timer自动续期均通过。后台入口 https://gaozy.tech/ 不需旧端口。原IP API与HY2参数/节点保持，Cloudflare不代理HY2 UDP。HTTP根访问原先521，边缘HTTPS跳转40085980537已配置并验证，未再次重启VPN服务。Token只在GitHub Secret和服务器root私有续期INI，不进仓库/App/公开日志。证书与hook路径、回滚见server/DOMAIN_DEPLOY.md。
+
+最终Android 1.1.11-preview/versionCode20，原签名，108单测、lint0错误/41警告通过。完整profile/quota/online/telemetry/updates五个API构建资产均含固定CDN入口，公开APK验收门禁逐一检查，防止在线心跳漏迁。中间v19已由v20替代，不覆写v19签名产物。面板revision32；40085769462通过CDN实际APK下载、全部API资产、两IP端口manifest/权限、原CA/原签名/包名版本及长度哈希验收并发布标签qinglian-android-v1.1.11-preview-v20。公开重下验证：28,352,238字节，SHA256 394aa314fd19108f45392b30c28f22fe0d6ceb43dace2f0c3dab4f81294c3fb9。下一Android至少21。
+
+Ubuntu 1.0.0-preview4，工作流40085028187通过31逻辑测试、GUI/原生协议/隔离TUN、实际CDN控制API和三个通道各1MiB实传/访客计量/清理，并发布标签qinglian-ubuntu-v1.0.0-preview4。公开deb 20,868,388字节，SHA256 3211ce9d547f033e930a5a35f3e178bcebbd985f4f86f3da40e67f978013d239；重下核对manifest、runtime/app源码、CDN配置键与原CA通过。下一Ubuntu至少preview5。
+
+CDN使用平台公网CA，原IP仍用专用CA；所有凭据只发到构建固定入口，不跟随重定向。原服务器测速和Ubuntu TUN节点限制保持原IP，不把CDN吞吐当VPN速度。POST发送后不重放。服务器复检40085031068成功。已询问用户移动网络打开域名是否能显示登录页，尚未收到现场结果；不能将独立公网验收称为中国移动现场恢复，更不能宣称所有VPN数据端口可达。历史候选/未部署段落仅为过程记录。
+
 # gaozy.tech CDN域名候选（Android19 / Ubuntu preview4，等待Cloudflare凭据部署）
 
 用户确认只有移动网络，已将@解析至原服务器，提供域名gaozy.tech。DNS A/AAAA为Cloudflare边缘，NS为glen/holly.ns.cloudflare.com；明确Qinglian客户端UA的HTTPS探测为Cloudflare521。尚未部署域名源站，不得称已解决现场故障。
