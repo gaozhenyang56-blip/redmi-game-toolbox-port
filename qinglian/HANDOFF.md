@@ -6,7 +6,9 @@
 
 候选Android 1.1.10-preview/code19，108单测通过、lint通过、原签名核验；候选Ubuntu 1.0.0-preview4，31运行测试通过，完整Ubuntu CI待跑。CDN使用系统公网CA，原IP继续使用专用CA；JSON和APK控制入口可用域名，测速始终走VPN到原IP，Ubuntu TUN仍限原服务器IP。POST发送后不重放。Robolectric UI测试以专用shadow禁止后台访问真实面板，普通JVM真实TLS/信任测试保持，不修改生产校验。
 
-尚未发布候选19/preview4，现有公开版本仍18/preview3。已要求用户把仅gaozy.tech的Zone DNS Edit/Zone Read/Zone Settings Edit Token存入GitHub Secret QINGLIAN_CLOUDFLARE_TOKEN；不在对话、仓库或App放Token。普通CDN不能直接承载HY2 UDP，不能保证数据通道在移动线路均恢复。下一步先检查Token并部署域名，真实CDN验收成功后再发布双端。
+尚未发布候选19/preview4，现有公开版本仍18/preview3。已要求用户把仅gaozy.tech的Zone DNS Edit/Zone Read/Zone Settings Edit Token存入GitHub Secret QINGLIAN_CLOUDFLARE_TOKEN；不在对话、仓库或App放Token。普通CDN不能直接承载HY2 UDP，不能保证数据通道在移动线路均恢复。下一步先配置Token并部署域名，真实CDN验收成功后再发布双端。
+
+实际域名工作流40082102033已在首个凭据检查停止：QINGLIAN_CLOUDFLARE_TOKEN为空，未执行安装/证书/DNS/SSL/服务修改。Ubuntu完整fixture/GUI/原生协议/隔离TUN工作流40082020427成功；加密备份40082020391成功。发布门禁已准备：Ubuntu生产资产必须包含已部署gaozy.tech；Android v19发布检查必须走已配置CDN下载、原签名/长度哈希和19版本匹配，未部署域名不能误发候选。新workflow通过仅push注册且deploy job仅workflow_dispatch执行（a027059a），实际发布脚本/门禁4c32c74d。
 
 # 2026-10-24 发布后用户仍无法访问（等待网络对照/域名信息）
 

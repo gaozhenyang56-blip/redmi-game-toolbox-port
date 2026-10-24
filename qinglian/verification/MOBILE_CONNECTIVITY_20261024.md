@@ -35,3 +35,5 @@
 用户给出gaozy.tech且已将@指向服务器；公共DNS A/AAAA/NS表明Cloudflare代理开启。默认Python UA被边缘1010拒绝，明确Qinglian客户端UA及curl标识得到521源站连接失败；不能把此结果等同源站服务停机（IP公网仍正常）。准备独立域名公开证书/严格HTTPS和原生域名面板路由，不关闭私有IP API验证；域名域源站未部署前不发布新客户端。
 
 候选Android19共108测试及lint通过、原签名核验；Ubuntu preview4运行31测试通过；Go race及真实SNI选择/原IP证书兼容、域名Host限制和CDN转发头来源测试通过。Cloudflare令牌要求仅gaozy.tech的DNS Edit、Zone Read、Zone Settings Edit，GitHub Secret名QINGLIAN_CLOUDFLARE_TOKEN。实现及部署/回滚见server/DOMAIN_DEPLOY.md，当前等待凭据/生产部署，不能称用户移动网络已恢复。
+
+域名工作流40082102033首个凭据检查确认QINGLIAN_CLOUDFLARE_TOKEN为空，后续所有安装/证书/配置步骤均跳过；无域名源站部署。Ubuntu完整fixture/GUI/协议/隔离TUN验收40082020427成功，加密备份40082020391成功。候选双端均有域名部署完成后的发布门禁，目前仍未发布19/preview4。
