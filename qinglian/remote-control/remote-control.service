@@ -1,0 +1,18 @@
+[Unit]
+Description=Qinglian Android remote control
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/qinglian-remote
+EnvironmentFile=%h/.config/qinglian-remote.env
+ExecStart=/usr/bin/python3 %h/qinglian-remote/server.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+
+[Install]
+WantedBy=default.target
