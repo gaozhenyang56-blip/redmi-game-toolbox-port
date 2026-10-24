@@ -1,5 +1,8 @@
 name: Qinglian domain HTTPS and CDN origin
 on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['.github/workflows/qinglian-domain-deploy.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -8,6 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   domain:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
