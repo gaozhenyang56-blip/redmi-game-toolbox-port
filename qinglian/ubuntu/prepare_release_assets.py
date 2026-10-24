@@ -11,6 +11,7 @@ output=Path(sys.argv[1]); output.mkdir(parents=True,exist_ok=True)
 with connection() as ssh:
     cfg=remote_json(ssh,"import json;from pathlib import Path;c=json.loads(Path('/etc/x-ui/qinglian.json').read_text());print(json.dumps({'host':c['serverAddress'],'port':c['tls']['port'],'clientToken':c['clientToken'],'domain':c['tls'].get('domainName','')}))")
     with ssh.open_sftp() as s: s.get('/etc/x-ui/qinglian/ca.pem',str(output/'api-ca.pem'))
+    if cfg.get('domain')!='gaozy.tech':raise SystemExit('Domain API is not deployed; refusing to publish the CDN desktop release.')
     config={'url':'https://'+cfg['host']+':'+str(cfg['port'])+'/api/v1/profile','clientToken':cfg['clientToken'],'caAsset':'api-ca.pem'}
     if cfg.get('domain'):config['cdnUrl']='https://'+cfg['domain']+'/api/v1/profile'
     (output/'profile.json').write_text(json.dumps(config))

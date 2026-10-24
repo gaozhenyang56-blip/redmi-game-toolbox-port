@@ -11,19 +11,30 @@ import json,sqlite3
 from pathlib import Path
 cfg=json.loads(Path('/etc/x-ui/qinglian.json').read_text());db=sqlite3.connect('file:/etc/x-ui/x-ui.db?mode=ro',uri=True)
 row=db.execute('SELECT value FROM settings WHERE key=?',('webBasePath',)).fetchone()
-print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pem').read_text(),'base':row[0] if row else '/'}))
+print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pem').read_text(),'base':row[0] if row else '/','domain':cfg['tls'].get('domainName','')}))
 """)
-  root=Path(tmp);ca=root/'ca.pem';ca.write_text(data['ca']);opener=urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=str(ca))))
+  class NoRedirect(urllib.request.HTTPRedirectHandler):
+   def redirect_request(self,*args):return None
+  root=Path(tmp);ca=root/'ca.pem';ca.write_text(data['ca']);opener=urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=str(ca))),NoRedirect())
   base='https://'+os.environ['QINGLIAN_SSH_HOST']+':443'+data['base']+'api/v1/'
-  def request(path):return opener.open(urllib.request.Request(base+path,headers={'Authorization':'Bearer '+data['token']}),timeout=30)
+  def request(path):return opener.open(urllib.request.Request(base+path,headers={'Authorization':'Bearer '+data['token'],'User-Agent':'Qinglian/Release-Check','Accept-Encoding':'identity'}),timeout=30)
   with request('updates') as response:value=json.load(response)
   legacy=base.replace(':443',':11452',1)
-  with opener.open(urllib.request.Request(legacy+'updates',headers={'Authorization':'Bearer '+data['token']}),timeout=15) as response:
+  with opener.open(urllib.request.Request(legacy+'updates',headers={'Authorization':'Bearer '+data['token'],'User-Agent':'Qinglian/Release-Check','Accept-Encoding':'identity'}),timeout=15) as response:
    old=json.load(response);assert old['apk']==value['apk'] and old['ui']==value['ui']
   for prefix in (base,legacy):
    try:opener.open(prefix+'updates',timeout=10);raise AssertionError('anonymous updates accepted')
    except urllib.error.HTTPError as error:assert error.code==401
 
+  cdnVerified=False
+  if data.get('domain'):
+   assert data['domain']=='gaozy.tech'
+   cdnBase='https://'+data['domain']+data['base']+'api/v1/'
+   cdnOpener=urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl.create_default_context()),NoRedirect())
+   with cdnOpener.open(urllib.request.Request(cdnBase+'updates',headers={'Authorization':'Bearer '+data['token'],'User-Agent':'Qinglian/Release-Check'}),timeout=30) as response:assert json.load(response)['apk']==value['apk']
+   # Download through the CDN with platform roots; never add the private IP CA
+   # to the public-domain trust store or follow redirects with the bearer.
+   opener=cdnOpener;base=cdnBase;cdnVerified=True
   assert value['schema']==1 and value['apk'];apk=value['apk'];digest=apk['sha256'];assert re.fullmatch('[0-9a-f]{64}',digest) and 0<apk['size']<=64*1024*1024
   path=root/'app.apk';hash=hashlib.sha256();total=0
   with request('apk/'+digest) as response,path.open('wb') as output:
@@ -37,11 +48,11 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
   assert "name='com.gzy.qinglian'" in badging.stdout and "versionCode='"+str(apk['versionCode'])+"'" in badging.stdout
   if os.environ.get('QINGLIAN_EXPECTED_VERSION'):assert apk['versionCode']==int(os.environ['QINGLIAN_EXPECTED_VERSION'])
   if os.environ.get('QINGLIAN_DELIVERY_DIR'):
-   assert apk['versionCode']==18 and apk['versionName']=='1.1.9-preview'
+   assert cdnVerified and apk['versionCode']==19 and apk['versionName']=='1.1.10-preview'
    delivery=Path(os.environ['QINGLIAN_DELIVERY_DIR']);delivery.mkdir(parents=True,exist_ok=True)
    import shutil
-   filename='Qinglian-1.1.9-preview-v18.apk';shutil.copyfile(path,delivery/filename)
+   filename='Qinglian-1.1.10-preview-v19.apk';shutil.copyfile(path,delivery/filename)
    (delivery/'SHA256SUMS.txt').write_text(digest+'  '+filename+'\n')
-  print(json.dumps({'bothHttpsPortsVerified':True,'publicTlsUpdateDownload':True,'sizeAndDigestMatch':True,'originalApkSignatureVerified':True,'packageAndVersionMatch':True,'versionCode':apk['versionCode']}))
+  print(json.dumps({'cdnUpdateDownloadVerified':cdnVerified,'bothHttpsPortsVerified':True,'publicTlsUpdateDownload':True,'sizeAndDigestMatch':True,'originalApkSignatureVerified':True,'packageAndVersionMatch':True,'versionCode':apk['versionCode']}))
 except Exception as error:
  print('Update release verification failed:',type(error).__name__,'; private details suppressed.',file=sys.stderr);sys.exit(1)
