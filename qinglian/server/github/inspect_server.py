@@ -21,7 +21,7 @@ try:
     client.connect(host,port=port,username=user,password=password,look_for_keys=False,allow_agent=False,timeout=15,banner_timeout=15,auth_timeout=15)
     # Only whitelisted metadata. Never print environment, users, passwords, node settings or database records.
     script=r'''python3 - <<'PY'
-import json,os,re,sqlite3,subprocess
+import json,os,re,sqlite3,subprocess,ssl,urllib.request,urllib.error
 from pathlib import Path
 def run(args):
     p=subprocess.run(args,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,timeout=10)
@@ -31,7 +31,7 @@ for line in Path('/etc/os-release').read_text().splitlines():
     if '=' in line:
         k,v=line.split('=',1)
         if k in ('ID','VERSION_ID'):release[k]=v.strip('"')
-result={'os':release,'architecture':run(['uname','-m']),'libc':run(['ldd','--version']).splitlines()[:1],
+result={'serverUtc':run(['date','-u','+%Y-%m-%dT%H:%M:%SZ']),'os':release,'architecture':run(['uname','-m']),'libc':run(['ldd','--version']).splitlines()[:1],
         'serviceActive':run(['systemctl','is-active','x-ui']),
         'serviceUnit':run(['systemctl','show','x-ui','-p','FragmentPath','--value']),
         'workingDirectory':run(['systemctl','show','x-ui','-p','WorkingDirectory','--value'])}
@@ -58,9 +58,21 @@ if cgroup.startswith('/'):
 journal=run(['journalctl','-u','qinglian-exports','--since','12 hours ago','--no-pager','-o','cat'])
 result['serviceIncidentCounts']={word:len(re.findall(word,journal,re.I)) for word in ['oom','killed','memory','failed','restart','traceback']}
 stat=os.statvfs('/etc/x-ui');result['availableDiskBytes']=stat.f_bavail*stat.f_frsize
+result['hy2Service']=run(['systemctl','show','qinglian-hy2','-p','ActiveState','-p','Result','-p','NRestarts','-p','User'])
+result['apiCaCertificate']=run(['openssl','x509','-in','/etc/x-ui/qinglian/ca.pem','-noout','-fingerprint','-sha256','-dates'])
+result['apiLeafCertificate']=run(['openssl','x509','-in','/etc/x-ui/qinglian/server.pem','-noout','-fingerprint','-sha256','-dates'])
 config=Path('/etc/x-ui/qinglian.json')
 if config.is_file():
- cfg=json.loads(config.read_text());connection=sqlite3.connect('file:'+cfg['statePath']+'?mode=ro',uri=True)
+ cfg=json.loads(config.read_text())
+ try:
+  db=sqlite3.connect('file:/etc/x-ui/x-ui.db?mode=ro',uri=True)
+  row=db.execute('SELECT value FROM settings WHERE key=?',('webBasePath',)).fetchone();db.close();base=row[0] if row else '/'
+  request=urllib.request.Request('https://127.0.0.1:'+str(cfg['tls']['port'])+base+'api/v1/quota',headers={'Authorization':'Bearer '+cfg['clientToken']})
+  opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile='/etc/x-ui/qinglian/ca.pem')))
+  with opener.open(request,timeout=3) as response:result['localQuotaApiStatus']=response.status
+ except urllib.error.HTTPError as error:result['localQuotaApiStatus']=error.code
+ except Exception as error:result['localQuotaApiError']=type(error).__name__
+ connection=sqlite3.connect('file:'+cfg['statePath']+'?mode=ro',uri=True)
  result['nodeStates']=[list(row) for row in connection.execute('SELECT kind,protocol,status,COUNT(*),MAX(up+down) FROM exports GROUP BY kind,protocol,status')]
  result['nodeDataTypes']=[list(row) for row in connection.execute('SELECT typeof(up),typeof(down),COUNT(*) FROM exports GROUP BY typeof(up),typeof(down)')]
  connection.close()
