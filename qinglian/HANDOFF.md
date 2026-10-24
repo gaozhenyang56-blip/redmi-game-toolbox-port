@@ -1,3 +1,15 @@
+# 2026-10-24 Android21 HY2首连容错与安全诊断（已发布，手机HY2仍待验证）
+
+用户最终更正：仅测试Android，兼容可连接，只有HY2加速失败；报错仅泛称“网络连接错误”。因此未部署/提交新的CDN数据通道，也未改可用TCP/服务端HY2参数。独立公网40087013898仍通过VLESS/Trojan及同凭据双HY2实传，不能替代中国移动验证。
+
+只读UDP包头窗口40088065762已结束（100秒），仅统计长度/方向/数量，无pcap、无peer或负载内容日志。窗口有accountRange Rx67/Tx68、内核无错误，最多1个活动HY2 worker；用户明确跳过配合试连，因此不能将这些包归因其手机，不能判定该手机UDP可达或被封锁。勿再次要求其保持加速反复测试。
+
+已修复客户端容错缺口：新建HY2核心的链路验证读取等待由3秒改12秒，总验证15秒有界，单独watchdog检查取消/截止；正常TCP及运行中健康检查仍原3秒读取/8秒总预算。未跳过真实1字节代理验证，未自动重建访客会话/额度。连接失败按profile/core/verify/network/vpn/relay阶段给安全错误码；原生日志只在内存提取固定TLS/认证/UDP/超时类别，不显示、保存或上传原文。取消不再误报连接失败。
+
+Android1.1.12-preview/code21，111测试通过，lint0错误/41警告、原签名保持；实际延迟HTTP夹具3.6秒可通过HY2首次预算，而普通预算3秒超时；已进入读头阻塞后取消约0.1秒通过，均不是实体手机测试。面板revision33；40089775248通过CDN下载、全部5个API资产、两IP端口、原CA/签名/版本和长度哈希并发布。公开重下核验28,353,926字节，SHA256 b121bf3538b2ef93d6174e5cf5c8653b7b87ca6fd38c30ac9094fa483c40f66b，标签qinglian-android-v1.1.12-preview-v21。下一Android至少22。Ubuntu仍preview4，未因手机单端问题重发。
+
+此更新改善慢握手容错及可诊断性，不代表已确认移动HY2恢复，不能宣称解除运营商UDP限制。兼容通道是用户已确认可用路径。若之后仍失败，应依据新安全错误码继续，不凭未知来源UDP窗口或仅ping结果盲调服务器。
+
 # 2026-10-24 gaozy.tech已上线，Android20 / Ubuntu preview4已交付
 
 用户配置Cloudflare Token后，域名部署40084429142成功：公开源站证书、Full(strict)、域名后台真实登录、App API鉴权、原IP API白名单、原节点配置/计数及certbot.timer自动续期均通过。后台入口 https://gaozy.tech/ 不需旧端口。原IP API与HY2参数/节点保持，Cloudflare不代理HY2 UDP。HTTP根访问原先521，边缘HTTPS跳转40085980537已配置并验证，未再次重启VPN服务。Token只在GitHub Secret和服务器root私有续期INI，不进仓库/App/公开日志。证书与hook路径、回滚见server/DOMAIN_DEPLOY.md。
