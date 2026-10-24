@@ -36,10 +36,14 @@ var qExportRoute = regexp.MustCompile(`^(register|login|logout|bind|quota|profil
 var qUnavailable = errors.New("qinglian unavailable")
 
 type qTLSConfig struct {
-	Port        int    `json:"port"`
-	HTTPSPort   int    `json:"httpsPort,omitempty"`
-	Certificate string `json:"certificate"`
-	PrivateKey  string `json:"privateKey"`
+	Port              int      `json:"port"`
+	HTTPSPort         int      `json:"httpsPort,omitempty"`
+	DomainName        string   `json:"domainName,omitempty"`
+	DomainCertificate string   `json:"domainCertificate,omitempty"`
+	DomainPrivateKey  string   `json:"domainPrivateKey,omitempty"`
+	CDNCIDRs          []string `json:"cdnCidrs,omitempty"`
+	Certificate       string   `json:"certificate"`
+	PrivateKey        string   `json:"privateKey"`
 }
 type qConfig struct {
 	OwnerID           int        `json:"ownerId"`
@@ -624,6 +628,10 @@ func (a *QinglianController) StartTLS(engine http.Handler) error {
 	if err != nil {
 		return err
 	}
+	domainCertificate, cdnNetworks, err := a.domainTLS()
+	if err != nil {
+		return err
+	}
 	listener, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", strconv.Itoa(a.cfg.TLS.Port)))
 	if err != nil {
 		return err
@@ -641,7 +649,11 @@ func (a *QinglianController) StartTLS(engine http.Handler) error {
 				}
 			}
 		})}
+	server.Handler = a.domainHandler(server.Handler, engine, cdnNetworks)
 	tlsConfig := &tls.Config{Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS12, NextProtos: []string{"http/1.1"}}
+	if domainCertificate != nil {
+		tlsConfig.Certificates = append(tlsConfig.Certificates, *domainCertificate)
+	}
 	// Bind every configured listener before serving any of them. On failure no
 	// half-installed listener or background goroutine may survive.
 	var https net.Listener

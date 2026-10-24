@@ -5,6 +5,7 @@ import hashlib
 import http.client
 import json
 import os
+import re
 from pathlib import Path
 import secrets
 import shutil
@@ -133,6 +134,14 @@ class ApiHandler(urllib.request.HTTPSHandler):
     def https_open(self, request):
         return self.do_open(ApiConnection, request, context=self._context)
 
+def cdn_base(config):
+    if 'cdnUrl' not in config:return None
+    parsed=urllib.parse.urlsplit(config['cdnUrl']);origin=urllib.parse.urlsplit(config['url'])
+    if (parsed.scheme!='https' or parsed.username is not None or parsed.fragment or parsed.query or parsed.port not in (None,443)
+        or not re.fullmatch(r'[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+',parsed.hostname or '')
+        or parsed.hostname==origin.hostname or parsed.path!=origin.path):raise ValueError('无效固定CDN入口')
+    return urllib.parse.urljoin(config['cdnUrl'],'./')
+
 def api_routes(base):
     parsed=urllib.parse.urlsplit(base)
     if parsed.port != 11452:
@@ -149,30 +158,37 @@ class Api:
         parsed = urllib.parse.urlsplit(config['url'])
         if parsed.scheme != 'https' or parsed.username or parsed.fragment: raise ValueError('无效接口配置')
         self.base = urllib.parse.urljoin(config['url'], './')
+        self.origin_base = api_routes(self.base)[0]
+        self.cdn_base = cdn_base(config)
         self.context = ssl.create_default_context(cafile=str(ROOT/config['caAsset']))
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), ApiHandler(context=self.context), NoRedirect())
+        self.cdn_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}),ApiHandler(context=ssl.create_default_context()),NoRedirect()) if self.cdn_base else None
         STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.device = device_identity()
         self.account = read(STATE/'account.json', {})
         self.guest = None
     def request(self, path, body=None, token=None, bootstrap=False):
-        headers = {'Content-Type':'application/json','Accept':'application/json','X-Qinglian-Device':self.device}
+        headers = {'User-Agent':'Qinglian/Ubuntu-preview4','Content-Type':'application/json','Accept':'application/json','X-Qinglian-Device':self.device}
         token = self.config['clientToken'] if bootstrap else (token or self.account.get('token'))
         if token: headers['Authorization'] = 'Bearer '+token
         bases=api_routes(urllib.parse.urljoin(self.config['url'],'./'))
+        cdn=cdn_base(self.config)
+        if cdn:bases.insert(0,cdn)
         if self.base in bases:
             # Remember the working port across polling and guest/account requests.
             if getattr(self,'route_ready',False): bases.remove(self.base); bases.insert(0,self.base)
         for index,base in enumerate(bases):
             request = urllib.request.Request(urllib.parse.urljoin(base,path), data=None if body is None else json.dumps(body).encode(), headers=headers)
             try:
-                with self.opener.open(request, timeout=5) as r:
+                with (self.cdn_opener if cdn and base==cdn else self.opener).open(request, timeout=5) as r:
                     data = r.read(524289)
                     if len(data)>524288: raise RuntimeError('接口响应过大')
                     result=json.loads(data)
                     self.base=base; self.route_ready=True
+                    if base!=cdn:self.origin_base=base
                     return result
             except urllib.error.HTTPError as e:
+                if body is None and (e.code in (502,503,504) or 520<=e.code<=526) and index+1<len(bases):continue
                 messages = {401:'登录已失效，请重新登录',403:'权限或配额不足',409:'设备已注册、请求冲突或资源忙',429:'请求过快或并发已满，请稍后重试'}
                 raise RuntimeError(messages.get(e.code, '面板请求失败（HTTP %d）'%e.code)) from None
             except (urllib.error.URLError, TimeoutError, OSError) as error:
@@ -213,7 +229,7 @@ class Api:
     def verify_proxy(self):
         token=self.account.get('token') or self.guest['sessionKey']
         group='exports' if self.account else 'guest'
-        request=urllib.request.Request(urllib.parse.urljoin(self.base,group+'/speed?bytes=1'),headers={'Authorization':'Bearer '+token,'X-Qinglian-Device':self.device,'Accept-Encoding':'identity'})
+        request=urllib.request.Request(urllib.parse.urljoin(getattr(self,'origin_base',self.base),group+'/speed?bytes=1'),headers={'Authorization':'Bearer '+token,'X-Qinglian-Device':self.device,'Accept-Encoding':'identity'})
         opener=urllib.request.build_opener(urllib.request.ProxyHandler({'https':'http://127.0.0.1:10809'}),urllib.request.HTTPSHandler(context=self.context),NoRedirect())
         try:
             with opener.open(request,timeout=10) as r:
@@ -297,7 +313,7 @@ class Connection:
                 if self.cancel.wait(.5): raise RuntimeError('已取消连接')
             if node is None: raise RuntimeError('专属节点仍在启动，请稍后重试')
             if tun:
-                server=urllib.parse.urlsplit(self.api.base).hostname
+                server=urllib.parse.urlsplit(getattr(self.api,'origin_base',self.api.base)).hostname
                 nodes=[node]+([node['compatibility']] if 'compatibility' in node else [])
                 if any(n.get('add')!=server for n in nodes):
                     raise RuntimeError('TUN 仅支持面板同服务器节点，当前节点地址不匹配；可使用系统代理模式。')
@@ -401,7 +417,7 @@ class Connection:
         total=total_mib*1048576; done=0; start=time.monotonic()
         while done<total and not cancel.is_set() and time.monotonic()-start<180:
             size=min(33554432,total-done)
-            url=urllib.parse.urljoin(self.api.base,group+'/speed?bytes='+str(size))
+            url=urllib.parse.urljoin(getattr(self.api,'origin_base',self.api.base),group+'/speed?bytes='+str(size))
             req=urllib.request.Request(url,headers={'Authorization':'Bearer '+token,'X-Qinglian-Device':self.api.device,'Accept-Encoding':'identity'})
             with opener.open(req,timeout=10) as r:
                 if r.headers.get('X-Qinglian-Speed')!='server-v1' or r.headers.get('Content-Length')!=str(size): raise RuntimeError('测速响应标识或长度不匹配')

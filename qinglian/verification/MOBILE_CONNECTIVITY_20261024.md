@@ -29,3 +29,9 @@
 用户称仍无法访问且原VPN后台亦失败，尚无新版curl详情或其他网络对照；不能把已发布等同实际故障解决。只读40079747621（08:52UTC）：x-ui/HY2/exports active，443/11451/11452监听，本机API200。40079749747公网协议实传复检成功。只读40079841768（08:54UTC）：GitHub运行器匿名公网API443/11452均401、后台HTTP11451=200。增强检查只读公开CA、不发送Bearer或面板凭据、拒绝重定向，只记录状态码/异常类型，未修改服务或防火墙。等待用户其他网络对照/可用域名后决定下一入口方案。
 
 用户后续确认目前只有移动网络无法对比，有可用域名；已请求具体域名及DNS平台/Cloudflare接入状态，以便准备独立访问入口，尚未提供域名。
+
+## gaozy.tech 域名候选
+
+用户给出gaozy.tech且已将@指向服务器；公共DNS A/AAAA/NS表明Cloudflare代理开启。默认Python UA被边缘1010拒绝，明确Qinglian客户端UA及curl标识得到521源站连接失败；不能把此结果等同源站服务停机（IP公网仍正常）。准备独立域名公开证书/严格HTTPS和原生域名面板路由，不关闭私有IP API验证；域名域源站未部署前不发布新客户端。
+
+候选Android19共108测试及lint通过、原签名核验；Ubuntu preview4运行31测试通过；Go race及真实SNI选择/原IP证书兼容、域名Host限制和CDN转发头来源测试通过。Cloudflare令牌要求仅gaozy.tech的DNS Edit、Zone Read、Zone Settings Edit，GitHub Secret名QINGLIAN_CLOUDFLARE_TOKEN。实现及部署/回滚见server/DOMAIN_DEPLOY.md，当前等待凭据/生产部署，不能称用户移动网络已恢复。

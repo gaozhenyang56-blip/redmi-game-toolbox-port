@@ -3,6 +3,7 @@
 Uses the existing pinned SSH connection to provision private API assets in a temp dir.
 """
 import json
+import urllib.parse
 import os
 from pathlib import Path
 import sys
@@ -18,11 +19,13 @@ os.umask(0o077)
 LIB=Path('/usr/lib/qinglian')
 with connection() as ssh,tempfile.TemporaryDirectory() as d:
     root=Path(d); lib=root/'lib'; lib.mkdir(); state=root/'state'; state.mkdir()
-    cfg=remote_json(ssh,"import json;from pathlib import Path;c=json.loads(Path('/etc/x-ui/qinglian.json').read_text());print(json.dumps({'host':c['serverAddress'],'port':c['tls']['port'],'statePath':c['statePath'],'clientToken':c['clientToken']}))")
+    cfg=remote_json(ssh,"import json;from pathlib import Path;c=json.loads(Path('/etc/x-ui/qinglian.json').read_text());print(json.dumps({'host':c['serverAddress'],'port':c['tls']['port'],'statePath':c['statePath'],'clientToken':c['clientToken'],'domain':c['tls'].get('domainName','')}))")
     with ssh.open_sftp() as s: s.get('/etc/x-ui/qinglian/ca.pem',str(lib/'api-ca.pem'))
     for name in ('node-config.jar','json.jar','v2ray','hysteria','tun2socks','geoip.dat','geosite.dat','runtime.py'):
         (lib/name).symlink_to(LIB/name)
     runtime.save(lib/'profile.json',dict(url='https://'+cfg['host']+':'+str(cfg['port'])+'/api/v1/profile',clientToken=cfg['clientToken'],caAsset='api-ca.pem'))
+    if cfg.get('domain'):
+        value=runtime.read(lib/'profile.json');value['cdnUrl']='https://'+cfg['domain']+'/api/v1/profile';runtime.save(lib/'profile.json',value)
     runtime.ROOT=lib; runtime.STATE=state
     api=runtime.Api()
     # A public probe never impersonates a real system identity, even on a reused runner image.
@@ -30,6 +33,10 @@ with connection() as ssh,tempfile.TemporaryDirectory() as d:
     api.device=secrets.token_hex(32); device=api.device
     try:
         for path in ('online','quota'): assert isinstance(api.request(path,bootstrap=True),dict)
+        if cfg.get('domain'):
+            assert urllib.parse.urlsplit(api.base).hostname==cfg['domain'], 'CDN route not used'
+            assert urllib.parse.urlsplit(api.origin_base).hostname==cfg['host'], 'speed must keep original metered origin'
+            print('PASS: CDN control API / public TLS / original private-CA speed origin')
         for accelerated,performance in ((False,False),(True,False),(True,True)):
             events=[]; c=runtime.Connection(api,lambda e,v:events.append((e,v)))
             with patch.object(runtime.ProxySettings,'enable'),patch.object(runtime.ProxySettings,'close'):

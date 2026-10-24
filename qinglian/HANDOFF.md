@@ -1,3 +1,13 @@
+# gaozy.tech CDN域名候选（Android19 / Ubuntu preview4，等待Cloudflare凭据部署）
+
+用户确认只有移动网络，已将@解析至原服务器，提供域名gaozy.tech。DNS A/AAAA为Cloudflare边缘，NS为glen/holly.ns.cloudflare.com；明确Qinglian客户端UA的HTTPS探测为Cloudflare521。尚未部署域名源站，不得称已解决现场故障。
+
+已准备原生SNI证书/域名Host双匹配的HTTPS面板和API；IP客户端仍为原API白名单。仅真实Cloudflare源网段可将CF-Connecting-IP归一化到RemoteAddr，移除其余转发头，保留测速/统计边界。原IP私有CA和域名公开证书独立；不关闭TLS。域名部署workflow仅手动触发，先校验QINGLIAN_CLOUDFLARE_TOKEN，再加密备份、Go race、certbot DNS-01公开证书/自动续期、严格HTTPS、原节点计数和公网面板登录/API检查；失败回滚原二进制/配置/Cloudflare模式。详细步骤见server/DOMAIN_DEPLOY.md。
+
+候选Android 1.1.10-preview/code19，108单测通过、lint通过、原签名核验；候选Ubuntu 1.0.0-preview4，31运行测试通过，完整Ubuntu CI待跑。CDN使用系统公网CA，原IP继续使用专用CA；JSON和APK控制入口可用域名，测速始终走VPN到原IP，Ubuntu TUN仍限原服务器IP。POST发送后不重放。Robolectric UI测试以专用shadow禁止后台访问真实面板，普通JVM真实TLS/信任测试保持，不修改生产校验。
+
+尚未发布候选19/preview4，现有公开版本仍18/preview3。已要求用户把仅gaozy.tech的Zone DNS Edit/Zone Read/Zone Settings Edit Token存入GitHub Secret QINGLIAN_CLOUDFLARE_TOKEN；不在对话、仓库或App放Token。普通CDN不能直接承载HY2 UDP，不能保证数据通道在移动线路均恢复。下一步先检查Token并部署域名，真实CDN验收成功后再发布双端。
+
 # 2026-10-24 发布后用户仍无法访问（等待网络对照/域名信息）
 
 用户报告仍无法访问、VPN后台也打不开，前述Android18/Ubuntu preview3不能称为已解决其现场故障。08:52UTC只读40079747621确认x-ui/HY2/exports active，TCP443/11451/11452监听，本机配额200；40079749747重新实传检查成功。08:54UTC只读40079841768增加GitHub运行器匿名公网探测：API443=401、API11452=401（鉴权正常）、原面板HTTP11451=200。没有发现服务器停机，也不能据此断言中国移动封锁。

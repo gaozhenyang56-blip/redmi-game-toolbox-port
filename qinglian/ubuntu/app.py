@@ -14,7 +14,7 @@ from gi.repository import Gtk, Gdk, GLib, Gio, Pango
 from runtime import Api, Connection, STATE, ROOT, CONSENT, read, save, restore_proxy
 from ui import CSS, Icon, Clamp, Columns, Segments, FrostedPanel, Sparkline
 
-VERSION='1.0.0-preview3'
+VERSION='1.0.0-preview4'
 
 def label(text='',style=None):
     w=Gtk.Label(label=text,xalign=0); w.set_line_wrap(True); w.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR); w.set_max_width_chars(64)

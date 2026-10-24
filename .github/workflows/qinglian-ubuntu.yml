@@ -96,15 +96,15 @@ jobs:
       - name: Build production desktop package
         run: |
           mkdir -p "$RUNNER_TEMP/delivery"
-          python3 qinglian/ubuntu/build.py --assets "$RUNNER_TEMP/app-assets" --output "$RUNNER_TEMP/delivery/Qinglian-1.0.0-preview3-amd64.deb"
+          python3 qinglian/ubuntu/build.py --assets "$RUNNER_TEMP/app-assets" --output "$RUNNER_TEMP/delivery/Qinglian-1.0.0-preview4-amd64.deb"
           cp qinglian/ubuntu/README.md "$RUNNER_TEMP/delivery/Qinglian-Ubuntu-Guide.md"
           cd "$RUNNER_TEMP/delivery"
-          sha256sum Qinglian-1.0.0-preview3-amd64.deb Qinglian-Ubuntu-Guide.md > Qinglian-Ubuntu-SHA256SUMS.txt
+          sha256sum Qinglian-1.0.0-preview4-amd64.deb Qinglian-Ubuntu-Guide.md > Qinglian-Ubuntu-SHA256SUMS.txt
       - name: Publish dedicated Ubuntu prerelease using the repository identity
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create qinglian-ubuntu-v1.0.0-preview3 -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title '轻连 Ubuntu 1.0.0-preview3' --notes-file qinglian/ubuntu/RELEASE_NOTES.md "$RUNNER_TEMP/delivery/Qinglian-1.0.0-preview3-amd64.deb" "$RUNNER_TEMP/delivery/Qinglian-Ubuntu-SHA256SUMS.txt" "$RUNNER_TEMP/delivery/Qinglian-Ubuntu-Guide.md"
+          gh release create qinglian-ubuntu-v1.0.0-preview4 -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title '轻连 Ubuntu 1.0.0-preview4' --notes-file qinglian/ubuntu/RELEASE_NOTES.md "$RUNNER_TEMP/delivery/Qinglian-1.0.0-preview4-amd64.deb" "$RUNNER_TEMP/delivery/Qinglian-Ubuntu-SHA256SUMS.txt" "$RUNNER_TEMP/delivery/Qinglian-Ubuntu-Guide.md"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: qinglian-ubuntu-production-package

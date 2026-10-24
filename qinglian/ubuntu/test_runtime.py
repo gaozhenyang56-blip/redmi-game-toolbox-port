@@ -42,7 +42,7 @@ class RuntimeTests(unittest.TestCase):
             self.assertIn('撤销未确认',api.logout()); self.assertFalse(api.account)
             self.assertFalse((Path(d)/'account.json').exists())
     def test_proxy_verification_requires_exact_private_api_response(self):
-        api=runtime.Api.__new__(runtime.Api); api.account={'token':'fixture'}; api.base='https://example.invalid/api/v1/'; api.device='a'*64; api.context=MagicMock()
+        api=runtime.Api.__new__(runtime.Api); api.account={'token':'fixture'}; api.base='https://cdn.example.invalid/api/v1/'; api.origin_base='https://example.invalid/api/v1/'; api.device='a'*64; api.context=MagicMock()
         response=MagicMock(); response.__enter__.return_value=response
         response.headers={'X-Qinglian-Speed':'server-v1','Content-Length':'1'}; response.read.return_value=b'x'
         opener=MagicMock(); opener.open.return_value=response
@@ -114,6 +114,27 @@ class RuntimeTests(unittest.TestCase):
         with self.assertRaises(runtime.urllib.error.URLError) as failure:
             opener(context).open('https://127.0.0.1:%d/api/v1/quota'%port,timeout=3)
         self.assertIsInstance(failure.exception.reason,runtime.BeforeSendError)
+    def test_cdn_route_has_separate_opener_and_origin_fallback(self):
+        api,response=self.fallback_api();api.config['cdnUrl']='https://cdn.fixture.invalid/api/v1/profile'
+        api.cdn_opener=MagicMock();api.cdn_opener.open.return_value=response
+        self.assertTrue(api.request('exports/quota')['ok']);api.opener.open.assert_not_called()
+        self.assertEqual(api.base,'https://cdn.fixture.invalid/api/v1/')
+        api.cdn_opener.open.side_effect=runtime.urllib.error.URLError(runtime.BeforeSendError())
+        api.opener.open.return_value=response
+        self.assertTrue(api.request('exports/register',{'username':'fixture'})['ok'])
+        self.assertIn(':443/',api.origin_base);self.assertNotIn('cdn.',api.origin_base)
+    def test_cdn_config_rejects_redirect_style_or_path_changes(self):
+        original={'url':'https://203.0.113.1:11452/api/v1/profile'}
+        for url in ['http://cdn.fixture.invalid/api/v1/profile','https://user@cdn.fixture.invalid/api/v1/profile','https://cdn.fixture.invalid/api/v1/other','https://cdn.fixture.invalid:8443/api/v1/profile','https://cdn.fixture.invalid/api/v1/profile?redirect=elsewhere','https://cdn.fixture.invalid/api/v1/profile#fragment','https://203.0.113.1/api/v1/profile']:
+            with self.assertRaises(ValueError):runtime.cdn_base({**original,'cdnUrl':url})
+    def test_cdn_gateway_get_retry_never_replays_post(self):
+        api,response=self.fallback_api();api.config['cdnUrl']='https://cdn.fixture.invalid/api/v1/profile';api.cdn_opener=MagicMock()
+        api.cdn_opener.open.side_effect=runtime.urllib.error.HTTPError('https://cdn.fixture.invalid',521,'',{},None)
+        api.opener.open.return_value=response
+        self.assertTrue(api.request('exports/quota')['ok'])
+        api.route_ready=False;api.opener.open.reset_mock()
+        with self.assertRaises(RuntimeError):api.request('exports/nodes',{'requestId':'fixture'})
+        api.opener.open.assert_not_called()
     def test_api_routes_cannot_change_host_or_other_service_ports(self):
         self.assertEqual(runtime.api_routes('https://fixed.invalid:11452/api/v1/'),['https://fixed.invalid:443/api/v1/','https://fixed.invalid:11452/api/v1/'])
         self.assertEqual(runtime.api_routes('https://fixed.invalid:18443/'),['https://fixed.invalid:18443/'])
@@ -207,7 +228,7 @@ class RuntimeTests(unittest.TestCase):
         for size in (0,2049):
             with self.assertRaises(ValueError): c.speed(size,threading.Event(),lambda *_:None)
     def test_speed_no_direct_and_exact_size(self):
-        api=MagicMock(); api.account={'token':'fixture'}; api.base='https://example.invalid/api/v1/'; api.device='f'*64
+        api=MagicMock(); api.account={'token':'fixture'}; api.base='https://cdn.example.invalid/api/v1/'; api.origin_base='https://example.invalid/api/v1/'; api.device='f'*64
         c=runtime.Connection(api,lambda *_:None); c.connected=True
         response=MagicMock(); response.__enter__.return_value=response
         response.headers={'X-Qinglian-Speed':'server-v1','Content-Length':str(1048576)}
@@ -219,7 +240,7 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(sizes[-1],1); self.assertIn('已完成',result)
         self.assertEqual(opener.open.call_args.args[0].full_url,'https://example.invalid/api/v1/exports/speed?bytes=1048576')
     def test_speed_failure_not_retried_direct(self):
-        api=MagicMock(); api.account={'token':'fixture'}; api.base='https://example.invalid/api/v1/'
+        api=MagicMock(); api.account={'token':'fixture'}; api.base='https://cdn.example.invalid/api/v1/'; api.origin_base='https://example.invalid/api/v1/'
         c=runtime.Connection(api,lambda *_:None); c.connected=True
         opener=MagicMock(); opener.open.side_effect=OSError('fixture')
         with patch.object(runtime.urllib.request,'build_opener',return_value=opener):
