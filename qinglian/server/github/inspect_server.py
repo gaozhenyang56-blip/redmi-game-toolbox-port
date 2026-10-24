@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """GitHub runner SSH inspection. Never installs, restarts or edits server files."""
-import base64,hashlib,json,os,socket,sys
+import base64,hashlib,json,os,socket,sys,ssl,tempfile,urllib.request,urllib.error
 import paramiko
 host=os.environ.get('QINGLIAN_SSH_HOST','').strip()
 password=os.environ.get('QINGLIAN_SSH_PASSWORD','')
@@ -91,6 +91,20 @@ PY'''
     result=json.loads(data)
     # The whitelist above contains no addresses or credential fields. Mask host if a path unexpectedly includes it.
     print(json.dumps(result,ensure_ascii=False).replace(host,'[server]'))
+    # Anonymous runner-side probes, public CA only. No bearer or panel credentials.
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self,*args):return None
+    checks={}
+    with tempfile.TemporaryDirectory() as temp:
+        ca=temp+'/ca.pem'
+        with client.open_sftp() as sftp:sftp.get('/etc/x-ui/qinglian/ca.pem',ca)
+        opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=ca)),NoRedirect())
+        for port,scheme,path in [(443,'https','/api/v1/quota'),(11452,'https','/api/v1/quota'),(11451,'http','/')]:
+            try:
+                with opener.open(scheme+'://'+host+':'+str(port)+path,timeout=8) as response:checks[str(port)]=response.status
+            except urllib.error.HTTPError as error:checks[str(port)]=error.code
+            except Exception as error:checks[str(port)]=type(error).__name__
+    print(json.dumps({'anonymousPublicConnectivity':checks}))
     print('SSH inspection successful; server files and services unchanged.')
 except Exception as error:
     print('SSH inspection failed:',type(error).__name__,file=sys.stderr)
