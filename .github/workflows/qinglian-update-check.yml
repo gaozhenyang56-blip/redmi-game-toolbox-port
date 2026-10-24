@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       release:
-        description: Publish the verified original-signed Android v19 APK
+        description: Publish the verified original-signed Android v20 APK
         type: boolean
         default: false
 permissions:
@@ -23,7 +23,7 @@ jobs:
       - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
       - name: Verify private-CA download and original signed APK
         env:
-          QINGLIAN_EXPECTED_VERSION: ${{ inputs.release && '19' || '' }}
+          QINGLIAN_EXPECTED_VERSION: ${{ inputs.release && '20' || '' }}
           QINGLIAN_DELIVERY_DIR: ${{ inputs.release && format('{0}/delivery', runner.temp) || '' }}
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: github.event_name == 'workflow_dispatch' && inputs.release
         with:
-          name: qinglian-android-v19-verified
+          name: qinglian-android-v20-verified
           path: ${{ runner.temp }}/delivery/
           if-no-files-found: error
   release:
@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: qinglian-android-v19-verified
+          name: qinglian-android-v20-verified
           path: delivery
       - name: Publish the verified Android package
         env:
@@ -53,4 +53,4 @@ jobs:
         run: |
           cd delivery
           sha256sum -c SHA256SUMS.txt
-          gh release create qinglian-android-v1.1.10-preview-v19 -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title '轻连 Android 1.1.10-preview · v19' --notes '域名/CDN控制入口：优先gaozy.tech，使用系统公网CA；保留原IP443/11452专用CA入口及固定主机边界。原服务器测速仍经VPN到原IP，不把CDN速度当作VPN速度；TUN仍限原服务器。POST发送后不自动重放。108项Android单测和lint通过，原签名保留。普通CDN不代理HY2 UDP，移动网络数据通道仍需用户现场验收。' Qinglian-1.1.10-preview-v19.apk SHA256SUMS.txt
+          gh release create qinglian-android-v1.1.11-preview-v20 -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title '轻连 Android 1.1.11-preview · v20' --notes '域名/CDN控制入口（含在线心跳）：优先gaozy.tech，使用系统公网CA；保留原IP443/11452专用CA入口及固定主机边界。原服务器测速仍经VPN到原IP，不把CDN速度当作VPN速度；TUN仍限原服务器。POST发送后不自动重放。108项Android单测和lint通过，原签名保留。普通CDN不代理HY2 UDP，移动网络数据通道仍需用户现场验收。' Qinglian-1.1.11-preview-v20.apk SHA256SUMS.txt

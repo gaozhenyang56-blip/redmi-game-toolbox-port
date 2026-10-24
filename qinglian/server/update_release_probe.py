@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Read-only update-channel acceptance: TLS, bytes, APK signature and version."""
-import hashlib,json,os,re,ssl,subprocess,sys,tempfile,urllib.request,urllib.error
+import hashlib,json,os,re,ssl,subprocess,sys,tempfile,urllib.request,urllib.error,zipfile,urllib.parse
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).parent/'github'))
 from ssh_common import connection,remote_json
@@ -41,6 +41,19 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
    while chunk:=response.read(65536):
     total+=len(chunk);assert total<=apk['size'];output.write(chunk);hash.update(chunk)
   assert total==apk['size'] and hash.hexdigest()==digest
+  if cdnVerified:
+   checked=set()
+   with zipfile.ZipFile(path) as archive:
+    for name in archive.namelist():
+     if not name.startswith('assets/') or not name.endswith('.json') or '.example.' in name:continue
+     assert archive.getinfo(name).file_size<=8192,'Unexpected bootstrap JSON size'
+     asset=json.loads(archive.read(name))
+     if isinstance(asset,dict) and 'url' in asset and 'clientToken' in asset:
+      assert asset.get('cdnUrl')=='https://'+data['domain']+urllib.parse.urlsplit(asset['url']).path,'API asset missing the configured CDN route'
+      assert set(asset)<=set(['url','cdnUrl','clientToken','caAsset'])
+      checked.add(name)
+   assert {'assets/profile.json','assets/quota.json','assets/online.json','assets/telemetry.json','assets/updates.json'}<=checked
+
   sdk=Path(os.environ.get('ANDROID_HOME','/usr/local/lib/android/sdk'));signers=sorted(sdk.glob('build-tools/*/apksigner'));assert signers,'Android verifier unavailable'
   signer=signers[-1];verified=subprocess.run([str(signer),'verify','--print-certs',str(path)],capture_output=True,text=True,timeout=30)
   assert verified.returncode==0 and '2e90d97183fbe26c05a8bd67454b0a5d0f5c01633609a335fdff693a4774a870' in verified.stdout.lower().replace(':','')
@@ -48,11 +61,11 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
   assert "name='com.gzy.qinglian'" in badging.stdout and "versionCode='"+str(apk['versionCode'])+"'" in badging.stdout
   if os.environ.get('QINGLIAN_EXPECTED_VERSION'):assert apk['versionCode']==int(os.environ['QINGLIAN_EXPECTED_VERSION'])
   if os.environ.get('QINGLIAN_DELIVERY_DIR'):
-   assert cdnVerified and apk['versionCode']==19 and apk['versionName']=='1.1.10-preview'
+   assert cdnVerified and apk['versionCode']==20 and apk['versionName']=='1.1.11-preview'
    delivery=Path(os.environ['QINGLIAN_DELIVERY_DIR']);delivery.mkdir(parents=True,exist_ok=True)
    import shutil
-   filename='Qinglian-1.1.10-preview-v19.apk';shutil.copyfile(path,delivery/filename)
+   filename='Qinglian-1.1.11-preview-v20.apk';shutil.copyfile(path,delivery/filename)
    (delivery/'SHA256SUMS.txt').write_text(digest+'  '+filename+'\n')
-  print(json.dumps({'cdnUpdateDownloadVerified':cdnVerified,'bothHttpsPortsVerified':True,'publicTlsUpdateDownload':True,'sizeAndDigestMatch':True,'originalApkSignatureVerified':True,'packageAndVersionMatch':True,'versionCode':apk['versionCode']}))
+  print(json.dumps({'allApiAssetsCdnVerified':cdnVerified,'cdnUpdateDownloadVerified':cdnVerified,'bothHttpsPortsVerified':True,'publicTlsUpdateDownload':True,'sizeAndDigestMatch':True,'originalApkSignatureVerified':True,'packageAndVersionMatch':True,'versionCode':apk['versionCode']}))
 except Exception as error:
  print('Update release verification failed:',type(error).__name__,'; private details suppressed.',file=sys.stderr);sys.exit(1)
