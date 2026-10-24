@@ -4,6 +4,12 @@ on:
     branches: [codex/qinglian-routing-and-presence]
     paths: ['.github/workflows/qinglian-domain-deploy.yml']
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Full domain setup or edge-only HTTPS redirect
+        type: choice
+        options: [deploy, https_redirect]
+        default: deploy
 permissions:
   contents: read
 concurrency:
@@ -11,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   domain:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.mode != 'https_redirect'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -65,3 +71,20 @@ jobs:
           QINGLIAN_CLOUDFLARE_TOKEN: ${{ secrets.QINGLIAN_CLOUDFLARE_TOKEN }}
           QINGLIAN_SERVER_BINARY: ${{ runner.temp }}/qinglian-x-ui
         run: python3 qinglian/server/github/domain_deploy.py
+      - name: Redirect HTTP visits to verified strict HTTPS
+        env:
+          QINGLIAN_CLOUDFLARE_TOKEN: ${{ secrets.QINGLIAN_CLOUDFLARE_TOKEN }}
+        run: python3 qinglian/server/github/domain_https_redirect.py
+  https-redirect:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'https_redirect'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian/server/github
+      - name: Redirect HTTP visits without restarting VPN services
+        env:
+          QINGLIAN_CLOUDFLARE_TOKEN: ${{ secrets.QINGLIAN_CLOUDFLARE_TOKEN }}
+        run: python3 qinglian/server/github/domain_https_redirect.py
