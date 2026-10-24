@@ -75,26 +75,27 @@ public class TunnelService extends VpnService {
    .addAction(new Notification.Action.Builder(null,"断开",stop).build()).build();
  }
  private void connect(){
+  String phase="permission";
   try {
    if(prepare(this)!=null)throw new IOException("请先允许系统 VPN 权限");
-   AppRouting routing=AppRouting.load(this);routing.plan(this);
-   go.Seq.setContext(getApplicationContext());
+   phase="routing";AppRouting routing=AppRouting.load(this);routing.plan(this);
+   phase="core";go.Seq.setContext(getApplicationContext());
    if(routing.bypassChina())GeoAssets.prepare(this);
    Libv2ray.initCoreEnv(getFilesDir().getAbsolutePath(),"");
    bypassChina=routing.bypassChina();
-   ProfileMonitor.Profile profile=selectedProfile.automatic&&ProfileMonitor.configured(this)?chooseInitialChannel():ProfileMonitor.forConnection(this);
-   configureProfile(profile);startCore();
-   probe(1);verified=true;
+   phase="profile";ProfileMonitor.Profile profile=selectedProfile.automatic&&ProfileMonitor.configured(this)?chooseInitialChannel():ProfileMonitor.forConnection(this);
+   phase="core";configureProfile(profile);startCore();
+   phase="verify";probe(1);verified=true;
    if(cancelled){cleanup();return;}
-   trackNetwork();
-   Builder b=new Builder().setSession("轻连 · 专属节点").setMtu(1500)
+   phase="network";trackNetwork();
+   phase="vpn";Builder b=new Builder().setSession("轻连 · 专属节点").setMtu(1500)
     .addAddress("10.10.14.1",30).addRoute("0.0.0.0",0).addDnsServer("1.1.1.1").addDnsServer("8.8.8.8")
     .addAddress("fdfe:dcba:9876::1",126).addRoute("::",0);
    routing.apply(this,b);routingStatus=routing.title();
    b.setConfigureIntent(PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class),PendingIntent.FLAG_IMMUTABLE));
    if(Build.VERSION.SDK_INT>=29)b.setMetered(false);
    tun=b.establish();if(tun==null)throw new IOException("系统未建立 VPN 接口");
-   startRelay();
+   phase="relay";startRelay();
    if(cancelled){cleanup();return;}
    uploadBytes=0;downloadBytes=0;uploadRate=0;downloadRate=0;statsTick=SystemClock.elapsedRealtime();
    connectedAt=SystemClock.elapsedRealtime();status("connected","网络验证成功 · 专属通道运行中");
@@ -121,7 +122,12 @@ public class TunnelService extends VpnService {
     }catch(Exception ignored){}
    },1,1,TimeUnit.SECONDS);
    if(selectedProfile.automatic){healthWorker=Executors.newSingleThreadScheduledExecutor();healthWorker.scheduleWithFixedDelay(this::checkChannel,45,45,TimeUnit.SECONDS);}
-  }catch(Throwable e){fail(e.getMessage()!=null&&e.getMessage().startsWith("请先")?e.getMessage():"连接失败，请检查网络或重新连接");}
+  }catch(Throwable e){
+   if(cancelled){cleanup();stopSelf();return;}
+   String nativeCode="";for(Hy2Client client:hy2Clients)if(!client.failureCode().isEmpty()){nativeCode=client.failureCode();break;}
+   boolean hy2=runningNode!=null?activeProtocol.startsWith("HYSTERIA2"):selectedProfile!=null&&selectedProfile.accelerated;
+   fail(ConnectionFailure.message(phase,hy2,nativeCode,e));
+  }
  }
  void trackNetwork(){
    cm=getSystemService(ConnectivityManager.class);
@@ -193,7 +199,7 @@ public class TunnelService extends VpnService {
   }finally{recovering.set(false);}});}catch(RejectedExecutionException stopped){recovering.set(false);}
  }
  ProfileMonitor.Bundle candidates()throws Exception{return ProfileMonitor.candidates(this);}
- long probe(long bytes)throws Exception{return ConnectionProbe.measure(this,bytes,()->cancelled||Thread.currentThread().isInterrupted());}
+ long probe(long bytes)throws Exception{return ConnectionProbe.measure(this,bytes,()->cancelled||Thread.currentThread().isInterrupted(),runningNode!=null&&NodeConfig.protocol(new org.json.JSONObject(runningNode)).equals("hysteria2"));}
  void configureProfile(ProfileMonitor.Profile profile)throws Exception{
   runningNode=profile.node;org.json.JSONObject n=new org.json.JSONObject(runningNode);boolean hy2=NodeConfig.protocol(n).equals("hysteria2");
   runningConfig=NodeConfig.build(runningNode,bypassChina,hy2&&selectedProfile.multipath?2:1,selectedProfile.reuse);
