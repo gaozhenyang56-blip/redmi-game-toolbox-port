@@ -1,7 +1,7 @@
-build/
-output/
-decoded/build/
-decoded/dist/
-*.p12
-*.jks
-*.keystore
+.gradle/
+.idea/
+local.properties
+/build/
+/app/build/
+*.iml
+*.apk
