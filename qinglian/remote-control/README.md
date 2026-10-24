@@ -33,7 +33,7 @@ python3 server.py --relay --host 127.0.0.1 --port 8765
 
 初始化令牌和手机密钥由部署脚本随机生成，仅保存在服务器 root 私有配置。Actions 只输出以本次交付公钥加密的信封，私钥不进入 Git/Actions，不在公开日志输出密钥。不要删除已经部署服务使用的私有配置；服务代码回滚不等于重置验证器。
 
-Ubuntu 客户端启动：`python3 ubuntu_client.py --url https://服务器:18443/`。支持脚本安装桌面菜单（默认 localhost，部署后可自行调整 Exec 的 --url 参数）。
+Ubuntu 客户端默认指向已部署的 `https://107.150.7.124:18443/`。其他服务器可指定：`python3 ubuntu_client.py --url https://服务器:18443/`。支持脚本安装桌面菜单（默认已部署后台，可自行调整 Exec 的 --url 参数）。
 
 下文保留 0.1 的可选外接 ADB 主机模式说明，**不再是本次手机被控端的默认方案**。
 

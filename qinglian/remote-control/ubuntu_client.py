@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 
 def main():
     parser = argparse.ArgumentParser(description='轻连远控 Ubuntu 客户端')
-    parser.add_argument('--url', default='http://127.0.0.1:8765/')
+    parser.add_argument('--url', default='https://107.150.7.124:18443/')
     args = parser.parse_args()
     url = urlsplit(args.url)
     if url.username or url.password or url.fragment or url.query or not url.hostname:

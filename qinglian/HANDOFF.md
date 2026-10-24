@@ -1,3 +1,21 @@
+# 手机客户端远控 0.2（2026-10-24，服务器已部署）
+
+用户最终明确：网页与 Ubuntu 客户端通过手机客户端控制，手机客户端支持 Shizuku 或 ADB 直接授权，控制端每次连接 TOTP，后台可生成 TOTP 密钥。新增独立 `qinglian/remote-control/android-agent`（包名 com.gzy.qinglian.remote、versionCode1、debug 测试签名），手机主动 HTTPS 长轮询中继，不再依赖常开外接 ADB 电脑。手机连接密钥与管理员令牌隔离，只有控制端新会话验证 TOTP；网络传输重连不会重放操作。
+
+后台 `https://107.150.7.124:18443/` 已由专用 `qinglian-remote.service` 部署，记录：https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/actions/runs/40062228900 。原 SSH Secrets / 固定主机密钥复用；服务/目录/证书独立，无原 VPN、x-ui、节点/数据库修改。外网严格CA/IP校验通过页面200、匿名控制401。使用独立自签证书，需要信任交付CA；不能关闭证书校验。根私有配置 `/etc/qinglian-remote`，TOTP绑定状态 `/var/lib/qinglian-remote`，版本化代码 `/opt/qinglian-remote/releases`。新服务不纳入旧备份脚本，后续升级/整机备份需单独覆盖私有配置和绑定状态。
+
+后台初次以管理员令牌生成密钥及otpauth URI，验证码确认才生效；更换需旧码并确认新码，旧会话撤销。初始化令牌/手机密钥仅存在服务器root私有配置及会话私有交付文件，公开Actions仅有RSA/AES-GCM密文。不要提交实际密钥。当前尚未代用户绑定真实验证器。
+
+验证：12项Python/HTTP测试、浏览器实际生成/确认绑定/退出/新页重验/桌面手机布局与零JS异常通过；Android assembleDebug/lintDebug通过（0错误/10警告，含ADB入口内部API兼容性警告），APK签名结构验证通过。**没有真机授权/息屏采集/24小时运行或Ubuntu GTK显示验收**，不得称为这些通过。ADB直接授权App进程重建/重启后可能需重跑授权脚本；Shizuku同样需保持服务有效。截图约1FPS、不绕过密码锁屏。
+
+# 手机远控独立原型（2026-10-24，未部署）
+
+用户新增需求：Ubuntu 客户端或网页通过 ADB 全天候控制手机，检测亮/息屏、唤醒/解锁，每次连接需要 TOTP。新增 `remote-control/`，不改原 VPN、x-ui、Android versionCode/签名或现有服务。默认按常开 USB ADB 主机实现，用户尚未确认最终接入拓扑。
+
+- Python 标准库本机代理、中文网页截图/触控、Ubuntu GTK3/WebKit2 临时窗口；独立访问令牌 + 每次连接 TOTP、私有文件重放保护、失败限速、内存会话。只解除无密码锁屏，不绕过 PIN/密码/图案。截图约1FPS，尚无息屏保持视频能力。
+- SSH 隧道辅助复用原 SSH 主机/用户/端口及固定主机指纹；不读取 Actions Secrets、不部署生产。systemd 用户服务及安装步骤见 `remote-control/README.md`。
+- 8 项 Python/HTTP 测试、Python/JS/shell 语法检查通过。未接入手机、未做 Ubuntu GTK 显示及 24 小时验收、未连接服务器；不能称为已上线或真机可用。
+
 # v17 手机版连接优化（2026-10-20，已发布）
 
 用户最终确认：只有多条HY2隧道放实验室；TCP协议对照、复用保活、自动选择直接作为正式功能。Android 1.1.8-preview/versionCode17，原签名；Ubuntu preview2不重新发布。已完成103项Android测试、lint0错误/41警告、Go race及真实V2Ray/TLS/Mux/双HY2分流计量检查；服务端加密备份/升级39502475591通过，配置/入站/计数保留；公网39503352519通过VLESS/Trojan TLS、VLESS Mux及双HY2两标签实际传输，合计2.5MiB、同一访客64GiB/无域名记录，仅清理随机测试设备。面板revision27已发布v17，发布下载核验39503677955通过原CA/哈希/原签名/版本；GitHub独立标签`qinglian-android-v1.1.8-preview-v17`，28,351,422字节，SHA256 `ae0a9c9e6730cfbfb79290af9646234776b6d3dcb18e2c04fb35e14d3dc2d4fe`。下一版至少18。

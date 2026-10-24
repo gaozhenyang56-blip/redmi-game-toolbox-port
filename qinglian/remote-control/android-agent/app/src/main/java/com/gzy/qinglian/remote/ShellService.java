@@ -14,7 +14,7 @@ public final class ShellService extends IShell.Stub {
     private static final int LIMIT = 16 * 1024 * 1024;
     public ShellService() {}
     private byte[] run(String... argv) throws Exception {
-        Process p = new ProcessBuilder(argv).redirectError(ProcessBuilder.Redirect.DISCARD).start();
+        Process p = new ProcessBuilder(argv).redirectError(ProcessBuilder.Redirect.to(new File("/dev/null"))).start();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         final Exception[] failure = {null};
         Thread reader = new Thread(() -> {

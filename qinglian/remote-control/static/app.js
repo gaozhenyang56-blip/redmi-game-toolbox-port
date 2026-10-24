@@ -68,7 +68,9 @@ async function control(data) {
 function logout() {
   if (token) api('/api/logout', {}).catch(() => {});
   token = ''; generation++; preview = false; gesture = null;
-  clearFrame(); updatePreview(); $('login').hidden = false; $('token').value = '';
+  clearFrame(); updatePreview(); $('login').hidden = false;
+  for(const id of ['token','otp','totp-secret','totp-uri','enroll-code']) $(id).value='';
+  $('enroll-panel').hidden=true; enrollment=null;
   render({connected:false,screen:'unknown',locked:null}); $('connection').textContent = '尚未连接';
 }
 $('login-form').addEventListener('submit', async e => {

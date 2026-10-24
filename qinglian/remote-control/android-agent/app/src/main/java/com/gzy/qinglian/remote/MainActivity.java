@@ -18,13 +18,13 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
         Shizuku.addRequestPermissionResultListener(permission);
-        LinearLayout layout = new LinearLayout(this); layout.setOrientation(1); layout.setPadding(36,48,36,24);
+        LinearLayout layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL); layout.setPadding(36,48,36,24);
         ScrollView scroll = new ScrollView(this); scroll.addView(layout); setContentView(scroll);
         TextView title = new TextView(this); title.setText("轻连 · 手机被控端"); title.setTextSize(25); layout.addView(title);
         TextView info = new TextView(this); info.setText("本机主动连接服务器，供网页与 Ubuntu 客户端操作。\n支持 Shizuku 授权或电脑 ADB 直接授权。连接期间有常驻通知，可随时停止。控制端每次登录必须验证 TOTP。\n"); layout.addView(info);
         endpoint = new EditText(this); endpoint.setHint("服务器 HTTPS 地址，例如 https://服务器:18443");
         endpoint.setSingleLine(true); endpoint.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_URI);
-        endpoint.setText(getPreferences(0).getString("endpoint","")); layout.addView(endpoint);
+        endpoint.setText(getPreferences(0).getString("endpoint","https://107.150.7.124:18443")); layout.addView(endpoint);
         token = new EditText(this); token.setHint("手机专用连接密钥（不是管理员令牌）"); token.setSingleLine(true);
         token.setSaveEnabled(false); token.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD); layout.addView(token);
         Button grant = new Button(this); grant.setText("授权 Shizuku 控制权限"); layout.addView(grant);
@@ -44,7 +44,7 @@ public final class MainActivity extends Activity {
             }
             getPreferences(0).edit().putString("endpoint",endpoint.getText().toString().trim()).apply();
             startForegroundService(new Intent(this,AgentService.class).putExtra("endpoint",endpoint.getText().toString().trim()).putExtra("token",token.getText().toString().trim()));
-            token.setText(""); status.setText("已发起连接，连接状态见常驻通知；后台与手机令牌均不会写入界面存储");
+            token.setText(""); status.setText("已发起连接，权限来源："+(AdbReceiver.shell!=null ? "ADB 直接授权":"Shizuku")+"。连接状态见常驻通知。");
         });
         Button stop = new Button(this); stop.setText("停止远程控制"); layout.addView(stop);
         stop.setOnClickListener(v -> {stopService(new Intent(this,AgentService.class)); status.setText("已停止远程控制");});
