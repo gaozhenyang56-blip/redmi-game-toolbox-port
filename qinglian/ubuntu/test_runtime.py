@@ -83,6 +83,37 @@ class RuntimeTests(unittest.TestCase):
         api,response=self.fallback_api();response.read.return_value=b'x'*524289;api.opener.open.return_value=response
         with self.assertRaisesRegex(RuntimeError,'响应过大'):api.request('exports/quota')
         self.assertEqual(api.opener.open.call_count,1)
+    def test_real_api_handler_tls_ca_hostname_and_presend_failure(self):
+        # Exercise the real urllib handler, not a mock opener. This guards
+        # Ubuntu Python 3.12 compatibility and the TLS boundary in one request.
+        import http.server
+        import ssl
+        fixture=Path(__file__).resolve().parents[1]/'app/src/test/resources'
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200);self.send_header('Content-Length','11');self.end_headers();self.wfile.write(b'{"ok":true}')
+            def log_message(self,*args):pass
+        server=http.server.HTTPServer(('127.0.0.1',0),Handler)
+        tls=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        tls.load_cert_chain(str(fixture/'tls-server-cert.pem'),str(fixture/'tls-server-key.pem'))
+        server.socket=tls.wrap_socket(server.socket,server_side=True)
+        port=server.server_port
+        thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        def opener(context):
+            return runtime.urllib.request.build_opener(runtime.urllib.request.ProxyHandler({}),runtime.ApiHandler(context=context),runtime.NoRedirect())
+        context=ssl.create_default_context(cafile=str(fixture/'tls-ca.pem'))
+        try:
+            with opener(context).open('https://127.0.0.1:%d/api/v1/quota'%port,timeout=3) as response:
+                self.assertEqual(json.load(response),{'ok':True})
+            for host,trust in [('localhost',context),('127.0.0.1',ssl.create_default_context())]:
+                with self.assertRaises(runtime.urllib.error.URLError) as failure:
+                    opener(trust).open('https://%s:%d/api/v1/quota'%(host,port),timeout=3)
+                self.assertIsInstance(failure.exception.reason,ssl.SSLCertVerificationError)
+        finally:
+            server.shutdown();server.server_close();thread.join(timeout=3)
+        with self.assertRaises(runtime.urllib.error.URLError) as failure:
+            opener(context).open('https://127.0.0.1:%d/api/v1/quota'%port,timeout=3)
+        self.assertIsInstance(failure.exception.reason,runtime.BeforeSendError)
     def test_api_routes_cannot_change_host_or_other_service_ports(self):
         self.assertEqual(runtime.api_routes('https://fixed.invalid:11452/api/v1/'),['https://fixed.invalid:443/api/v1/','https://fixed.invalid:11452/api/v1/'])
         self.assertEqual(runtime.api_routes('https://fixed.invalid:18443/'),['https://fixed.invalid:18443/'])

@@ -131,7 +131,7 @@ class ApiConnection(http.client.HTTPSConnection):
 
 class ApiHandler(urllib.request.HTTPSHandler):
     def https_open(self, request):
-        return self.do_open(ApiConnection, request, context=self._context, check_hostname=self._check_hostname)
+        return self.do_open(ApiConnection, request, context=self._context)
 
 def api_routes(base):
     parsed=urllib.parse.urlsplit(base)
