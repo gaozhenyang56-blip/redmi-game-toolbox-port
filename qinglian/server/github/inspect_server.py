@@ -61,6 +61,11 @@ stat=os.statvfs('/etc/x-ui');result['availableDiskBytes']=stat.f_bavail*stat.f_f
 result['hy2Service']=run(['systemctl','show','qinglian-hy2','-p','ActiveState','-p','Result','-p','NRestarts','-p','User'])
 result['apiCaCertificate']=run(['openssl','x509','-in','/etc/x-ui/qinglian/ca.pem','-noout','-fingerprint','-sha256','-dates'])
 result['apiLeafCertificate']=run(['openssl','x509','-in','/etc/x-ui/qinglian/server.pem','-noout','-fingerprint','-sha256','-dates'])
+# Listener metadata only: omit peer endpoints, process command lines and settings.
+listeners=run(['ss','-H','-lntu'])
+result['listeningPorts']=sorted({(line.split()[0],line.split()[4].rsplit(':',1)[-1]) for line in listeners.splitlines() if len(line.split())>=5})
+connection=sqlite3.connect('file:/etc/x-ui/x-ui.db?mode=ro',uri=True)
+result['inboundPorts']=[list(row) for row in connection.execute('SELECT protocol,port,enable FROM inbounds')];connection.close()
 config=Path('/etc/x-ui/qinglian.json')
 if config.is_file():
  cfg=json.loads(config.read_text())
