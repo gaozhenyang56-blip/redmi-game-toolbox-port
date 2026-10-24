@@ -1,3 +1,11 @@
+# Ubuntu 1.0.0-preview3（2026-10-24）
+
+移动网络控制API入口修复，源722ec5b5。API优先固定同服务器HTTPS443，网络失败尝试11452，保留严格CA/主机名/无重定向；POST仅建立连接前失败才重试，可能发送后不重放。保留UI/ChatGPT/TUN权限边界，不改VPN传输或原HY2参数。
+
+28运行逻辑测试含真实urllib TLS：正确CA/IP成功、未知CA/错误主机名失败、TCP建立失败标记、双入口切换与POST/HTTP/响应大小边界。Python3.12真实HTTPSHandler兼容问题已修复并加入回归，未发布失败的构建。
+
+工作流40078759209成功：Ubuntu24.04实际安装/卸载、GTK、原生协议、隔离TUN、三个通道各1MiB公网传输/64GiB访客计量与清理，以及生产包构建发布。公开标签qinglian-ubuntu-v1.0.0-preview3，Deb版本1.0.0~preview3/amd64，20,869,764字节，SHA256 bf66114fc61caeb3c05aa727ead88374110c13ad22b9d8f004a944d573f3055a；公开重下比对manifest、runtime/app源码和原CA通过。尚无用户中国移动热点升级后现场验收。
+
 # Ubuntu 1.0.0-preview2 验证（2026-10-20）
 
 本次仅Ubuntu界面、原生GTK/Cairo/Pillow组件和包依赖，runtime/TUN/原生核心/Android/面板不变。保留preview1已完成的公网三通道3MiB计量基线，不以UI fixture冒充公网连接。

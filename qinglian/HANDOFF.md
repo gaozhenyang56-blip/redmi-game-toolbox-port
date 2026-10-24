@@ -1,3 +1,13 @@
+# 2026-10-24 双端移动网络 API 入口修复（Android18 / Ubuntu preview3均已发布）
+
+用户确认服务器能ping通，要求修复Android和Ubuntu。故障证据是Ubuntu独立curl到11452的SSL握手超时，不能据此说IP整体不可达或已确认运营商封锁。增加同服务器TCP443 API入口，保留TCP11452；原HY2 UDP443不变。x-ui直接TLS监听，保留真实peer，两个入口共享原CA、主机名校验和API白名单，均不开放面板管理。新配置tls.httpsPort仅允许0/443；所有端口绑定成功后才启动，失败释放已绑定端口。部署先加密备份，本机或公网检查失败回滚原二进制和配置。生产40078130882已成功，两入口本机/公网严格TLS验证通过，原入站配置与计数保留。
+
+Android 1.1.9-preview/versionCode18原签名，105项单测、lint0错误/41警告通过。API优先443，网络失败尝试11452并记住本次可用端口；原始HTTP权限/配额错误和证书验证失败不切换。POST只允许在TCP/TLS建立前失败时重试，可能发送后不重放，避免重复注册/导出。测速和APK下载使用已确认的入口，仍经原代理/严格CA/长度哈希与原签名验证。面板发布revision30；40078479664完成两端口API与APK下载/哈希/原签名/版本验收并发布GitHub标签qinglian-android-v1.1.9-preview-v18。公开APK已重新下载核验，28,351,794字节，SHA256 b2c61fdf2f155705da2b0dc0923f4f98918f37d9ddba22e98a43cc8e38120707。下一Android版本至少19。
+
+Ubuntu 1.0.0-preview3相同固定端口策略，保留原桌面、ChatGPT和TUN边界。运行逻辑28项（包含真实urllib HTTPS、正确CA/IP成功及未知CA/错误主机名失败）本地通过。Python3.12 HTTPSHandler兼容性已修复，不引用不存在的_check_hostname属性。最终工作流40078759209成功：Ubuntu24.04安装/卸载、GUI、原生协议、隔离TUN及兼容/HY2保守/HY2高性能各1MiB真实公网传输/访客计量/清理通过。标签qinglian-ubuntu-v1.0.0-preview3，20,869,764字节，SHA256 bf66114fc61caeb3c05aa727ead88374110c13ad22b9d8f004a944d573f3055a；公开重下核对manifest哈希、Deb版本/架构、实际runtime源码与原CA通过。Ubuntu下一版至少preview4。
+
+本修复针对节点获取前的控制API；未改VPN传输协议、用户账号/配额、原HY2参数或其他AstrBot/NapCat/remote-control服务。未取得中国移动用户现场重测，不声称所有端口/网络已恢复，也未部署CDN。详见verification/MOBILE_CONNECTIVITY_20261024.md。
+
 # 2026-10-24 移动网络连接故障排查（Ubuntu API TLS握手超时）
 
 照片确认Ubuntu GUI在获取节点前无法连接面板；中国移动网络独立curl报(28) SSL connection timeout，系统时间正常，尚待非移动Wi-Fi对照。只读40072035438/40072340528及公网40072215503确认服务active、配额未耗尽、API200、CA与App一致且未过期、VLESS/Trojan/双HY2实传成功；不能称用户已恢复，也不能确定运营商封锁。只读端口40074421151确认TCP443空闲、UDP443为HY2，TCP11452正常；18443为独立远控不可占用。未部署替代入口，不能用丢失原始peer地址的简单代理绕过测速来源边界。仅更新只读诊断和记录，未重启生产/改节点/清额度，未发新App。详见verification/MOBILE_CONNECTIVITY_20261024.md。远端其他会话新增的AstrBot/NapCat/remote-control已同步保留，不修改这些项目。
