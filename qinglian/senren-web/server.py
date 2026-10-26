@@ -7,11 +7,15 @@ from file_manager import Files,FileError
 from xml.sax.saxutils import escape
 ROOT=Path(__file__).resolve().parent
 class Handler(BaseHTTPRequestHandler):
+ protocol_version='HTTP/1.1'
+ def setup(self):
+  super().setup();self.connection.settimeout(30)
  def log_message(self,*args):pass
  def authorized(self):
   expected=self.server.preview_auth
   if expected is None:return True
   if hmac.compare_digest(self.headers.get('Authorization','').encode(),expected.encode()):return True
+  self.close_connection=True
   self.send_response(401);self.common_headers();self.send_header('WWW-Authenticate','Basic realm="Senren Private Preview", charset="UTF-8"');self.send_header('Content-Length','0');self.end_headers();return False
  def do_HEAD(self):
   if self.authorized():self.handle_file(False)
@@ -64,7 +68,18 @@ class Handler(BaseHTTPRequestHandler):
    if length<0:raise FileError(411,'需要内容长度')
    manager=self.server.files;path=urlsplit(self.path).path
    self.connection.settimeout(180)
-   if self.command=='PUT' and path=='/api/admin/upload':
+   if self.command=='PUT' and path=='/api/admin/archive':
+    name=parse_qs(urlsplit(self.path).query).get('filename',[''])[0]
+    preview=manager.preview_archive(name,self.rfile,length)
+    return self.send_data(200,json.dumps(preview,ensure_ascii=False).encode(),'application/json',True)
+   elif self.command=='POST' and path in ('/api/admin/archive-deploy','/api/admin/archive-cancel'):
+    if length>1024:raise FileError(413,'请求过大')
+    try:data=json.loads(self.rfile.read(length))
+    except (ValueError,UnicodeError):raise FileError(400,'请求格式无效')
+    if not isinstance(data,dict):raise FileError(400,'请求格式无效')
+    if path.endswith('-deploy'):manager.deploy_archive(data.get('id'))
+    else:manager.cancel_archive(data.get('id'))
+   elif self.command=='PUT' and path=='/api/admin/upload':
     name=parse_qs(urlsplit(self.path).query).get('path',[''])[0]
     manager.upload(name,self.rfile,length,self.headers.get('X-File-Version'))
    elif self.command=='POST' and path in ('/api/admin/edit','/api/admin/delete','/api/admin/rename','/api/admin/reset','/api/admin/restore'):
@@ -96,6 +111,8 @@ class Handler(BaseHTTPRequestHandler):
    game=ROOT/'game-manifest.json';info=ROOT/'game-info.json'
    data={'ready':game.exists(),'engineReady':all((ROOT/'engine'/name).exists() for name in ['index.html','index.js','index.wasm','assets.zip'])}
    if info.exists():data.update(json.loads(info.read_text()))
+   state=self.server.files.state if self.server.files else None
+   data['resourceRevision']=str(game.stat().st_mtime_ns if game.exists() else 0)+'-'+str(state.stat().st_mtime_ns if state and state.exists() else 0)
    return self.send_data(200,json.dumps(data,ensure_ascii=False).encode(),'application/json',body)
   if path=='/':target=ROOT/'web/index.html'
   elif path=='/admin' and self.server.files:target=ROOT/'web/admin.html'
@@ -131,7 +148,7 @@ class Handler(BaseHTTPRequestHandler):
   self.send_response(status);self.common_headers()
   kind='application/wasm' if target.suffix=='.wasm' else mimetypes.guess_type(str(target))[0] or 'application/octet-stream'
   self.send_header('Content-Type',kind);self.send_header('Content-Length',str(end-start+1));self.send_header('Accept-Ranges','bytes');self.send_header('ETag',etag)
-  self.send_header('Cache-Control','no-cache')
+  self.send_header('Cache-Control','private, max-age=86400' if target.is_relative_to(ROOT/'engine') and target.suffix in ('.wasm','.zip','.js','.png') else 'no-cache')
   if status==206:self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
   self.end_headers()
   if body:
@@ -147,6 +164,11 @@ class Handler(BaseHTTPRequestHandler):
   self.send_response(200);self.common_headers();self.send_header('Allow','GET, HEAD, OPTIONS, PROPFIND');self.send_header('DAV','1');self.send_header('Content-Length','0');self.end_headers()
  def do_PROPFIND(self):
   if not self.authorized():return
+  try:length=int(self.headers.get('Content-Length','0'))
+  except ValueError:length=-1
+  if self.headers.get('Transfer-Encoding') or not 0<=length<=65536:
+   self.close_connection=True;return self.send_data(400,b'Invalid request body','text/plain',True)
+  if length:self.rfile.read(length)
   path=unquote(urlsplit(self.path).path)
   config=self.config()
   if not path.startswith('/game/') or not config:return self.send_data(404,b'Not found','text/plain',True)

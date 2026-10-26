@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Private preview first; prepare large game assets on the disposable runner."""
-import base64,concurrent.futures,hashlib,json,os,shutil,ssl,struct,subprocess,sys,tarfile,tempfile,time,urllib.request,urllib.error
+import base64,concurrent.futures,hashlib,io,zipfile,json,os,shutil,ssl,struct,subprocess,sys,tarfile,tempfile,time,urllib.request,urllib.error
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'server/github'))
 from ssh_common import connection,remote_json
@@ -60,7 +60,14 @@ def verify(data):
     try:admin_request('/api/admin/files',extra={'Authorization':''});raise RuntimeError('Anonymous admin access allowed')
     except urllib.error.HTTPError as error:
      if error.code!=401:raise
-    print('TEST_FILE_ADMIN_UPLOAD_READ_RESET_AUTH_VERIFIED')
+    archive=io.BytesIO()
+    with zipfile.ZipFile(archive,'w') as package:package.writestr('archive-check/'+probe,b'archive-upload-check')
+    staged=json.loads(admin_request('/api/admin/archive?filename=check.zip','PUT',archive.getvalue(),{'X-Admin-Token':token}))
+    admin_request('/api/admin/archive-deploy','POST',json.dumps({'id':staged['id']}).encode(),mutation)
+    if admin_request('/game/archive-check/'+probe)!=b'archive-upload-check':raise RuntimeError('Archive resource not visible')
+    listing=json.loads(admin_request('/api/admin/files'));version=next(f['version'] for f in listing['files'] if f['path']=='archive-check/'+probe)
+    admin_request('/api/admin/reset','POST',json.dumps({'path':'archive-check/'+probe,'version':version}).encode(),mutation)
+    print('TEST_FILE_ADMIN_AND_ARCHIVE_UPLOAD_DEPLOY_RESET_AUTH_VERIFIED')
 
 with connection() as client:
  client.get_transport().set_keepalive(20)
@@ -81,12 +88,14 @@ print(json.dumps(credentials))
   for path in ROOT.rglob('*'):
    if not path.is_file() or '__pycache__' in path.parts or path.name.startswith('.'):continue
    relative=path.relative_to(ROOT)
-   if relative.parts[0] not in ('engine','web','compat','tools') and path.name not in ('server.py','accounts.py','file_manager.py','download-input.enc.json'):continue
+   if relative.parts[0] not in ('engine','web','compat','tools') and path.name not in ('server.py','accounts.py','file_manager.py','safe_archive.py','download-input.enc.json'):continue
    mkdir(sftp,DEST+'/'+str(relative.parent));sftp.put(str(path),DEST+'/'+str(relative))
  entry=r'''
 import json,os,subprocess
 from pathlib import Path
 root=Path('/opt/senren-web');release=Path(RELEASE)
+import ctypes.util
+if not ctypes.util.find_library('archive'):raise RuntimeError('libarchive must be installed before archive deployment')
 if subprocess.run(['id','-u','senren-web'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode:subprocess.run(['useradd','--system','--home','/var/lib/senren-web','--shell','/usr/sbin/nologin','senren-web'],check=True)
 state=Path('/var/lib/senren-web');state.mkdir(mode=0o700,exist_ok=True);subprocess.run(['chown','senren-web:senren-web',str(state)],check=True)
 for label,port in [('preview',18444),('test',18445)]:

@@ -62,6 +62,21 @@ class HTTPTests(FileTests):
   self.assertEqual(self.post('edit',edit)[0],200);self.assertEqual(self.post('edit',edit)[0],409)
   self.assertEqual(self.files.target('config.tjs').read_text(encoding='utf-16'),'修改中文')
   self.assertEqual((self.base/'config.tjs').read_text(encoding='utf-16'),'中文原版')
+ def test_keepalive_propfind_body_is_consumed(self):
+  c=http.client.HTTPConnection('127.0.0.1',self.http.server_port,timeout=5)
+  c.request('PROPFIND','/game/',b'<propfind/>',{'Authorization':self.http.preview_auth})
+  r=c.getresponse();self.assertEqual(r.version,11);self.assertEqual(r.status,207);r.read()
+  c.request('GET','/game/data.xp3',headers={'Authorization':self.http.preview_auth})
+  r=c.getresponse();self.assertEqual(r.status,200);self.assertEqual(r.read(),b'original archive');c.close()
+ def test_archive_http_preview_then_deploy(self):
+  import zipfile
+  out=io.BytesIO()
+  with zipfile.ZipFile(out,'w') as z:z.writestr('materials/example.pimg',b'example')
+  status,_,raw=self.request('PUT','/api/admin/archive?filename=patch.zip',out.getvalue(),{'X-Admin-Token':'csrf-test'})
+  self.assertEqual(status,200);preview=json.loads(raw)
+  self.assertEqual(self.request('GET','/game/materials/example.pimg')[0],404)
+  self.assertEqual(self.post('archive-deploy',{'id':preview['id']})[0],200)
+  self.assertEqual(self.request('GET','/game/materials/example.pimg')[2],b'example')
  def test_admin_disabled_on_production(self):
   self.http.files=None
   self.assertEqual(self.request('GET','/admin')[0],404);self.assertEqual(self.request('GET','/api/admin/files')[0],404)

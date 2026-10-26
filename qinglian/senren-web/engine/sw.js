@@ -63,6 +63,10 @@ self.addEventListener('activate', function (event) {
 self.addEventListener('fetch', function (event) {
     var request = event.request;
 
+    /* Private game ranges and admin APIs use their own revision-aware policy. */
+    var privatePath = new URL(request.url).pathname;
+    if (privatePath.startsWith('/game/') || privatePath.startsWith('/api/')) return;
+
     /* Only handle GET requests */
     if (request.method !== 'GET') return;
 

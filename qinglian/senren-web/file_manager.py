@@ -51,7 +51,10 @@ class Files:
    p=self.target(n)
    if p:
     s=p.stat();entries.append({'path':n,'bytes':s.st_size,'modified':s.st_mtime,'version':self.version(n),'custom':p.is_relative_to(self.files),'editable':p.suffix.lower() in self.TEXT and s.st_size<=2*1024**2})
-  return {'files':entries,'deleted':self.data['deleted'],'history':list(reversed(self.data['history'])),'freeBytes':shutil.disk_usage(self.root).free,'maxUpload':self.MAX_UPLOAD}
+  pending=[]
+  for p in (self.root/'stages').glob('*/preview.json'):
+   pending.append(json.loads(p.read_text()))
+  return {'files':entries,'deleted':self.data['deleted'],'history':list(reversed(self.data['history'])),'pendingArchives':pending,'freeBytes':shutil.disk_usage(self.root).free,'maxUpload':self.MAX_UPLOAD}
  def persist(self):
   tmp=self.root/'state.new';tmp.write_text(json.dumps(self.data,ensure_ascii=False));os.replace(tmp,self.state)
  def backup(self,name):
@@ -115,3 +118,61 @@ class Files:
    if item is None:raise FileError(404,'历史版本不存在')
    p=self.history/item['id']
    with p.open('rb') as source:self.upload(name,source,p.stat().st_size,version)
+ def preview_archive(self,filename,source,length):
+  from safe_archive import extract
+  if Path(filename).suffix.lower() not in ('.zip','.7z'):raise FileError(400,'仅支持ZIP或7z压缩包')
+  if not 0<length<=512*1024**2:raise FileError(413,'压缩包上限512 MiB')
+  with self.lock:
+   stages=self.root/'stages';stages.mkdir(exist_ok=True)
+   for old in stages.iterdir():
+    if old.is_dir() and time.time()-old.stat().st_mtime>3600:shutil.rmtree(old)
+   if len(list(stages.iterdir()))>=2:raise FileError(409,'请先部署或取消已有的待部署压缩包')
+   if shutil.disk_usage(self.root).free<length+512*1024**2:raise FileError(507,'空间不足')
+   identity=uuid.uuid4().hex;stage=stages/identity;stage.mkdir();package=stage/'archive';content=stage/'content';content.mkdir()
+   try:
+    with package.open('wb') as out:
+     remaining=length
+     while remaining:
+      data=source.read(min(1024**2,remaining))
+      if not data:raise FileError(400,'压缩包上传中断')
+      out.write(data);remaining-=len(data)
+    entries=extract(package,content,self.name)
+    for item in entries:item['version']=self.version(item['path'])
+    preview={'id':identity,'files':entries,'bytes':sum(x['bytes'] for x in entries)}
+    (stage/'preview.json').write_text(json.dumps(preview,ensure_ascii=False));package.unlink();return preview
+   except BaseException:
+    shutil.rmtree(stage);raise
+ def archive_stage(self,identity):
+  if not isinstance(identity,str) or len(identity)!=32 or any(c not in '0123456789abcdef' for c in identity):raise FileError(400,'待部署编号无效')
+  p=self.root/'stages'/identity
+  if not (p/'preview.json').is_file():raise FileError(404,'待部署压缩包不存在或已过期')
+  return p
+ def cancel_archive(self,identity):
+  with self.lock:shutil.rmtree(self.archive_stage(identity))
+ def deploy_archive(self,identity):
+  import copy
+  with self.lock:
+   stage=self.archive_stage(identity);preview=json.loads((stage/'preview.json').read_text())
+   for item in preview['files']:self.check(self.name(item['path']),item['version'])
+   replacement=stage/'replacement';old=stage/'previous';before=copy.deepcopy(self.data)
+   if replacement.exists():shutil.rmtree(replacement)
+   shutil.copytree(self.files,replacement,copy_function=os.link)
+   swapped=False
+   try:
+    for item in preview['files']:
+     name=item['path'];target=replacement/name;target.parent.mkdir(parents=True,exist_ok=True)
+     if target.is_dir():raise FileError(409,'压缩包路径与已有目录冲突')
+     self.backup(name);target.unlink(missing_ok=True);os.link(stage/'content'/name,target)
+     self.data['deleted']=[n for n in self.data['deleted'] if n!=name]
+    os.replace(self.files,old)
+    try:os.replace(replacement,self.files)
+    except BaseException:os.replace(old,self.files);raise
+    swapped=True;self.persist()
+   except BaseException:
+    if swapped:
+     shutil.rmtree(self.files);os.replace(old,self.files)
+    for item in self.data['history'][len(before['history']):]:(self.history/item['id']).unlink(missing_ok=True)
+    self.data=before
+    if replacement.exists():shutil.rmtree(replacement)
+    raise
+   shutil.rmtree(stage)
