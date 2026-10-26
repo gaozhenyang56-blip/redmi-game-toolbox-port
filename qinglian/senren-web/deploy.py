@@ -140,5 +140,8 @@ print(json.dumps({'ready':True,'productionPort':18444,'testPort':18445}))
 '''
  import hashlib
  script=script.replace('RELEASE_VALUE',repr(destination)).replace('HOST_VALUE',repr(os.environ['QINGLIAN_SSH_HOST'])).replace('SEVEN_ZIP_SHA',repr('4ca3b7c6f2f67866b92622818b58233dc70367be2f36b498eb0bdeaaa44b53f4'))
- result=remote_json(client,script,timeout=1500)
+ import textwrap
+ guarded="import json,traceback,re\ntry:\n"+textwrap.indent(script,' ')+"\nexcept Exception as error:\n print(json.dumps({'error':re.sub(r'https?://[^\\s]+','[redacted URL]',traceback.format_exc())}))\n"
+ result=remote_json(client,guarded,timeout=1500)
+ if result.get('error'):raise RuntimeError(result['error'])
  print('DEPLOY_RESULT='+json.dumps(result))
