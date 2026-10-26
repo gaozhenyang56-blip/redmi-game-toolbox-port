@@ -6,7 +6,7 @@ roots=[args.game_dir/'data.xp3'] if args.game_dir else list((ROOT/'private/extra
 if len(roots)!=1:raise SystemExit('未找到唯一的基础游戏目录')
 game=roots[0].parent;files=[];excluded=[]
 for path in sorted(game.rglob('*')):
- if not path.is_file() or path.name.endswith('.web-index.json'):continue
+ if not path.is_file() or (path.name.endswith('.web-index.json') or path.name.endswith('.web-boot.json')):continue
  rel=path.relative_to(game)
  if any(part.casefold().startswith('adult') or part.casefold() in ('savedata','save','saves','userdata') for part in rel.parts) or path.suffix.casefold() in ('.exe','.lnk','.url','.log'):
   excluded.append(str(rel));continue

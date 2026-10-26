@@ -67,19 +67,23 @@ print(json.dumps(data))
      except OSError:pass
    sftp.put(str(path),destination+'/'+str(relative))
  script=r'''
-import base64,concurrent.futures,hashlib,json,os,shutil,ssl,subprocess,tarfile,time,urllib.request
+import base64,concurrent.futures,hashlib,json,os,shutil,ssl,struct,subprocess,tarfile,time,urllib.request
 from pathlib import Path
-from cryptography.hazmat.primitives import hashes,serialization
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 release=Path(RELEASE_VALUE);root=Path('/opt/senren-web');config=Path('/etc/senren-web');game=root/'game';game.mkdir(mode=0o750,exist_ok=True)
 manifest=json.loads((release/'download-input.enc.json').read_text())
-private=serialization.load_pem_private_key((config/'deploy.key').read_bytes(),None)
-key=private.decrypt(base64.b64decode(manifest['key']),padding.OAEP(mgf=padding.MGF1(hashes.SHA256()),algorithm=hashes.SHA256(),label=None))
-items=json.loads(AESGCM(key).decrypt(base64.b64decode(manifest['nonce']),base64.b64decode(manifest['data']),b'Senren resource transfer v1'))
+if manifest.get('algorithm')!='RSA-OAEP-SHA256-chunks-v1':raise RuntimeError('Unsupported encrypted resource manifest')
+blocks=manifest['chunks']
+if not 1<=len(blocks)<=128:raise RuntimeError('Invalid encrypted manifest size')
+plaintext=bytearray();nonce=None
+for index,encoded in enumerate(blocks):
+ block=subprocess.check_output(['openssl','pkeyutl','-decrypt','-inkey',str(config/'deploy.key'),'-pkeyopt','rsa_padding_mode:oaep','-pkeyopt','rsa_oaep_md:sha256','-pkeyopt','rsa_mgf1_md:sha256'],input=base64.b64decode(encoded),stderr=subprocess.DEVNULL)
+ sequence,total=struct.unpack_from('<II',block,16)
+ if sequence!=index or total!=len(blocks) or (nonce is not None and block[:16]!=nonce):raise RuntimeError('Encrypted manifest sequence mismatch')
+ nonce=block[:16];plaintext.extend(block[24:])
+items=json.loads(plaintext)
 ready=game/'base-ready.json'
 if not ready.exists():
- if shutil.disk_usage(root).free < 18*1024**3:raise RuntimeError('Insufficient disk space for staged game preparation')
+ if shutil.disk_usage(root).free + sum(p.stat().st_size for p in game.rglob('*') if p.is_file()) < 18*1024**3:raise RuntimeError('Insufficient disk space for staged game preparation')
  downloads=game/'downloads';downloads.mkdir(mode=0o700,exist_ok=True)
  expected={1:3221225472,2:3221225472,3:2334129175}
  def download(item):
@@ -105,6 +109,7 @@ if not ready.exists():
  if len(candidates)!=1:raise RuntimeError('Base game entry missing')
  game_dir=candidates[0].parent
  with (game/'convert.log').open('w') as log:subprocess.run(['python3',str(release/'tools/convert_xp3_names.py'),'--game-dir',str(game_dir)],check=True,stdout=log,stderr=log)
+ with (game/'bootstrap.log').open('w') as log:subprocess.run(['python3',str(release/'tools/inject_bootstrap.py'),'--game-dir',str(game_dir)],check=True,stdout=log,stderr=log)
  ready.write_text(json.dumps({'root':str(game_dir)}))
 else:game_dir=Path(json.loads(ready.read_text())['root'])
 subprocess.run(['python3',str(release/'tools/prepare_resources.py'),'--game-dir',str(game_dir)],check=True,stdout=subprocess.DEVNULL)
