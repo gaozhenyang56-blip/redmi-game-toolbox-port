@@ -1,0 +1,30 @@
+'use strict';
+const $=id=>document.getElementById(id);let state={files:[],deleted:[],history:[]},token='',busy=false,current=null,original='';
+function size(n){if(n<1024)return n+' B';const units=['KiB','MiB','GiB'];let k=-1;do{n/=1024;k++;}while(n>=1024&&k<2);return n.toFixed(1)+' '+units[k];}
+function status(message,error=false){$('status').textContent=message;$('status').className=error?'error':'';}
+async function api(path,options={}){const response=await fetch('/api/admin/'+path,{cache:'no-store',...options,headers:{'X-Admin-Token':token,...options.headers}});let data;try{data=await response.json();}catch{throw new Error('服务器响应异常，请刷新页面');}if(!response.ok)throw new Error(data.error||'请求失败');return data;}
+const version=path=>state.files.find(f=>f.path===path)?.version||'new';
+function button(label,action){const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=busy;b.onclick=()=>action().catch(e=>status(e.message,true));return b;}
+function cell(row,text){const c=row.insertCell();c.textContent=text;return c;}
+function render(){const list=$('listing');list.replaceChildren();const filter=$('search').value.toLowerCase();let count=0;
+ for(const f of state.files){if(!f.path.toLowerCase().includes(filter))continue;count++;const row=list.insertRow();cell(row,f.path);cell(row,size(f.bytes));cell(row,f.custom?'已修改 / 上传':'原版');const actions=cell(row,'');
+ const a=document.createElement('a');a.textContent='下载';a.href='/api/admin/download?path='+encodeURIComponent(f.path);a.download='';actions.append(a,' ');
+ if(f.editable)actions.append(button('编辑',()=>edit(f.path)));
+ actions.append(button('重命名',async()=>{if(busy)return;const destination=prompt('新文件路径',f.path);if(destination&&destination!==f.path)await mutate('rename',{path:f.path,destination,version:f.version});}),button('删除',async()=>{if(!busy&&confirm('移除 '+f.path+'？原版可恢复，上传版本将保留备份。'))await mutate('delete',{path:f.path,version:f.version});}));
+ if(f.custom)actions.append(button('恢复原版',async()=>{if(!busy&&confirm('撤销此文件的自定义修改？'))await mutate('reset',{path:f.path,version:f.version});}));}
+ $('empty').hidden=count!==0;$('deleted').replaceChildren();for(const path of state.deleted){const row=document.createElement('div'),name=document.createElement('span');name.textContent=path;row.append(name,button('恢复原版',()=>mutate('reset',{path,version:'new'})));$('deleted').append(row);}
+ $('history').replaceChildren();for(const h of state.history){const row=$('history').insertRow();cell(row,h.path);cell(row,new Date(h.created*1000).toLocaleString());cell(row,size(h.bytes));cell(row,'').append(button('恢复此版本',async()=>{if(!busy&&confirm('将 '+h.path+' 恢复到此版本？'))await mutate('restore',{path:h.path,id:h.id,version:version(h.path)});}));}
+ $('space').textContent='可用空间 '+size(state.freeBytes||0)+' · 单文件上限 '+size(state.maxUpload||0);$('upload').disabled=busy;$('refresh').disabled=busy;
+}
+async function refresh(){state=await api('files');token=state.token;render();}
+async function mutate(action,data){if(busy)return;busy=true;render();try{await api(action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});await refresh();status('已保存。重新打开游戏后加载更新的资源。');}finally{busy=false;render();}}
+async function loadText(){const data=await api('text?path='+encodeURIComponent(current)+'&encoding='+encodeURIComponent($('encoding').value));$('text').value=data.text;original=data.text;$('encoding').value=data.encoding;$('editor').dataset.version=data.version;$('edit-status').textContent='';}
+async function edit(path){if(busy)return;current=path;$('encoding').value='auto';$('editor-title').textContent=path;await loadText();$('editor').showModal();}
+$('reload-text').onclick=async()=>{if($('text').value!==original&&!confirm('放弃当前未保存修改并重新读取？'))return;try{await loadText();}catch(e){$('edit-status').textContent=e.message;}};
+function preventClose(e){if($('text').value!==original&&!confirm('放弃尚未保存的修改？'))e.preventDefault();}
+$('editor').addEventListener('cancel',preventClose);$('editor-form').addEventListener('submit',preventClose);
+$('save').onclick=async()=>{if(busy)return;$('save').disabled=true;try{await mutate('edit',{path:current,text:$('text').value,encoding:$('encoding').value,version:$('editor').dataset.version});original=$('text').value;$('editor').dataset.version=version(current);$('edit-status').textContent='已保存，旧版本可在修改历史中恢复。';}catch(e){$('edit-status').textContent=e.message;}finally{$('save').disabled=false;}};
+function upload(file,path,expected){return new Promise((resolve,reject)=>{const xhr=new XMLHttpRequest();xhr.open('PUT','/api/admin/upload?path='+encodeURIComponent(path));xhr.setRequestHeader('X-Admin-Token',token);xhr.setRequestHeader('X-File-Version',expected);xhr.setRequestHeader('Content-Type','application/octet-stream');xhr.upload.onprogress=e=>{if(e.lengthComputable)$('progress').value=e.loaded/e.total*100;};xhr.onload=()=>{let data={};try{data=JSON.parse(xhr.responseText);}catch{}xhr.status===200?resolve():reject(new Error(data.error||'上传失败'));};xhr.onerror=()=>reject(new Error('网络中断，请刷新后重新上传；原文件不会被部分覆盖'));xhr.send(file);});}
+$('upload').onclick=async()=>{if(busy)return;const files=[...$('files').files];if(!files.length)return status('请先选择文件',true);let folder=$('folder').value.trim().replace(/\/$/,'');busy=true;render();$('progress').hidden=false;try{for(const f of files){const path=(folder?folder+'/':'')+f.name;const expected=version(path);if(expected!=='new'&&!confirm('覆盖 '+path+'？当前版本将保留备份。'))continue;if(f.size>state.maxUpload)throw new Error(f.name+' 超过单文件限制');$('progress').value=0;status('正在上传 '+path);await upload(f,path,expected);await refresh();}status('上传完成。请重新打开游戏验证补丁兼容性。');$('files').value='';}catch(e){status(e.message,true);}finally{busy=false;render();$('progress').hidden=true;}};
+$('refresh').onclick=()=>refresh().then(()=>status('列表已更新')).catch(e=>status(e.message,true));$('search').oninput=render;
+refresh().then(()=>status('文件管理已就绪')).catch(e=>status(e.message,true));

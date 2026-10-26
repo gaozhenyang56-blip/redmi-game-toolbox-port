@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-import argparse,json,mimetypes,re,ssl,os,base64,hmac
+import argparse,json,mimetypes,re,ssl,os,base64,hmac,secrets,io
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote,urlsplit,quote
+from urllib.parse import unquote,urlsplit,quote,parse_qs
+from file_manager import Files,FileError
 from xml.sax.saxutils import escape
 ROOT=Path(__file__).resolve().parent
 class Handler(BaseHTTPRequestHandler):
@@ -16,8 +17,80 @@ class Handler(BaseHTTPRequestHandler):
   if self.authorized():self.handle_file(False)
  def do_GET(self):
   if self.authorized():self.handle_file(True)
+ def config(self):
+  if self.server.files:return self.server.files.config()
+  p=ROOT/'game-manifest.json'
+  return json.loads(p.read_text()) if p.exists() else None
+ def admin_api(self,body):
+  manager=self.server.files
+  if manager is None:return self.send_data(404,b'Not enabled','text/plain',body)
+  path=urlsplit(self.path).path;query=parse_qs(urlsplit(self.path).query);name=query.get('path',[''])[0]
+  try:
+   if path=='/api/admin/files':
+    data=manager.listing();data['token']=self.server.admin_token
+    return self.send_data(200,json.dumps(data,ensure_ascii=False).encode(),'application/json',body)
+   if path in ('/api/admin/text','/api/admin/download'):
+    manager.name(name);target=manager.target(name)
+    if target is None:raise FileError(404,'文件不存在')
+    if path.endswith('/text'):
+     if target.suffix.lower() not in manager.TEXT or target.stat().st_size>2*1024**2:raise FileError(400,'仅能编辑2 MiB以内的文本文件')
+     raw=target.read_bytes();encoding=query.get('encoding',['auto'])[0]
+     if encoding=='auto':encoding='utf-16' if raw.startswith((b'\xff\xfe',b'\xfe\xff')) else 'utf-8-sig' if raw.startswith(b'\xef\xbb\xbf') else 'utf-8'
+     if encoding not in ('utf-8','utf-8-sig','utf-16','gb18030'):raise FileError(400,'不支持此编码')
+     try:text=raw.decode(encoding)
+     except UnicodeError:raise FileError(400,'不能按此编码读取，请选择其他编码；编译脚本不支持文本编辑')
+     data={'text':text,'encoding':encoding,'version':manager.version(name)}
+     return self.send_data(200,json.dumps(data,ensure_ascii=False).encode(),'application/json',body)
+    self.send_response(200);self.common_headers();self.send_header('Content-Type','application/octet-stream');self.send_header('Content-Disposition',"attachment; filename*=UTF-8''"+quote(Path(name).name,safe=''));self.send_header('Content-Length',str(target.stat().st_size));self.send_header('Cache-Control','no-store');self.end_headers()
+    if body:
+     with target.open('rb') as stream:
+      while chunk:=stream.read(1024**2):self.wfile.write(chunk)
+    return
+   raise FileError(404,'接口不存在')
+  except FileError as error:return self.admin_error(error)
+ def admin_error(self,error):
+  self.close_connection=True
+  return self.send_data(error.status,json.dumps({'error':str(error)},ensure_ascii=False).encode(),'application/json',True)
+ def do_PUT(self):self.mutate_admin()
+ def do_POST(self):self.mutate_admin()
+ def mutate_admin(self):
+  if not self.authorized():return
+  try:
+   if not self.server.files:raise FileError(404,'未启用文件后台')
+   if self.headers.get('Sec-Fetch-Site')=='cross-site' or not hmac.compare_digest(self.headers.get('X-Admin-Token',''),self.server.admin_token):raise FileError(403,'验证已失效，请刷新后台')
+   if self.headers.get('Transfer-Encoding'):raise FileError(400,'不支持此传输格式')
+   try:length=int(self.headers.get('Content-Length','-1'))
+   except ValueError:raise FileError(400,'内容长度无效')
+   if length<0:raise FileError(411,'需要内容长度')
+   manager=self.server.files;path=urlsplit(self.path).path
+   self.connection.settimeout(180)
+   if self.command=='PUT' and path=='/api/admin/upload':
+    name=parse_qs(urlsplit(self.path).query).get('path',[''])[0]
+    manager.upload(name,self.rfile,length,self.headers.get('X-File-Version'))
+   elif self.command=='POST' and path in ('/api/admin/edit','/api/admin/delete','/api/admin/rename','/api/admin/reset','/api/admin/restore'):
+    if length>3*1024**2:raise FileError(413,'请求过大')
+    try:data=json.loads(self.rfile.read(length))
+    except (ValueError,UnicodeError):raise FileError(400,'请求格式无效')
+    if not isinstance(data,dict):raise FileError(400,'请求格式无效')
+    name=manager.name(data.get('path'));version=data.get('version');action=path.rsplit('/',1)[1]
+    if action=='edit':
+     text=data.get('text');encoding=data.get('encoding')
+     if Path(name).suffix.lower() not in manager.TEXT or not isinstance(text,str) or encoding not in ('utf-8','utf-8-sig','utf-16','gb18030'):raise FileError(400,'文本或编码无效')
+     try:raw=text.encode(encoding)
+     except UnicodeError:raise FileError(400,'此编码不能保存部分字符')
+     if len(raw)>2*1024**2:raise FileError(413,'文本最大2 MiB')
+     manager.upload(name,io.BytesIO(raw),len(raw),version)
+    elif action=='delete':manager.delete(name,version)
+    elif action=='reset':manager.reset(name,version)
+    elif action=='rename':manager.rename(name,data.get('destination'),version)
+    else:manager.restore(data.get('id'),name,version)
+   else:raise FileError(404,'接口不存在')
+   self.send_data(200,b'{"ok":true}','application/json',True)
+  except FileError as error:self.admin_error(error)
+  except (OSError,TimeoutError):self.admin_error(FileError(503,'文件操作未完成，请刷新检查；上传中断不会覆盖原文件'))
  def handle_file(self,body):
   path=unquote(urlsplit(self.path).path)
+  if path.startswith('/api/admin/'):return self.admin_api(body)
   if path=='/favicon.ico':return self.send_data(204,b'','image/x-icon',body)
   if path=='/api/status':
    game=ROOT/'game-manifest.json';info=ROOT/'game-info.json'
@@ -25,13 +98,14 @@ class Handler(BaseHTTPRequestHandler):
    if info.exists():data.update(json.loads(info.read_text()))
    return self.send_data(200,json.dumps(data,ensure_ascii=False).encode(),'application/json',body)
   if path=='/':target=ROOT/'web/index.html'
+  elif path=='/admin' and self.server.files:target=ROOT/'web/admin.html'
   elif path=='/play':target=ROOT/'web/play.html'
-  elif path in ['/app.js','/style.css','/play.js']:target=ROOT/'web'/path[1:]
+  elif path in ['/app.js','/style.css','/play.js','/admin.js','/admin.css']:target=ROOT/'web'/path[1:]
   elif path=='/game.zip':target=ROOT/'game.zip'
   elif path.startswith('/game/'):
-   manifest=ROOT/'game-manifest.json'
-   if not manifest.exists():return self.send_data(404,b'Not ready','text/plain',body)
-   config=json.loads(manifest.read_text());relative=path[len('/game/'):]
+   config=self.config()
+   if not config:return self.send_data(404,b'Not ready','text/plain',body)
+   relative=path[len('/game/'):]
    if relative not in config['files']:return self.send_data(404,b'Not found','text/plain',body)
    base=Path(config['root']).resolve();target=Path(config.get('overrides',{}).get(relative,str(base/relative))).resolve()
    if relative not in config.get('overrides',{}) and not target.is_relative_to(base):return self.send_data(404,b'Not found','text/plain',body)
@@ -74,9 +148,9 @@ class Handler(BaseHTTPRequestHandler):
  def do_PROPFIND(self):
   if not self.authorized():return
   path=unquote(urlsplit(self.path).path)
-  manifest=ROOT/'game-manifest.json'
-  if not path.startswith('/game/') or not manifest.exists():return self.send_data(404,b'Not found','text/plain',True)
-  config=json.loads(manifest.read_text());prefix=path[len('/game/'):].rstrip('/')
+  config=self.config()
+  if not path.startswith('/game/') or not config:return self.send_data(404,b'Not found','text/plain',True)
+  prefix=path[len('/game/'):].rstrip('/')
   names=set(config['files']);directories={''}
   for name in names:
    directories.update(str(parent) for parent in Path(name).parents if str(parent)!='.')
@@ -107,6 +181,10 @@ def main():
  user=os.environ.get('SENREN_PREVIEW_USER');password=os.environ.get('SENREN_PREVIEW_PASSWORD')
  if bool(user)!=bool(password):parser.error('预览访问凭据配置不完整')
  server.preview_auth='Basic '+base64.b64encode((user+':'+password).encode()).decode() if user else None
+ admin_dir=os.environ.get('SENREN_FILES_DIR')
+ if admin_dir and not server.preview_auth:parser.error('文件后台必须配置访问凭据')
+ server.files=Files(admin_dir,ROOT/'game-manifest.json') if admin_dir else None
+ server.admin_token=secrets.token_urlsafe(32)
  if args.cert:
   context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);context.minimum_version=ssl.TLSVersion.TLSv1_2;context.load_cert_chain(args.cert,args.key);server.socket=context.wrap_socket(server.socket,server_side=True)
  print(f'运行器已启动：{"https" if args.cert else "http"}://{args.host}:{args.port}',flush=True)

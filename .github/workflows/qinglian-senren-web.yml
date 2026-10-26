@@ -4,6 +4,11 @@ on:
     branches: [codex/qinglian-routing-and-presence]
     paths: ['.github/workflows/qinglian-senren-web.yml', 'qinglian/senren-web/**']
   workflow_dispatch:
+    inputs:
+      prepare_resources:
+        description: Download and transfer complete game resources
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -21,6 +26,8 @@ jobs:
             qinglian/senren-web
             qinglian/server/github
       - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1 cryptography==44.0.3
+      - name: File manager regression checks
+        run: python3 -m unittest discover -s qinglian/senren-web/tests -v
       - name: Publish authenticated preview entry
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
@@ -30,6 +37,7 @@ jobs:
           SENREN_DEPLOY_MODE: entry
         run: python3 qinglian/senren-web/deploy.py
   resources:
+    if: github.event_name == 'workflow_dispatch' && inputs.prepare_resources
     needs: entry
     runs-on: ubuntu-24.04
     timeout-minutes: 35

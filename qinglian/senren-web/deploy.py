@@ -45,6 +45,22 @@ def verify(data):
    except urllib.error.HTTPError as error:
     if error.code!=401:raise
    print('VERIFIED_PORT='+str(port)+' RESOURCE_READY='+str(status['ready']))
+   if port==18445:
+    def admin_request(path,method='GET',payload=None,extra=None):
+     headers={'Authorization':authorization,**(extra or {})}
+     with urllib.request.urlopen(urllib.request.Request(base+path,data=payload,method=method,headers=headers),context=context,timeout=15) as response:return response.read()
+    page=admin_request('/admin')
+    if '文件管理'.encode() not in page:raise RuntimeError('Admin page missing')
+    listing=json.loads(admin_request('/api/admin/files'));token=listing['token'];probe='admin-smoke-'+REV[:12]+'.txt'
+    mutation={'X-Admin-Token':token,'Content-Type':'application/json'}
+    admin_request('/api/admin/upload?path='+probe,'PUT',b'admin-upload-check',{'X-Admin-Token':token,'X-File-Version':'new','Content-Type':'application/octet-stream'})
+    if admin_request('/game/'+probe)!=b'admin-upload-check':raise RuntimeError('Uploaded resource not visible')
+    listing=json.loads(admin_request('/api/admin/files'));version=next(f['version'] for f in listing['files'] if f['path']==probe)
+    admin_request('/api/admin/reset','POST',json.dumps({'path':probe,'version':version}).encode(),mutation)
+    try:admin_request('/api/admin/files',extra={'Authorization':''});raise RuntimeError('Anonymous admin access allowed')
+    except urllib.error.HTTPError as error:
+     if error.code!=401:raise
+    print('TEST_FILE_ADMIN_UPLOAD_READ_RESET_AUTH_VERIFIED')
 
 with connection() as client:
  client.get_transport().set_keepalive(20)
@@ -65,7 +81,7 @@ print(json.dumps(credentials))
   for path in ROOT.rglob('*'):
    if not path.is_file() or '__pycache__' in path.parts or path.name.startswith('.'):continue
    relative=path.relative_to(ROOT)
-   if relative.parts[0] not in ('engine','web','compat','tools') and path.name not in ('server.py','accounts.py','download-input.enc.json'):continue
+   if relative.parts[0] not in ('engine','web','compat','tools') and path.name not in ('server.py','accounts.py','file_manager.py','download-input.enc.json'):continue
    mkdir(sftp,DEST+'/'+str(relative.parent));sftp.put(str(path),DEST+'/'+str(relative))
  entry=r'''
 import json,os,subprocess
@@ -77,7 +93,9 @@ for label,port in [('preview',18444),('test',18445)]:
  pointer=root/label
  if label=='preview' and pointer.exists():continue
  new=root/(label+'.new');new.unlink(missing_ok=True);new.symlink_to(release);new.replace(pointer)
+ if (root/'game/base/data.xp3').exists():subprocess.run(['python3',str(release/'tools/prepare_resources.py'),'--game-dir',str(root/'game/base')],check=True,stdout=subprocess.DEVNULL)
  unit='[Unit]\nDescription=Senren private '+label+'\nAfter=network-online.target\n[Service]\nUser=senren-web\nGroup=senren-web\nSupplementaryGroups=qinglian-remote\nEnvironmentFile=/etc/senren-web/preview.env\nWorkingDirectory='+str(pointer)+'\nExecStart=/usr/bin/python3 '+str(pointer)+'/server.py --host 0.0.0.0 --port '+str(port)+' --cert /etc/qinglian-remote/server.pem --key /etc/qinglian-remote/server.key\nRestart=always\nRestartSec=5\nNoNewPrivileges=true\nPrivateTmp=true\nProtectSystem=strict\nProtectHome=true\nReadWritePaths=/var/lib/senren-web\nUMask=0077\n[Install]\nWantedBy=multi-user.target\n'
+ if label=='test':unit=unit.replace('EnvironmentFile=', 'Environment=SENREN_FILES_DIR=/var/lib/senren-web/test-resources\nEnvironmentFile=')
  Path('/etc/systemd/system/senren-'+label+'.service').write_text(unit)
  subprocess.run(['systemctl','daemon-reload'],check=True);subprocess.run(['systemctl','enable','--now','senren-'+label+'.service'],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);subprocess.run(['systemctl','restart','senren-'+label+'.service'],check=True)
 print(json.dumps({'entry':True}))
