@@ -1,0 +1,5 @@
+private/
+game-manifest.json
+game-info.json
+__pycache__/
+*.pyc

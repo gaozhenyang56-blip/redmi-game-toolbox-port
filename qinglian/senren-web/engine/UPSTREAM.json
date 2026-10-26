@@ -1,0 +1,58 @@
+{
+  "source": "https://github.com/fenghengzhi/kirikiroid2-web",
+  "site": "https://krkr2.fenghengzhi.com/",
+  "assets": [
+    {
+      "name": "index.html",
+      "bytes": 53558
+    },
+    {
+      "name": "vlfs.js",
+      "bytes": 60605
+    },
+    {
+      "name": "index.js",
+      "bytes": 343419
+    },
+    {
+      "name": "assets.zip",
+      "bytes": 7853397
+    },
+    {
+      "name": "index.html",
+      "bytes": 53558
+    },
+    {
+      "name": "vlfs.js",
+      "bytes": 60605
+    },
+    {
+      "name": "index.js",
+      "bytes": 343419
+    },
+    {
+      "name": "assets.zip",
+      "bytes": 7853397
+    }
+  ],
+  "source_revision": "2028cbccaa91498bd36f270d349ae711d0e8fed3",
+  "changes": [
+    "Local JSZip",
+    "Removed analytics",
+    "Launcher title",
+    "Persistent named save space for URL launch"
+  ],
+  "sha256": {
+    "LICENSE.upstream.txt": "233f7f5ee3fedf4d600f2abffa44f3bbda0dc9cb8cc51340519c9f49d674ac52",
+    "index.js": "ace6eca1625b214b87fd9f3959e9f555450cbe4c0fd88af4b93bd3b45962e4c8",
+    "vlfs.js": "722124c3d4c227f8726e04e7207487e59dff4ee9909c757bab4856fcd22f5ef7",
+    "sw.js": "8cd1fbf280ce66cb0ba42b85c3b7dafe8ec2d8c74f106473310230d55ab9eeb8",
+    "manifest.webmanifest": "a860fbedc891b4e85a6f83f50e0ac72b368d18073e85beee709ee5637b32ca57",
+    "index.wasm": "bb5f92e3e66ddb94893f81fed92705b1d29ff82c393ad679e8fa402ce52c495a",
+    "index.html": "c577ac29cb15860b271d438a399b45429e211cc44f16fb95da348c5139cf3370",
+    "assets.zip": "cc6e6a1dd185e724e8b6864991067b1d4ad0554e4ac47505a4550c92411823cd",
+    "vendor/jszip.min.js": "acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e",
+    "pwa/icon-192.png": "ce7169ba14971fd5a514e1682a153a191e912e4f8965906d44133f11c4c466c9",
+    "pwa/icon-512.png": "7a91f1ed26b323de4a3b3e0930858f6677b8c29cb077603ca7410c450f6b7ef6"
+  }
+}
