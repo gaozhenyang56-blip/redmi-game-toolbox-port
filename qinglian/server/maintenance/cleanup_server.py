@@ -23,11 +23,19 @@ if shutil.which('apt-get'):
 if shutil.which('journalctl'):
  actions['journal_rotation']=command(['journalctl','--rotate'])
  actions['expired_journal']=command(['journalctl','--vacuum-time=7d','--vacuum-size=200M'])
-# Only pip's explicitly disposable cache, never ~/.cache as a whole.
-cache=Path('/root/.cache/pip')
-if cache.is_dir() and not cache.is_symlink():
- actions['pip_cache_bytes']=sum(p.stat().st_size for p in cache.rglob('*') if p.is_file() and not p.is_symlink())
- shutil.rmtree(cache)
+# Package caches only; installed virtual environments are separate hardlinks/copies.
+# Avoid a race with an active package installation (read process names, no arguments).
+package_busy=False
+for process in Path('/proc').iterdir():
+ if process.name.isdigit():
+  try:package_busy |= (process/'comm').read_text().strip() in ('uv','pip','pip3')
+  except (OSError,PermissionError):pass
+for name in ['pip','uv']:
+ cache=Path('/root/.cache')/name
+ if cache.is_dir() and not cache.is_symlink() and not package_busy:
+  actions[name+'_cache_bytes']=sum(p.stat().st_size for p in cache.rglob('*') if p.is_file() and not p.is_symlink())
+  shutil.rmtree(cache)
+actions['package_cache_skipped_busy']=package_busy
 # Keep both deployed pointers plus the newest two releases for rollback.
 root=Path('/opt/senren-web');releases=root/'releases'
 if releases.is_dir():
