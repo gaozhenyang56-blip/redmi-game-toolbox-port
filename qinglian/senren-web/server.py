@@ -4,6 +4,7 @@ from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote,urlsplit,quote,parse_qs
 from file_manager import Files,FileError
+from cache_manifest import preload_plan
 from xml.sax.saxutils import escape
 ROOT=Path(__file__).resolve().parent
 class Handler(BaseHTTPRequestHandler):
@@ -107,6 +108,17 @@ class Handler(BaseHTTPRequestHandler):
   path=unquote(urlsplit(self.path).path)
   if path.startswith('/api/admin/'):return self.admin_api(body)
   if path=='/favicon.ico':return self.send_data(204,b'','image/x-icon',body)
+  if path=='/api/preload-plan':
+   config=self.config()
+   if not config or not (ROOT/'game-manifest.json').exists():return self.send_data(409,b'{"error":"Game resources not ready"}','application/json',body)
+   try:
+    budget=int(parse_qs(urlsplit(self.path).query).get('mib',['256'])[0])
+    if budget not in (0,16,32,64,128,256):raise ValueError('budget')
+    state=self.server.files.state if self.server.files else None
+    revision=str((ROOT/'game-manifest.json').stat().st_mtime_ns)+'-'+str(state.stat().st_mtime_ns if state and state.exists() else 0)
+    data=preload_plan(config,self.server.files,budget,revision)
+   except (OSError,ValueError):return self.send_data(409,b'{"error":"Preload resources unavailable"}','application/json',body)
+   return self.send_data(200,json.dumps(data,ensure_ascii=False).encode(),'application/json',body)
   if path=='/api/status':
    game=ROOT/'game-manifest.json';info=ROOT/'game-info.json'
    data={'ready':game.exists(),'engineReady':all((ROOT/'engine'/name).exists() for name in ['index.html','index.js','index.wasm','assets.zip'])}
@@ -117,7 +129,7 @@ class Handler(BaseHTTPRequestHandler):
   if path=='/':target=ROOT/'web/index.html'
   elif path=='/admin' and self.server.files:target=ROOT/'web/admin.html'
   elif path=='/play':target=ROOT/'web/play.html'
-  elif path in ['/app.js','/style.css','/play.js','/admin.js','/admin.css']:target=ROOT/'web'/path[1:]
+  elif path in ['/app.js','/style.css','/play.js','/admin.js','/admin.css','/preload-cache.js','/gallery-save.js','/session-saves.js']:target=ROOT/'web'/path[1:]
   elif path=='/game.zip':target=ROOT/'game.zip'
   elif path.startswith('/game/'):
    config=self.config()
@@ -134,6 +146,7 @@ class Handler(BaseHTTPRequestHandler):
   else:return self.send_data(404,b'Not found','text/plain',body)
   if not target.is_file():return self.send_data(404,b'Not found','text/plain',body)
   size=target.stat().st_size;etag='"'+str(size)+'-'+str(target.stat().st_mtime_ns)+'"'
+  if self.headers.get('If-Match') not in (None,'*',etag):return self.send_data(412,b'Resource version changed','text/plain',body)
   if self.headers.get('If-None-Match')==etag:
    self.send_response(304);self.common_headers();self.send_header('ETag',etag);self.end_headers();return
   start,end,status=0,size-1,200

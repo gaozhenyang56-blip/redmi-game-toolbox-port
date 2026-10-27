@@ -39,6 +39,15 @@ class ArchiveTests(unittest.TestCase):
   raw=base64.b64decode('N3q8ryccAASkCjdIlAAAAAAAAAAhAAAAAAAAALkthZ4BABVub24tZ2FtZSB0ZXN0IG1hdGVyaWFsAAAAgTMHrg/PpC64D+vqnL82Pf5zJYHkIx/Y+D/B3RHVHx5h5Tb4OGDSvv9HmF5O/i43OxOkW/KUkQhrbVZ58HngvJbCqdjfgREUxKFeBrgzP3+UGq2sFx2itnphlGAvsZnZNwMaJsMIxitt87F0IAf72VZ13lzqOAAAFwYaAQl6AAcLAQABIwMBAQVdABAAAAyAngoBDBPUwQAA')
   result=self.preview(raw,'materials.7z');self.files.deploy_archive(result['id'])
   self.assertEqual(self.files.target('materials/background.pimg').read_bytes(),b'non-game test material')
+ def test_archive_over_512_mib_is_checked_against_disk_not_fixed_cap(self):
+  from unittest.mock import patch
+  from types import SimpleNamespace
+  with patch('file_manager.shutil.disk_usage',return_value=SimpleNamespace(free=10*1024**3)):
+   with self.assertRaises(FileError) as error:self.files.preview_archive('large.zip',io.BytesIO(b''),513*1024**2)
+  self.assertEqual(error.exception.status,400);self.assertIn('上传中断',str(error.exception))
+  with patch('file_manager.shutil.disk_usage',return_value=SimpleNamespace(free=600*1024**2)):
+   with self.assertRaises(FileError) as error:self.files.preview_archive('large.zip',io.BytesIO(b''),513*1024**2)
+  self.assertEqual(error.exception.status,507)
  def test_corruption_is_not_published(self):
   with self.assertRaises(FileError):self.preview(b'not an archive')
   self.assertEqual(self.files.listing()['pendingArchives'],[])

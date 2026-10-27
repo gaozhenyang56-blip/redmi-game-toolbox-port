@@ -135,7 +135,7 @@ class Files:
  def preview_archive(self,filename,source,length):
   from safe_archive import extract
   if Path(filename).suffix.lower() not in ('.zip','.7z'):raise FileError(400,'仅支持ZIP或7z压缩包')
-  if not 0<length<=512*1024**2:raise FileError(413,'压缩包上限512 MiB')
+  if length<=0:raise FileError(400,'压缩包不能为空')
   with self.lock:
    stages=self.root/'stages';stages.mkdir(exist_ok=True)
    for old in stages.iterdir():

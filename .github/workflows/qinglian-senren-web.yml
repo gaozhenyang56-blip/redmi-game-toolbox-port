@@ -32,6 +32,8 @@ jobs:
         run: |
           node qinglian/senren-web/tests/test_range_cache.cjs
           node qinglian/senren-web/tests/test_load_progress.cjs
+          node qinglian/senren-web/tests/test_render_fps.cjs
+          node qinglian/senren-web/tests/test_gallery_save.cjs
       - name: Publish authenticated preview entry
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}

@@ -58,6 +58,13 @@ def verify(data):
     preferences=admin_request('/engine/port-preferences.js')
     if b'senren-loading' not in progress or b"startupLog')==='0'?'0':'1'" not in preferences:raise RuntimeError('Progress or native log defaults missing')
     print('LOADING_PROGRESS_AND_PICTURE_LOG_ASSETS_VERIFIED')
+    preload=json.loads(admin_request('/api/preload-plan'))
+    if preload['budgetBytes']!=256*1024**2 or preload['totalBytes']>preload['budgetBytes']:raise RuntimeError('Preload default or bound is incorrect')
+    if b'preload-budget' not in play or b'session-dialog' not in play or b'gallery-session' not in play:raise RuntimeError('Launch controls missing')
+    for asset in ['/preload-cache.js','/gallery-save.js','/session-saves.js','/engine/render-fps.js']:admin_request(asset)
+    admin_page=page.decode('utf-8')
+    if '压缩包最大512 MiB' in admin_page:raise RuntimeError('Obsolete archive upload cap shown')
+    print('PRELOAD_256_MIB_FPS_AND_GALLERY_SESSION_ASSETS_VERIFIED')
     listing=json.loads(admin_request('/api/admin/files'))
     if listing.get('dialogueCompatibility',{}).get('scope')!='resources':raise RuntimeError('Resource compatibility module not loaded')
     filter_script=admin_request('/game/xp3filter.tjs')
@@ -100,7 +107,7 @@ print(json.dumps(credentials))
   for path in ROOT.rglob('*'):
    if not path.is_file() or '__pycache__' in path.parts or path.name.startswith('.'):continue
    relative=path.relative_to(ROOT)
-   if relative.parts[0] not in ('engine','web','compat','tools') and path.name not in ('server.py','accounts.py','file_manager.py','dialogue_overlay.py','safe_archive.py','download-input.enc.json'):continue
+   if relative.parts[0] not in ('engine','web','compat','tools') and path.name not in ('server.py','accounts.py','file_manager.py','cache_manifest.py','dialogue_overlay.py','safe_archive.py','download-input.enc.json'):continue
    mkdir(sftp,DEST+'/'+str(relative.parent));sftp.put(str(path),DEST+'/'+str(relative))
  entry=r'''
 import json,os,subprocess

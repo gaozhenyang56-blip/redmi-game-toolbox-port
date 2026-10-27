@@ -86,6 +86,16 @@ class HTTPTests(FileTests):
   self.assertEqual(status,206);self.assertEqual(part,body[9:25]);self.assertEqual(int(headers['Content-Length']),len(body))
   status,_,xml=self.request('PROPFIND','/game/');self.assertEqual(status,207);self.assertIn(('<d:getcontentlength>'+str(len(body))+'</d:getcontentlength>').encode(),xml)
   self.assertEqual((self.base/'data.xp3').stat().st_size<len(body),True)
+ def test_preload_default_and_version_precondition(self):
+  from test_resource_overlay import xp3
+  xp3(self.base/'data.xp3',[('startup.tjs',b'System.inform("test");',False,False)])
+  status,_,raw=self.request('GET','/api/preload-plan');self.assertEqual(status,200)
+  plan=json.loads(raw);self.assertEqual(plan['budgetBytes'],256*1024**2);self.assertLessEqual(plan['totalBytes'],plan['budgetBytes']);self.assertEqual(sum(b['length'] for b in plan['blocks']),plan['totalBytes'])
+  block=plan['blocks'][0]
+  status,headers,body=self.request('GET',block['url'],headers={'If-Match':block['etag'],'Range':'bytes='+str(block['start'])+'-'+str(block['start']+block['length']-1)})
+  self.assertEqual(status,206);self.assertEqual(len(body),block['length'])
+  self.assertEqual(self.request('GET',block['url'],headers={'If-Match':'"old-version"'})[0],412)
+  self.assertEqual(self.request('GET','/api/preload-plan?mib=999')[0],409)
  def test_admin_disabled_on_production(self):
   self.http.files=None
   self.assertEqual(self.request('GET','/admin')[0],404);self.assertEqual(self.request('GET','/api/admin/files')[0],404)
