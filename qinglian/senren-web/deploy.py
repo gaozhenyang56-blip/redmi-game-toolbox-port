@@ -53,7 +53,7 @@ def verify(data):
     if '文件管理'.encode() not in page:raise RuntimeError('Admin page missing')
     play=admin_request('/play')
     engine=admin_request('/engine/index.html')
-    if b'load-meter' not in play or b'load-progress.js?v=port-progress-1' not in engine:raise RuntimeError('Loading progress UI missing')
+    if b'load-meter' not in play or b'load-progress.js?v=port-progress-2' not in engine:raise RuntimeError('Loading progress UI missing')
     progress=admin_request('/engine/load-progress.js')
     preferences=admin_request('/engine/port-preferences.js')
     if b'senren-loading' not in progress or b"startupLog')==='0'?'0':'1'" not in preferences:raise RuntimeError('Progress or native log defaults missing')
@@ -64,6 +64,15 @@ def verify(data):
     for asset in ['/preload-cache.js','/gallery-save.js','/session-saves.js','/engine/render-fps.js']:admin_request(asset)
     admin_page=page.decode('utf-8')
     if '压缩包最大512 MiB' in admin_page:raise RuntimeError('Obsolete archive upload cap shown')
+    if not status.get('builtinGalleryAvailable'):raise RuntimeError('Bundled gallery save unavailable')
+    bundle=admin_request('/api/gallery-save.zip')
+    with zipfile.ZipFile(io.BytesIO(bundle)) as saved:
+     if saved.namelist()!=['savedata/datasu.ksd'] or hashlib.sha256(saved.read('savedata/datasu.ksd')).hexdigest()!='cb4151abc2d638ca9ef45db5e403389693fd737175773f221c22389fb8f7eeae':raise RuntimeError('Bundled gallery save checksum mismatch')
+    engine_cache=json.loads(admin_request('/api/engine-cache'))
+    if not engine_cache['files'] or engine_cache['totalBytes']<=0:raise RuntimeError('Engine cache inventory unavailable')
+    admin_request('/engine-cache.js')
+    if b'builtin-gallery-session' not in play:raise RuntimeError('Bundled gallery control missing')
+    print('BUNDLED_GALLERY_CHECKSUM_AND_ENGINE_CACHE_MANIFEST_VERIFIED')
     print('PRELOAD_256_MIB_FPS_AND_GALLERY_SESSION_ASSETS_VERIFIED')
     listing=json.loads(admin_request('/api/admin/files'))
     if listing.get('dialogueCompatibility',{}).get('scope')!='resources':raise RuntimeError('Resource compatibility module not loaded')
@@ -107,7 +116,7 @@ print(json.dumps(credentials))
   for path in ROOT.rglob('*'):
    if not path.is_file() or '__pycache__' in path.parts or path.name.startswith('.'):continue
    relative=path.relative_to(ROOT)
-   if relative.parts[0] not in ('engine','web','compat','tools') and path.name not in ('server.py','accounts.py','file_manager.py','cache_manifest.py','dialogue_overlay.py','safe_archive.py','download-input.enc.json'):continue
+   if relative.parts[0] not in ('engine','web','compat','tools') and path.name not in ('server.py','accounts.py','file_manager.py','cache_manifest.py','engine_cache_manifest.py','dialogue_overlay.py','safe_archive.py','download-input.enc.json'):continue
    mkdir(sftp,DEST+'/'+str(relative.parent));sftp.put(str(path),DEST+'/'+str(relative))
  entry=r'''
 import json,os,subprocess

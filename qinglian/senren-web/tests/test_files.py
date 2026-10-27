@@ -96,6 +96,24 @@ class HTTPTests(FileTests):
   self.assertEqual(status,206);self.assertEqual(len(body),block['length'])
   self.assertEqual(self.request('GET',block['url'],headers={'If-Match':'"old-version"'})[0],412)
   self.assertEqual(self.request('GET','/api/preload-plan?mib=999')[0],409)
+ def test_builtin_gallery_is_pinned_and_authenticated(self):
+  import hashlib,zipfile
+  from unittest.mock import patch
+  value=b'builtin-gallery-fixture';target=self.base/server.BUILTIN_GALLERY_PATH;target.parent.mkdir();target.write_bytes(value)
+  config=json.loads(self.manifest.read_text());config['files'].append(server.BUILTIN_GALLERY_PATH);self.manifest.write_text(json.dumps(config))
+  with patch.object(server,'BUILTIN_GALLERY_SHA256',hashlib.sha256(value).hexdigest()):
+   self.assertEqual(self.request('GET','/api/gallery-save.zip',auth=False)[0],401)
+   self.assertTrue(json.loads(self.request('GET','/api/status')[2])['builtinGalleryAvailable'])
+   status,headers,data=self.request('GET','/api/gallery-save.zip?path=../../etc/passwd');self.assertEqual(status,200);self.assertEqual(headers['Content-Type'],'application/zip')
+   with zipfile.ZipFile(io.BytesIO(data)) as archive:self.assertEqual(archive.namelist(),['savedata/datasu.ksd']);self.assertEqual(archive.read('savedata/datasu.ksd'),value)
+   target.write_bytes(b'changed');self.assertEqual(self.request('GET','/api/gallery-save.zip')[0],404)
+ def test_engine_manifest_content_version_and_stable_game_revision(self):
+  import hashlib
+  engine=self.root/'engine';engine.mkdir();(engine/'index.html').write_text('<script src="index.js?v=unit-build"></script>');(engine/'index.js').write_text('engine');(engine/'index.wasm').write_bytes(b'wasm-fixture')
+  status,_,data=self.request('GET','/api/engine-cache');self.assertEqual(status,200);manifest=json.loads(data)
+  wasm=next(f for f in manifest['files'] if 'index.wasm' in f['url']);self.assertEqual(wasm['url'],'/engine/index.wasm?v=unit-build');self.assertEqual(wasm['sha256'],hashlib.sha256(b'wasm-fixture').hexdigest())
+  (engine/'index.wasm').touch();self.assertEqual(json.loads(self.request('GET','/api/engine-cache')[2])['revision'],manifest['revision'])
+  before=json.loads(self.request('GET','/api/status')[2])['resourceRevision'];self.manifest.write_text(self.manifest.read_text());after=json.loads(self.request('GET','/api/status')[2])['resourceRevision'];self.assertEqual(before,after)
  def test_admin_disabled_on_production(self):
   self.http.files=None
   self.assertEqual(self.request('GET','/admin')[0],404);self.assertEqual(self.request('GET','/api/admin/files')[0],404)

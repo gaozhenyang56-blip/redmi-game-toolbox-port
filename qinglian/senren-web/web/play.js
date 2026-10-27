@@ -5,18 +5,26 @@ const sessionReady=new Promise(resolve=>{chooseSession=resolve;});
 const sessionDialog=document.getElementById('session-dialog');sessionDialog.showModal();
 sessionDialog.addEventListener('cancel',event=>event.preventDefault());
 document.getElementById('normal-session').onclick=()=>{galleryFiles=null;document.getElementById('gallery-save').value='';sessionDialog.close();chooseSession();};
-document.getElementById('gallery-session').onclick=async()=>{
- const input=document.getElementById('gallery-save'),error=document.getElementById('session-error'),normal=document.getElementById('normal-session'),importButton=document.getElementById('gallery-session');normal.disabled=importButton.disabled=true;
- try{error.textContent='正在校验鉴赏存档…';galleryFiles=await window.SenrenGallerySave.parse(input.files[0]);sessionReadOnly=true;document.getElementById('session-banner').hidden=false;document.getElementById('export').disabled=true;document.getElementById('export').title='只读鉴赏启动不导出或写回存档';sessionDialog.close();chooseSession();}
- catch(e){error.textContent=e.message;}finally{normal.disabled=importButton.disabled=false;}
-};
+let builtinGalleryAvailable=false,sessionBusy=false;
+function setSessionBusy(value){sessionBusy=value;document.getElementById('normal-session').disabled=value;document.getElementById('gallery-session').disabled=value;document.getElementById('builtin-gallery-session').disabled=value||!builtinGalleryAvailable;}
+async function chooseGallery(load){
+ const error=document.getElementById('session-error');setSessionBusy(true);
+ try{error.textContent='正在校验鉴赏存档…';const file=await load();galleryFiles=await window.SenrenGallerySave.parse(file);sessionReadOnly=true;document.getElementById('session-banner').hidden=false;document.getElementById('export').disabled=true;document.getElementById('export').title='只读鉴赏启动不导出或写回存档';sessionDialog.close();chooseSession();}
+ catch(e){error.textContent=e.message;}finally{setSessionBusy(false);}
+}
+document.getElementById('gallery-session').onclick=()=>chooseGallery(async()=>document.getElementById('gallery-save').files[0]);
+document.getElementById('builtin-gallery-session').onclick=()=>chooseGallery(async()=>{
+ const response=await fetch('/api/gallery-save.zip',{cache:'no-store'});if(!response.ok)throw Error('内置CG存档暂不可用，请重试或导入自己的存档');
+ return new File([await response.blob()],'senren-banka-cg-save.zip',{type:'application/zip'});
+});
 window.addEventListener('message',event=>{
  if(event.origin!==location.origin||event.source!==frame.contentWindow||event.data?.type!=='senren-session-request'||!sessionReadOnly||!galleryFiles||!event.ports[0])return;
  event.ports[0].postMessage({files:galleryFiles});event.ports[0].close();
 });
 function confirmRestart(message){return confirm(message+(sessionReadOnly?'本次鉴赏的临时状态会丢弃，需要重新导入存档。':'请先保存进度。'));}
-let preloading=null,entered=false;
+let preloading=null,entered=false,launchSequence=0;
 async function launch(skip=false){
+ const thisLaunch=++launchSequence;let engineFailure=null;
  const query=new URLSearchParams(location.search);
  const renderer=query.get('renderer')||localStorage.getItem('senren-renderer')||'opengl';
  const selected=['opengl','software'].includes(renderer)?renderer:'opengl';
@@ -28,11 +36,13 @@ async function launch(skip=false){
  const actions=document.getElementById('preload-actions');
  document.getElementById('retry-preload').hidden=true;
  try{
-  const response=await fetch('/api/status',{cache:'no-store'});if(!response.ok)throw Error('服务连接失败');const status=await response.json();let revision=status.resourceRevision||'';
+  const response=await fetch('/api/status',{cache:'no-store'});if(!response.ok)throw Error('服务连接失败');const status=await response.json();builtinGalleryAvailable=status.builtinGalleryAvailable===true;setSessionBusy(sessionBusy);let revision=status.resourceRevision||'';
+  preloading=new AbortController();
+  const engineReady=window.SenrenEngineCache.prepare(data=>{if(thisLaunch!==launchSequence)return;document.getElementById('engine-cache-status').textContent='引擎缓存 '+(data.total?Math.floor(data.done/data.total*100):100)+'% · '+(data.done/1048576).toFixed(1)+' / '+(data.total/1048576).toFixed(1)+' MiB · 复用 '+(data.reused/1048576).toFixed(1)+' MiB';},preloading.signal).catch(error=>{engineFailure=error;preloading?.abort();throw error;});
+  engineReady.catch(()=>{});
   if(!skip&&budget>0){
    if(!window.SenrenPreload)throw Error('预缓存组件未加载');
    const planResponse=await fetch('/api/preload-plan?mib='+budget,{cache:'no-store'});if(!planResponse.ok)throw Error('预缓存资源暂不可用');const plan=await planResponse.json();
-   preloading=new AbortController();
    await window.SenrenPreload.preload(plan,data=>{
     const percent=data.total?Math.floor(data.done/data.total*100):100;
     document.getElementById('load-label').textContent='启动预缓存 '+percent+'%';
@@ -42,12 +52,15 @@ async function launch(skip=false){
    if(entered)return;
    const check=await fetch('/api/status',{cache:'no-store'});if(!check.ok||(await check.json()).resourceRevision!==plan.revision)throw Error('资源已更新，请重试预缓存');revision=plan.revision;
   }
+  const engineVersion=await engineReady;
   await sessionReady;
+  if(thisLaunch!==launchSequence)return;
   if(entered)return;entered=true;actions.hidden=true;
-  const params=new URLSearchParams({webdavUrl:location.origin+'/game/',entry:'data.xp3',loadMode:'lazy',fps:'30',renderer:selected,startupLog:log?'1':'0'});if(revision)params.set('resourceVersion',revision);if(sessionReadOnly)params.set('sessionReadOnly','1');
+  const params=new URLSearchParams({webdavUrl:location.origin+'/game/',entry:'data.xp3',loadMode:'lazy',fps:'30',renderer:selected,startupLog:log?'1':'0'});if(revision)params.set('resourceVersion',revision);if(sessionReadOnly)params.set('sessionReadOnly','1');params.set('engineCache',engineVersion);
   frame.src='/engine/index.html?'+params;
  }catch(error){
-  if(entered||error.name==='AbortError')return;
+  error=engineFailure||error;
+  if(thisLaunch!==launchSequence||entered||error.name==='AbortError')return;preloading?.abort();
   document.getElementById('load-label').textContent=error.name==='QuotaExceededError'?'浏览器缓存空间不足，可选择立即进入':error.message;
   document.getElementById('load-panel').classList.add('error');document.getElementById('retry-preload').hidden=false;
  }

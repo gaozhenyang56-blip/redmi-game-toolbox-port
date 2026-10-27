@@ -1,12 +1,23 @@
 #!/usr/bin/env python3
-import argparse,json,mimetypes,re,ssl,os,base64,hmac,secrets,io
+import argparse,json,mimetypes,re,ssl,os,base64,hmac,secrets,io,zipfile,hashlib
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote,urlsplit,quote,parse_qs
 from file_manager import Files,FileError
-from cache_manifest import preload_plan
+from cache_manifest import preload_plan,resource_revision
+from engine_cache_manifest import engine_manifest
 from xml.sax.saxutils import escape
 ROOT=Path(__file__).resolve().parent
+BUILTIN_GALLERY_PATH='全CG存档/datasu.ksd'
+BUILTIN_GALLERY_SHA256='cb4151abc2d638ca9ef45db5e403389693fd737175773f221c22389fb8f7eeae'
+def builtin_gallery(config):
+ try:
+  if not config or BUILTIN_GALLERY_PATH not in config['files']:return None
+  base=Path(config['root']).resolve();target=(base/BUILTIN_GALLERY_PATH).resolve()
+  if not target.is_relative_to(base) or not target.is_file() or target.stat().st_size>2*1024**2:return None
+  data=target.read_bytes()
+  return data if hashlib.sha256(data).hexdigest()==BUILTIN_GALLERY_SHA256 else None
+ except (OSError,KeyError):return None
 class Handler(BaseHTTPRequestHandler):
  protocol_version='HTTP/1.1'
  def setup(self):
@@ -108,6 +119,16 @@ class Handler(BaseHTTPRequestHandler):
   path=unquote(urlsplit(self.path).path)
   if path.startswith('/api/admin/'):return self.admin_api(body)
   if path=='/favicon.ico':return self.send_data(204,b'','image/x-icon',body)
+  if path=='/api/engine-cache':
+   try:data=engine_manifest(ROOT)
+   except (OSError,ValueError):return self.send_data(409,b'{"error":"Engine unavailable"}','application/json',body)
+   return self.send_data(200,json.dumps(data).encode(),'application/json',body)
+  if path=='/api/gallery-save.zip':
+   data=builtin_gallery(self.config())
+   if data is None:return self.send_data(404,b'{"error":"Bundled gallery save unavailable"}','application/json',body)
+   stream=io.BytesIO()
+   with zipfile.ZipFile(stream,'w',zipfile.ZIP_DEFLATED) as archive:archive.writestr('savedata/datasu.ksd',data)
+   return self.send_data(200,stream.getvalue(),'application/zip',body)
   if path=='/api/preload-plan':
    config=self.config()
    if not config or not (ROOT/'game-manifest.json').exists():return self.send_data(409,b'{"error":"Game resources not ready"}','application/json',body)
@@ -115,7 +136,7 @@ class Handler(BaseHTTPRequestHandler):
     budget=int(parse_qs(urlsplit(self.path).query).get('mib',['256'])[0])
     if budget not in (0,16,32,64,128,256):raise ValueError('budget')
     state=self.server.files.state if self.server.files else None
-    revision=str((ROOT/'game-manifest.json').stat().st_mtime_ns)+'-'+str(state.stat().st_mtime_ns if state and state.exists() else 0)
+    revision=resource_revision(ROOT,config,self.server.files)
     data=preload_plan(config,self.server.files,budget,revision)
    except (OSError,ValueError):return self.send_data(409,b'{"error":"Preload resources unavailable"}','application/json',body)
    return self.send_data(200,json.dumps(data,ensure_ascii=False).encode(),'application/json',body)
@@ -124,12 +145,13 @@ class Handler(BaseHTTPRequestHandler):
    data={'ready':game.exists(),'engineReady':all((ROOT/'engine'/name).exists() for name in ['index.html','index.js','index.wasm','assets.zip'])}
    if info.exists():data.update(json.loads(info.read_text()))
    state=self.server.files.state if self.server.files else None
-   data['resourceRevision']=str(game.stat().st_mtime_ns if game.exists() else 0)+'-'+str(state.stat().st_mtime_ns if state and state.exists() else 0)
+   data['builtinGalleryAvailable']=builtin_gallery(self.config()) is not None
+   data['resourceRevision']=resource_revision(ROOT,self.config(),self.server.files) if game.exists() else 'unavailable'
    return self.send_data(200,json.dumps(data,ensure_ascii=False).encode(),'application/json',body)
   if path=='/':target=ROOT/'web/index.html'
   elif path=='/admin' and self.server.files:target=ROOT/'web/admin.html'
   elif path=='/play':target=ROOT/'web/play.html'
-  elif path in ['/app.js','/style.css','/play.js','/admin.js','/admin.css','/preload-cache.js','/gallery-save.js','/session-saves.js']:target=ROOT/'web'/path[1:]
+  elif path in ['/app.js','/style.css','/play.js','/admin.js','/admin.css','/preload-cache.js','/gallery-save.js','/session-saves.js','/engine-cache.js']:target=ROOT/'web'/path[1:]
   elif path=='/game.zip':target=ROOT/'game.zip'
   elif path.startswith('/game/'):
    config=self.config()

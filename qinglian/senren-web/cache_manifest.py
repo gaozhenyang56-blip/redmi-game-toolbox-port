@@ -44,3 +44,17 @@ def preload_plan(config,manager,mib,revision):
     if total>=budget:break
   except (ValueError,KeyError,struct.error):pass
  return {'schema':1,'revision':revision,'budgetBytes':budget,'totalBytes':total,'cacheLimitBytes':256*BLOCK,'blockBytes':BLOCK,'blocks':blocks}
+
+def resource_revision(root,config,manager=None):
+ import hashlib,json
+ from engine_cache_manifest import content_hash
+ if not config:return 'unavailable'
+ views=manager.dialogue_views()[0] if manager else {}
+ entries=[];compat=(root/'compat').resolve()
+ for name in config['files']:
+  target=views.get(name) or Path(config.get('overrides',{}).get(name,str(Path(config['root'])/name)))
+  stat=target.stat()
+  if isinstance(target,Path) and target.resolve().is_relative_to(compat):version=content_hash(str(target),stat.st_size,stat.st_mtime_ns)
+  else:version=str(stat.st_mtime_ns)
+  entries.append((name,stat.st_size,version))
+ return hashlib.sha256(json.dumps(entries,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()

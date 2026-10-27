@@ -11,7 +11,8 @@
  window.SenrenLoading={
   cached(bytes){cachedBytes+=bytes;send('从游戏缓存读取资源',bytes,bytes);},
   initializing(){send('正在初始化游戏，资源按需读取',0,null,true);},
-  failed(){send('加载失败，请检查画面日志',0,null,true,true);}
+  phase(label,loaded=0,total=null){send(label,loaded,total,true);},
+  failed(message='加载失败，请检查画面日志'){send(message,0,null,true,true);}
  };
  window.fetch=async function(input,options){
   let url;try{url=new URL(typeof input==='string'||input instanceof URL?input:input.url,location.href);}catch{return nativeFetch(input,options);}
@@ -25,6 +26,7 @@
   send(phase,0,null,true);
   let response;try{response=await nativeFetch(input,options);}catch(error){send(phase+'失败：网络连接中断',0,null,true,true);throw error;}
   if(!response.ok){send(phase+'失败（HTTP '+response.status+'）',0,null,true,true);return response;}
+  if(response.headers.get('X-Senren-Engine-Cache')==='hit')phase='读取本机引擎缓存';
   let total=Number(response.headers.get('Content-Length'));
   if(response.headers.get('Content-Encoding')&&response.headers.get('Content-Encoding')!=='identity')total=null;
   if(!Number.isFinite(total)||total<=0)total=null;

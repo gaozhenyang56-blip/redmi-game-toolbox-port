@@ -69,7 +69,7 @@ def safe(name):
  return name and len(name)<=500 and not name.startswith('/') and ':' not in name and not any(ord(c)<32 for c in name) and all(p and p not in ('.','..') for p in name.split('/'))
 
 class FileContent:
- def __init__(self,path):self.path=path;self.size=path.stat().st_size
+ def __init__(self,path):self.path=path;self.size=path.stat().st_size;self.stamp=path.stat().st_mtime_ns
  def __len__(self):return self.size
  def __getitem__(self,key):
   start,stop,step=key.indices(self.size)
@@ -197,7 +197,7 @@ def build(config,generation):
     elif key in packed:selected[key]=packed[key];used.add(key)
     elif PurePosixPath(key).name in packed:selected[key]=packed[PurePosixPath(key).name];used.add(PurePosixPath(key).name)
    if selected:
-    view=ArchiveView(path,records,selected,generation);views[archive]=view;report['archives'][archive]=view.replaced
+    view=ArchiveView(path,records,selected,max((getattr(value,'stamp',0) for value in selected.values()),default=0));views[archive]=view;report['archives'][archive]=view.replaced
   report['unmatched']=sorted((set(loose)|set(packed))-used)
  except (OSError,ValueError,KeyError,struct.error,UnicodeError) as error:
   views={};report['archives']={};report['errors']=[str(error)]
