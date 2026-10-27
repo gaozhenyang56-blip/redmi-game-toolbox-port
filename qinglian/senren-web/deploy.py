@@ -51,6 +51,13 @@ def verify(data):
      with urllib.request.urlopen(urllib.request.Request(base+path,data=payload,method=method,headers=headers),context=context,timeout=15) as response:return response.read()
     page=admin_request('/admin')
     if '文件管理'.encode() not in page:raise RuntimeError('Admin page missing')
+    play=admin_request('/play')
+    engine=admin_request('/engine/index.html')
+    if b'load-meter' not in play or b'load-progress.js?v=port-progress-1' not in engine:raise RuntimeError('Loading progress UI missing')
+    progress=admin_request('/engine/load-progress.js')
+    preferences=admin_request('/engine/port-preferences.js')
+    if b'senren-loading' not in progress or b"startupLog')==='0'?'0':'1'" not in preferences:raise RuntimeError('Progress or native log defaults missing')
+    print('LOADING_PROGRESS_AND_PICTURE_LOG_ASSETS_VERIFIED')
     listing=json.loads(admin_request('/api/admin/files'));token=listing['token'];probe='admin-smoke-'+REV[:12]+'.txt'
     mutation={'X-Admin-Token':token,'Content-Type':'application/json'}
     admin_request('/api/admin/upload?path='+probe,'PUT',b'admin-upload-check',{'X-Admin-Token':token,'X-File-Version':'new','Content-Type':'application/octet-stream'})

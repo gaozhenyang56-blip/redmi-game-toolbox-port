@@ -14,7 +14,7 @@
   if(entry.kind!=='remote'||url.origin!==location.origin||!url.pathname.startsWith('/game/')||len>maxEntry)return original.call(this,entry,pos,len);
   url.searchParams.set('__senren_revision',revision);url.searchParams.set('__senren_range',pos+'-'+len);const key=url.href;
   if(pending.has(key))return (await pending.get(key)).slice();
-  const promise=(async()=>{const c=await cache();if(c){try{const response=await c.match(key);if(response){const data=new Uint8Array(await response.arrayBuffer());if(data.length===len){stats.hits++;stats.bytesSaved+=len;return data;}}}catch{}}
+  const promise=(async()=>{const c=await cache();if(c){try{const response=await c.match(key);if(response){const data=new Uint8Array(await response.arrayBuffer());if(data.length===len){stats.hits++;stats.bytesSaved+=len;window.SenrenLoading?.cached(len);return data;}}}catch{}}
    stats.misses++;const data=await original.call(this,entry,pos,len);if(c&&data.length===len)await store(c,key,data);return data;
   })();pending.set(key,promise);try{return await promise;}finally{pending.delete(key);}
  };

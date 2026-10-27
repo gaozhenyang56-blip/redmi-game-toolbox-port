@@ -28,8 +28,10 @@ jobs:
       - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1 cryptography==44.0.3
       - name: File manager regression checks
         run: python3 -m unittest discover -s qinglian/senren-web/tests -v
-      - name: Range cache regression checks
-        run: node qinglian/senren-web/tests/test_range_cache.cjs
+      - name: Cache and loading progress regression checks
+        run: |
+          node qinglian/senren-web/tests/test_range_cache.cjs
+          node qinglian/senren-web/tests/test_load_progress.cjs
       - name: Publish authenticated preview entry
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
