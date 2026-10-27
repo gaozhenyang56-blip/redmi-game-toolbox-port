@@ -70,7 +70,9 @@ class NativeTests(unittest.TestCase):
                             account={'token':'public-fixture'}; guest=None
                             def begin(self): pass
                             def end(self): pass
-                            def verify_proxy(self):
+                            def verify_proxy(self,cancel=None,cold_hy2=False):
+                                if cold_hy2!=hy or cancel is None or cancel.is_set():
+                                    raise AssertionError('fixture validation selection/cancellation mismatch')
                                 r=subprocess.run(['curl','-fsS','--max-time','5','--noproxy','','--proxy','http://127.0.0.1:10809','http://127.0.0.1:'+str(origin.server_port)+'/'],capture_output=True)
                                 if r.returncode: raise RuntimeError('fixture proxy verification failed')
                             def current(self,path,body=None):
