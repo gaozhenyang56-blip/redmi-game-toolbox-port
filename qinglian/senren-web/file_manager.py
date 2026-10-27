@@ -43,6 +43,19 @@ class Files:
   p=self.target(name)
   if p is None:return 'new'
   s=p.stat();return f'{s.st_size}-{s.st_mtime_ns}-'+('custom' if p.is_relative_to(self.files) else 'base')
+ def dialogue_views(self):
+  from dialogue_overlay import build
+  with self.lock:
+   generation=self.state.stat().st_mtime_ns if self.state.exists() else 0
+   key=(generation,self.manifest.stat().st_mtime_ns if self.manifest.exists() else 0)
+   if getattr(self,'_dialogue_key',None)!=key:
+    self._dialogue_views,self._dialogue_report=build(self.config(),generation);self._dialogue_key=key
+   return self._dialogue_views,self._dialogue_report
+ def game_target(self,name):
+  if name.lower().endswith('.xp3'):
+   views,_=self.dialogue_views()
+   if name in views:return views[name]
+  return self.target(name)
  def listing(self):
   c=self.config();entries=[]
   for n in c['files']:
@@ -54,7 +67,8 @@ class Files:
   pending=[]
   for p in (self.root/'stages').glob('*/preview.json'):
    pending.append(json.loads(p.read_text()))
-  return {'files':entries,'deleted':self.data['deleted'],'history':list(reversed(self.data['history'])),'pendingArchives':pending,'freeBytes':shutil.disk_usage(self.root).free,'maxUpload':self.MAX_UPLOAD}
+  _,compatibility=self.dialogue_views()
+  return {'files':entries,'deleted':self.data['deleted'],'history':list(reversed(self.data['history'])),'pendingArchives':pending,'dialogueCompatibility':compatibility,'freeBytes':shutil.disk_usage(self.root).free,'maxUpload':self.MAX_UPLOAD}
  def persist(self):
   tmp=self.root/'state.new';tmp.write_text(json.dumps(self.data,ensure_ascii=False));os.replace(tmp,self.state)
  def backup(self,name):

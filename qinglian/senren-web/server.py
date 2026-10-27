@@ -126,6 +126,8 @@ class Handler(BaseHTTPRequestHandler):
    if relative not in config['files']:return self.send_data(404,b'Not found','text/plain',body)
    base=Path(config['root']).resolve();target=Path(config.get('overrides',{}).get(relative,str(base/relative))).resolve()
    if relative not in config.get('overrides',{}) and not target.is_relative_to(base):return self.send_data(404,b'Not found','text/plain',body)
+   if self.server.files:target=self.server.files.game_target(relative)
+   if target is None:return self.send_data(404,b'Not found','text/plain',body)
   elif path.startswith('/engine/'):
    target=(ROOT/path.lstrip('/')).resolve()
    if not target.is_relative_to(ROOT/'engine'):return self.send_data(404,b'Not found','text/plain',body)
@@ -183,7 +185,8 @@ class Handler(BaseHTTPRequestHandler):
   parts=['<?xml version="1.0" encoding="UTF-8"?><d:multistatus xmlns:d="DAV:">']
   for name in entries:
    folder=name in directories;href='/game/'+quote(name)+(('/' if name else '') if folder else '')
-   length=0 if folder else Path(config.get('overrides',{}).get(name,str(Path(config['root'])/name))).stat().st_size
+   item=None if folder else self.server.files.game_target(name) if self.server.files else Path(config.get('overrides',{}).get(name,str(Path(config['root'])/name)))
+   length=0 if folder else item.stat().st_size
    resource='<d:collection/>' if folder else ''
    parts.append('<d:response><d:href>'+escape(href)+'</d:href><d:propstat><d:prop><d:displayname>'+escape(Path(name).name or 'Game')+'</d:displayname><d:resourcetype>'+resource+'</d:resourcetype><d:getcontentlength>'+str(length)+'</d:getcontentlength><d:getetag>"'+str(length)+'"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>')
   parts.append('</d:multistatus>')

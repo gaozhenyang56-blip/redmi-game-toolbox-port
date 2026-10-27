@@ -58,7 +58,12 @@ def verify(data):
     preferences=admin_request('/engine/port-preferences.js')
     if b'senren-loading' not in progress or b"startupLog')==='0'?'0':'1'" not in preferences:raise RuntimeError('Progress or native log defaults missing')
     print('LOADING_PROGRESS_AND_PICTURE_LOG_ASSETS_VERIFIED')
-    listing=json.loads(admin_request('/api/admin/files'));token=listing['token'];probe='admin-smoke-'+REV[:12]+'.txt'
+    listing=json.loads(admin_request('/api/admin/files'))
+    if listing.get('dialogueCompatibility',{}).get('scope')!='resources':raise RuntimeError('Resource compatibility module not loaded')
+    filter_script=admin_request('/game/xp3filter.tjs')
+    if b'if (hash == 0) return;' not in filter_script:raise RuntimeError('Plain XP3 filter compatibility missing')
+    print('RESOURCE_COMPATIBILITY_STATUS_AND_PLAIN_XP3_FILTER_VERIFIED')
+    token=listing['token'];probe='admin-smoke-'+REV[:12]+'.txt'
     mutation={'X-Admin-Token':token,'Content-Type':'application/json'}
     admin_request('/api/admin/upload?path='+probe,'PUT',b'admin-upload-check',{'X-Admin-Token':token,'X-File-Version':'new','Content-Type':'application/octet-stream'})
     if admin_request('/game/'+probe)!=b'admin-upload-check':raise RuntimeError('Uploaded resource not visible')
@@ -95,7 +100,7 @@ print(json.dumps(credentials))
   for path in ROOT.rglob('*'):
    if not path.is_file() or '__pycache__' in path.parts or path.name.startswith('.'):continue
    relative=path.relative_to(ROOT)
-   if relative.parts[0] not in ('engine','web','compat','tools') and path.name not in ('server.py','accounts.py','file_manager.py','safe_archive.py','download-input.enc.json'):continue
+   if relative.parts[0] not in ('engine','web','compat','tools') and path.name not in ('server.py','accounts.py','file_manager.py','dialogue_overlay.py','safe_archive.py','download-input.enc.json'):continue
    mkdir(sftp,DEST+'/'+str(relative.parent));sftp.put(str(path),DEST+'/'+str(relative))
  entry=r'''
 import json,os,subprocess

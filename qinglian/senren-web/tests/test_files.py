@@ -77,6 +77,15 @@ class HTTPTests(FileTests):
   self.assertEqual(self.request('GET','/game/materials/example.pimg')[0],404)
   self.assertEqual(self.post('archive-deploy',{'id':preview['id']})[0],200)
   self.assertEqual(self.request('GET','/game/materials/example.pimg')[2],b'example')
+ def test_xp3_overlay_http_ranges_and_webdav_size(self):
+  from test_resource_overlay import xp3
+  xp3(self.base/'data.xp3',[('scenario/start.ks',b'original text',False,False)])
+  self.files.upload('unencrypted/scenario/start.ks',io.BytesIO(b'updated dialogue'),16,'new')
+  status,headers,body=self.request('GET','/game/data.xp3');self.assertEqual(status,200)
+  status,range_headers,part=self.request('GET','/game/data.xp3',headers={'Range':'bytes=9-24'})
+  self.assertEqual(status,206);self.assertEqual(part,body[9:25]);self.assertEqual(int(headers['Content-Length']),len(body))
+  status,_,xml=self.request('PROPFIND','/game/');self.assertEqual(status,207);self.assertIn(('<d:getcontentlength>'+str(len(body))+'</d:getcontentlength>').encode(),xml)
+  self.assertEqual((self.base/'data.xp3').stat().st_size<len(body),True)
  def test_admin_disabled_on_production(self):
   self.http.files=None
   self.assertEqual(self.request('GET','/admin')[0],404);self.assertEqual(self.request('GET','/api/admin/files')[0],404)

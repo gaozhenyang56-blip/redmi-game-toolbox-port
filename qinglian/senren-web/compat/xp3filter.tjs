@@ -678,6 +678,8 @@ class cxdec
 
     function cxdec_decode(hash, offset, buf, len)
     {
+        // KirikiriUnencryptedArchive/Xp3Pack marks plain replacement entries with hash 0.
+        if (hash == 0) return;
         var bondary = (hash & 0x134) + 0x736;
         var dec_len;
         if (offset < bondary) {
