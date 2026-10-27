@@ -5,7 +5,7 @@
 ## 安装和使用
 
 ```sh
-sudo apt install ./Qinglian-1.0.0-preview4-amd64.deb
+sudo apt install ./Qinglian-1.0.0-preview5-amd64.deb
 qinglian
 ```
 
@@ -36,7 +36,7 @@ TUN 固定使用 `qltun0`、路由表 22042、策略优先级 11090/11091，拒�
 ## 开发 / 构建
 
 ```sh
-python3 ubuntu/build.py --assets /private/api-assets --output /tmp/Qinglian-1.0.0-preview4-amd64.deb
+python3 ubuntu/build.py --assets /private/api-assets --output /tmp/Qinglian-1.0.0-preview5-amd64.deb
 ```
 
 JDK 17+、Python 3、dpkg-deb。私有资产目录只需 `profile.json` 与其 `caAsset` 证书；不得提交 token 或节点凭据。固定公开下载经 SHA256 校验。复用同一 `NodeConfig.java`，随包编译成 Java 17 字节码，避免另写一套协议转换。

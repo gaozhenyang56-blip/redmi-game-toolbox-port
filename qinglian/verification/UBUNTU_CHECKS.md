@@ -1,3 +1,9 @@
+# Ubuntu preview5 同步 Android v21（2026-10-27，候选）
+
+本次仅Ubuntu：HY2首次真实代理验证读取预算12秒、总15秒（含HTTP CONNECT及远端TLS）；兼容3秒/总8秒，连接本地代理TCP仍3秒。watchdog在取消/到期时shutdown验证套接字，取消不报连接失败且不启用系统代理。固定阶段/HTTP/证书/超时错误码不含原始异常或凭据，CA/主机名/响应标记/1字节长度要求保留；不修改服务端HY2参数、账号/访客额度、原UI/ChatGPT/TUN安全边界。域名/CDN入口沿用preview4。
+
+本地34项运行测试，包括真实TLS响应延迟3.4秒、延迟CONNECT冷启动成功/普通超时、阻塞读头/读体取消、总截止、错误CA/主机名拒绝、安全错误文本及取消后清理。完整Ubuntu24.04安装/GTK/原生协议/隔离TUN和三个公网通道验收后才发布preview5；不代表已确认中国移动现场HY2恢复。
+
 # Ubuntu 1.0.0-preview4（2026-10-24，CDN入口已发布）
 
 40085028187成功：31运行逻辑测试、实际GTK/原生协议/隔离TUN、真实gaozy.tech控制API（平台CA）和原IP测速源（专用CA）分离、兼容/HY2保守/高性能三通道各1MiB传输/访客64GiB计量及清理、生产包构建发布。Ubuntu原权限、ChatGPT/TUN/隐私边界未改，POST发送后不重放。公开deb重下核对hash、版本、runtime/app源码、CDN资产及原CA：20,868,388字节，SHA256 3211ce9d547f033e930a5a35f3e178bcebbd985f4f86f3da40e67f978013d239；标签qinglian-ubuntu-v1.0.0-preview4，下一版至少preview5。未取得用户中国移动现场验收。

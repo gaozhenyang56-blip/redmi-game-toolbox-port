@@ -134,6 +134,66 @@ class ApiHandler(urllib.request.HTTPSHandler):
     def https_open(self, request):
         return self.do_open(ApiConnection, request, context=self._context)
 
+class ProbeCancelled(RuntimeError):
+    pass
+
+def connection_failure(error, phase, accelerated):
+    """Only fixed categories may reach UI; never render remote exception text."""
+    prefix='H' if accelerated else 'C'
+    if isinstance(error,urllib.error.HTTPError): code=prefix+str(error.code)
+    else:
+        cause=error.reason if isinstance(error,urllib.error.URLError) else error
+        if isinstance(cause,(ssl.SSLCertVerificationError,ssl.CertificateError)): code=prefix+'-TLS'
+        elif isinstance(cause,(TimeoutError,socket.timeout)): code=prefix+'-TIMEOUT'
+        else: code={'profile':'P-PROFILE','core':prefix+'-CORE','verify':prefix+'-VERIFY','tun':'S-VPN','proxy':'S-NETWORK','running':'S-RUNNING'}.get(phase,'S-CONNECT')
+    return '连接失败 [%s]，请检查网络或切换兼容通道；未确认代理链路可用。'%code
+
+class ProbeTransport(urllib.request.HTTPSHandler):
+    """Bounded initial validation, with shutdown of blocked reads on cancellation."""
+    def __init__(self, context, cancel, cold_hy2):
+        super().__init__(context=context)
+        self.cancel=cancel or threading.Event(); self.done=threading.Event()
+        self.connection=None; self.active_socket=None; self.deadline=time.monotonic()+(15 if cold_hy2 else 8)
+        self.read_timeout=12 if cold_hy2 else 3
+        self.watcher=threading.Thread(target=self.watch,daemon=True); self.watcher.start()
+    def watch(self):
+        while not self.done.wait(.05):
+            if self.cancel.is_set() or time.monotonic()>=self.deadline:
+                conn=self.connection
+                sock=(conn.sock if conn else None) or self.active_socket
+                if sock:
+                    try: sock.shutdown(socket.SHUT_RDWR)
+                    except OSError: pass
+                return
+    def check(self):
+        if self.cancel.is_set(): raise ProbeCancelled('已取消连接')
+        if time.monotonic()>=self.deadline: raise TimeoutError('链路验证超时')
+    def https_open(self, request):
+        transport=self
+        class ProbeConnection(http.client.HTTPSConnection):
+            def _tunnel(self):
+                # Local proxy TCP opens quickly; CONNECT and remote TLS may need
+                # a cold QUIC handshake, so they use the initial HY2 read budget.
+                self.sock.settimeout(min(transport.read_timeout,transport.deadline-time.monotonic()))
+                return super()._tunnel()
+            def connect(self):
+                transport.connection=self
+                transport.check()
+                http.client.HTTPConnection.connect(self)
+                transport.check()
+                hostname=self._tunnel_host or self.host
+                self.sock=self._context.wrap_socket(self.sock,server_hostname=hostname,do_handshake_on_connect=False)
+                transport.active_socket=self.sock
+                transport.check()
+                self.sock.settimeout(min(transport.read_timeout,transport.deadline-time.monotonic()))
+                self.sock.do_handshake()
+                transport.check()
+        self.check()
+        return self.do_open(ProbeConnection,request,context=self._context)
+    def close(self):
+        self.done.set(); self.watcher.join(timeout=1)
+        if self.connection: self.connection.close()
+
 def cdn_base(config):
     if 'cdnUrl' not in config:return None
     parsed=urllib.parse.urlsplit(config['cdnUrl']);origin=urllib.parse.urlsplit(config['url'])
@@ -168,7 +228,7 @@ class Api:
         self.account = read(STATE/'account.json', {})
         self.guest = None
     def request(self, path, body=None, token=None, bootstrap=False):
-        headers = {'User-Agent':'Qinglian/Ubuntu-preview4','Content-Type':'application/json','Accept':'application/json','X-Qinglian-Device':self.device}
+        headers = {'User-Agent':'Qinglian/Ubuntu-preview5','Content-Type':'application/json','Accept':'application/json','X-Qinglian-Device':self.device}
         token = self.config['clientToken'] if bootstrap else (token or self.account.get('token'))
         if token: headers['Authorization'] = 'Bearer '+token
         bases=api_routes(urllib.parse.urljoin(self.config['url'],'./'))
@@ -226,17 +286,21 @@ class Api:
         except Exception: warning='已退出本机账号；服务端会话撤销未确认，旧会话将按服务端期限失效。'
         self.account = {}; (STATE/'account.json').unlink(missing_ok=True)
         return warning
-    def verify_proxy(self):
+    def verify_proxy(self, cancel=None, cold_hy2=False):
         token=self.account.get('token') or self.guest['sessionKey']
         group='exports' if self.account else 'guest'
         request=urllib.request.Request(urllib.parse.urljoin(getattr(self,'origin_base',self.base),group+'/speed?bytes=1'),headers={'Authorization':'Bearer '+token,'X-Qinglian-Device':self.device,'Accept-Encoding':'identity'})
-        opener=urllib.request.build_opener(urllib.request.ProxyHandler({'https':'http://127.0.0.1:10809'}),urllib.request.HTTPSHandler(context=self.context),NoRedirect())
+        transport=ProbeTransport(self.context,cancel,cold_hy2)
+        opener=urllib.request.build_opener(urllib.request.ProxyHandler({'https':'http://127.0.0.1:10809'}),transport,NoRedirect())
         try:
-            with opener.open(request,timeout=10) as r:
+            with opener.open(request,timeout=3) as r:
                 if r.headers.get('X-Qinglian-Speed')!='server-v1' or r.headers.get('Content-Length')!='1' or len(r.read(2))!=1:
                     raise RuntimeError('代理链路验证响应无效')
+            transport.check()
         except Exception:
-            raise RuntimeError('代理链路验证失败，未显示连接成功；请切换兼容通道或检查网络。') from None
+            transport.check()
+            raise
+        finally: transport.close()
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args): return None
@@ -300,6 +364,7 @@ class Connection:
         self.thread=threading.Thread(target=self.run,args=(accelerated,performance,rule,tun),daemon=True); self.thread.start()
     def disconnect(self): self.cancel.set()
     def run(self, accelerated, performance, rule, tun):
+        phase='profile'
         try:
             self.notify('state','正在获取专属节点…')
             for port in (10808,10809,10810): port_free(port)
@@ -318,6 +383,7 @@ class Connection:
                 if any(n.get('add')!=server for n in nodes):
                     raise RuntimeError('TUN 仅支持面板同服务器节点，当前节点地址不匹配；可使用系统代理模式。')
             # TUN takes all traffic; no direct core egress that could loop back into TUN.
+            phase='core'
             config=v2_config(node,rule and not tun)
             work=STATE/'run'; work.mkdir(exist_ok=True,mode=0o700)
             if accelerated:
@@ -330,6 +396,7 @@ class Connection:
             p=spawn([str(ROOT/'v2ray'),'run','-c',str(work/'core.json')],env=env); self.procs.append(p)
             wait_port(10809,p,self.cancel)
             if tun:
+                phase='tun'
                 self.notify('state','请在系统授权窗口允许 TUN 接管…')
                 # Helper only knows the compiled server IP and accepts no executable config.
                 helper=subprocess.Popen(['pkexec','/usr/lib/qinglian/qinglian-tun'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
@@ -343,13 +410,16 @@ class Connection:
                         break
                 else: raise RuntimeError('TUN 授权超时')
             self.notify('state','正在验证代理链路…')
-            self.api.verify_proxy()
+            phase='verify'
+            self.api.verify_proxy(self.cancel,cold_hy2=accelerated)
             # Also replace stale GNOME proxies in TUN mode: traffic to a dead local
             # Clash port cannot be rescued by an IP tunnel. Restore the old values on exit.
+            phase='proxy'
+            if self.cancel.is_set(): raise ProbeCancelled('已取消连接')
             self.proxy.enable()
             if self.cancel.is_set(): raise RuntimeError('已取消连接')
             self.connected=True; self.notify('connected',('HY2 高性能' if accelerated and performance else 'HY2 保守' if accelerated else node.get('protocol','VMess').upper())+' · '+('TUN 全局' if tun else '系统代理 / '+('规则' if rule else '全局')))
-            failures=0
+            phase='running'; failures=0
             while not self.cancel.wait(1):
                 if any(p.poll() is not None for p in self.procs): raise RuntimeError('核心已退出，连接已安全停止，请重新连接')
                 if time.monotonic()-getattr(self,'last_renew',0)>=15:
@@ -366,7 +436,8 @@ class Connection:
                         failures+=1
                         if failures>=3: raise RuntimeError('续租或配额连续读取失败，请检查面板后重连')
                         self.notify('warning','面板同步暂时失败，正在重试（不重置额度）')
-        except Exception as e: self.notify('error',str(e))
+        except Exception as e:
+            if not self.cancel.is_set(): self.notify('error',connection_failure(e,phase,accelerated))
         finally:
             self.connected=False
             self.proxy.close()

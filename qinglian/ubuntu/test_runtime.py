@@ -50,6 +50,119 @@ class RuntimeTests(unittest.TestCase):
             api.verify_proxy()
             response.headers['X-Qinglian-Speed']='wrong'
             with self.assertRaises(RuntimeError): api.verify_proxy()
+    def test_real_probe_slow_headers_cancel_and_deadline(self):
+        import http.server
+        import ssl
+        import time
+        fixture=Path(__file__).resolve().parents[1]/'app/src/test/resources'
+        entered=threading.Event(); release=threading.Event()
+        mode=['slow']
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                try:
+                    if mode[0]=='body':
+                        self.send_response(200); self.send_header('Content-Length','1'); self.end_headers(); self.wfile.flush()
+                    entered.set()
+                    release.wait(3.4 if mode[0]=='slow' else 5)
+                    if mode[0]!='body':
+                        self.send_response(200); self.send_header('Content-Length','1'); self.end_headers()
+                    self.wfile.write(b'x')
+                except OSError: pass
+            def log_message(self,*args): pass
+        server=http.server.ThreadingHTTPServer(('127.0.0.1',0),Handler)
+        tls=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        tls.load_cert_chain(str(fixture/'tls-server-cert.pem'),str(fixture/'tls-server-key.pem'))
+        server.socket=tls.wrap_socket(server.socket,server_side=True)
+        thread=threading.Thread(target=server.serve_forever,daemon=True); thread.start()
+        context=ssl.create_default_context(cafile=str(fixture/'tls-ca.pem'))
+        url='https://127.0.0.1:%d/'%server.server_port
+        def transfer(transport):
+            try:
+                opener=runtime.urllib.request.build_opener(runtime.urllib.request.ProxyHandler({}),transport,runtime.NoRedirect())
+                with opener.open(url,timeout=3) as response: self.assertEqual(response.read(2),b'x')
+                transport.check()
+            except Exception:
+                transport.check(); raise
+            finally: transport.close()
+        try:
+            for host,trust in [('localhost',context),('127.0.0.1',ssl.create_default_context())]:
+                transport=runtime.ProbeTransport(trust,None,True)
+                try:
+                    opener=runtime.urllib.request.build_opener(runtime.urllib.request.ProxyHandler({}),transport)
+                    with self.assertRaises(runtime.urllib.error.URLError) as failure:
+                        opener.open('https://%s:%d/'%(host,server.server_port),timeout=3)
+                    self.assertIsInstance(failure.exception.reason,ssl.SSLCertVerificationError)
+                finally: transport.close()
+            transfer(runtime.ProbeTransport(context,None,True))
+            with self.assertRaises((TimeoutError,runtime.urllib.error.URLError)):
+                transfer(runtime.ProbeTransport(context,None,False))
+            # Confirm request is in a blocked read before cancelling, for headers and body.
+            for part in ('headers','body'):
+                mode[0]=part; entered.clear(); cancel=threading.Event(); errors=[]
+                transport=runtime.ProbeTransport(context,cancel,True)
+                def run():
+                    try: transfer(transport)
+                    except Exception as error: errors.append(error)
+                worker=threading.Thread(target=run); worker.start()
+                self.assertTrue(entered.wait(2)); start=time.monotonic(); cancel.set(); worker.join(1)
+                self.assertFalse(worker.is_alive()); self.assertLess(time.monotonic()-start,1)
+                self.assertIsInstance(errors[0],runtime.ProbeCancelled)
+                self.assertFalse(transport.watcher.is_alive())
+            transport=runtime.ProbeTransport(context,None,True); transport.deadline=time.monotonic()+.25
+            with self.assertRaises(TimeoutError): transfer(transport)
+            # Exercise delayed HTTP CONNECT too: a cold HY2 handshake can happen
+            # before the origin TLS handshake, not only while reading HTTP headers.
+            release.set()
+            import socketserver
+            import select
+            class Proxy(socketserver.BaseRequestHandler):
+                def handle(self):
+                    try:
+                        data=b''
+                        while b'\r\n\r\n' not in data: data+=self.request.recv(4096)
+                        time.sleep(3.4)
+                        with runtime.socket.create_connection(('127.0.0.1',server.server_port),2) as upstream:
+                            self.request.sendall(b'HTTP/1.1 200 Connection established\r\n\r\n')
+                            while True:
+                                readable,_,_=select.select([self.request,upstream],[],[],2)
+                                if not readable: return
+                                for source in readable:
+                                    chunk=source.recv(8192)
+                                    if not chunk: return
+                                    (upstream if source is self.request else self.request).sendall(chunk)
+                    except OSError: pass
+            proxy=socketserver.ThreadingTCPServer(('127.0.0.1',0),Proxy); proxy.daemon_threads=True
+            proxy_thread=threading.Thread(target=proxy.serve_forever,daemon=True); proxy_thread.start()
+            try:
+                for cold in (True,False):
+                    transport=runtime.ProbeTransport(context,None,cold)
+                    request=runtime.urllib.request.Request(url); request.set_proxy('127.0.0.1:%d'%proxy.server_address[1],'https')
+                    opener=runtime.urllib.request.build_opener(runtime.urllib.request.ProxyHandler({}),transport)
+                    try:
+                        if cold:
+                            with opener.open(request,timeout=3) as response: self.assertEqual(response.read(2),b'x')
+                        else:
+                            with self.assertRaises((TimeoutError,runtime.urllib.error.URLError)): opener.open(request,timeout=3)
+                    finally: transport.close()
+            finally: proxy.shutdown(); proxy.server_close(); proxy_thread.join(2)
+        finally:
+            release.set(); server.shutdown(); server.server_close(); thread.join(2)
+    def test_safe_connection_failure_categories(self):
+        secret='https://secret.invalid/?token=private-fixture'
+        cases=[(TimeoutError(secret),'H-TIMEOUT'),(runtime.urllib.error.URLError(runtime.ssl.SSLCertVerificationError(secret)),'H-TLS'),(runtime.urllib.error.HTTPError(secret,403,secret,{},None),'H403'),(RuntimeError(secret),'H-VERIFY')]
+        for error,code in cases:
+            message=runtime.connection_failure(error,'verify',True)
+            self.assertIn(code,message); self.assertNotIn(secret,message)
+    def test_cancel_during_verification_never_enables_proxy_or_reports_error(self):
+        with tempfile.TemporaryDirectory() as d,patch.object(runtime,'STATE',Path(d)),patch.object(runtime,'port_free'),patch.object(runtime,'v2_config',return_value={}),patch.object(runtime,'spawn'),patch.object(runtime,'wait_port'),patch.object(runtime,'stop_process'):
+            api=MagicMock(); api.current.return_value={'ready':True,'node':{'protocol':'vmess'},'revision':1}
+            events=[]; c=runtime.Connection(api,lambda e,v:events.append((e,v)))
+            def cancel(*args,**kwargs): c.cancel.set(); raise runtime.ProbeCancelled('cancel')
+            api.verify_proxy.side_effect=cancel
+            with patch.object(c.proxy,'enable') as enable,patch.object(c.proxy,'close'):
+                c.run(False,False,False,False)
+            enable.assert_not_called(); api.end.assert_called_once()
+            self.assertFalse(any(e in ('error','connected') for e,v in events))
     @staticmethod
     def fallback_api():
         api=runtime.Api.__new__(runtime.Api)
