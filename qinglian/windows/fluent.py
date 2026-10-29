@@ -5,7 +5,7 @@ import os
 import sys
 from PySide6.QtCore import Qt,QRectF,QSize
 from PySide6.QtGui import QColor,QPainter,QPainterPath,QPen
-from PySide6.QtWidgets import QStyledItemDelegate,QStyle
+from PySide6.QtWidgets import QStyledItemDelegate,QStyle,QCheckBox
 
 def material_available():
     return os.name=='nt' and sys.getwindowsversion().build>=22621
@@ -87,6 +87,24 @@ class NavigationDelegate(QStyledItemDelegate):
         if option.state&QStyle.State_HasFocus:
             painter.setPen(QPen(QColor('#60cdff' if dark else '#0067c0'),1)); painter.setBrush(Qt.NoBrush); painter.drawRoundedRect(rect.adjusted(1,1,-1,-1),4,4)
         painter.restore()
+
+class CheckBox(QCheckBox):
+    """Draw the Fluent check state while retaining Qt accessibility/keyboard behavior."""
+    def paintEvent(self,event):
+        painter=QPainter(self);painter.setRenderHint(QPainter.Antialiasing)
+        dark=getattr(self.window(),'dark',False)
+        accent='#60cdff' if dark else '#0067c0'; foreground='#ffffff' if dark else '#202020'
+        if not self.isEnabled(): painter.setOpacity(.45)
+        rect=QRectF(2,(self.height()-18)/2,18,18)
+        painter.setPen(QPen(QColor(accent if self.isChecked() else '#999999'),1))
+        painter.setBrush(QColor(accent if self.isChecked() else '#292929' if dark else '#ffffff'))
+        painter.drawRoundedRect(rect,3,3)
+        if self.isChecked():
+            painter.setPen(QPen(QColor('#00354b' if dark else '#ffffff'),2,Qt.SolidLine,Qt.RoundCap,Qt.RoundJoin))
+            path=QPainterPath();path.moveTo(rect.left()+4,rect.top()+9);path.lineTo(rect.left()+7.5,rect.top()+12.5);path.lineTo(rect.left()+14,rect.top()+5.5);painter.drawPath(path)
+        painter.setPen(QColor(foreground));painter.drawText(QRectF(30,0,self.width()-30,self.height()),Qt.AlignVCenter,self.text())
+        if self.hasFocus():
+            painter.setPen(QPen(QColor(accent),1,Qt.DotLine));painter.setBrush(Qt.NoBrush);painter.drawRoundedRect(QRectF(self.rect()).adjusted(0,0,-1,-1),3,3)
 
 def stylesheet(dark,mica):
     bg,fg,panel,card,stroke,muted,hover,accent,accent_text=(

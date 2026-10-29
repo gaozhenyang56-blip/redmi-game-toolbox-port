@@ -19,6 +19,7 @@ from PySide6.QtGui import QAction,QColor,QIcon,QPainter,QPixmap
 from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QListWidget,QStackedWidget,QFrame,QComboBox,QCheckBox,QSpinBox,QLineEdit,QPlainTextEdit,QFileDialog,QMessageBox,QProgressBar,QSystemTrayIcon,QGraphicsOpacityEffect,QScrollArea)
 import client
 import fluent
+QCheckBox=fluent.CheckBox
 
 VERSION='1.0.0-preview2'
 class Bridge(QObject):
