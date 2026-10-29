@@ -24,7 +24,7 @@ common.ProxySettings=platform.ProxySettings; common.spawn=platform.spawn; common
 save=platform.save; read=platform.read; STATE=platform.STATE; CONSENT=common.CONSENT
 
 def v2_config(node,rule):
-    args=[str(ROOT/'jre/bin/java.exe'),'-cp',os.pathsep.join([str(ROOT/'node-config.jar'),str(ROOT/'json.jar')]),'NodeConfigCli']
+    args=[str(ROOT/'jre/bin/java.exe'),'-Dfile.encoding=UTF-8','-cp',os.pathsep.join([str(ROOT/'node-config.jar'),str(ROOT/'json.jar')]),'NodeConfigCli']
     if rule: args.append('bypass-cn')
     result=subprocess.run(args,input=json.dumps(node),encoding='utf-8',capture_output=True,timeout=15,creationflags=platform.NO_WINDOW)
     if result.returncode: raise RuntimeError('面板节点配置不受支持或证书不安全')
