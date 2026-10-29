@@ -51,8 +51,11 @@ def main():
             if relative.is_absolute() or '..' in relative.parts: raise ValueError('Unsafe JRE archive')
             target=resources/'jre'/relative; target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(archive.read(item))
     classes=output/'classes'; classes.mkdir(exist_ok=True)
-    subprocess.run(['javac','--release','17','-cp',str(resources/'json.jar'),'-d',str(classes),str(PROJECT/'app/src/main/java/com/gzy/qinglian/NodeConfig.java'),str(PROJECT/'server/NodeConfigCli.java')],check=True)
-    subprocess.run(['jar','--create','--file',str(resources/'node-config.jar'),'-C',str(classes),'.'],check=True)
+    jdk=os.environ.get('JAVA_HOME_17_X64') or os.environ.get('JAVA_HOME')
+    javac=str(Path(jdk)/'bin/javac.exe') if os.name=='nt' and jdk else 'javac'
+    jar=str(Path(jdk)/'bin/jar.exe') if os.name=='nt' and jdk else 'jar'
+    subprocess.run([javac,'--release','17','-cp',str(resources/'json.jar'),'-d',str(classes),str(PROJECT/'app/src/main/java/com/gzy/qinglian/NodeConfig.java'),str(PROJECT/'server/NodeConfigCli.java')],check=True)
+    subprocess.run([jar,'--create','--file',str(resources/'node-config.jar'),'-C',str(classes),'.'],check=True)
     licenses=resources/'licenses'; licenses.mkdir(exist_ok=True)
     shutil.copy2(PROJECT/'LICENSE',licenses/'Qinglian-GPL-3.0.txt'); shutil.copy2(PROJECT/'app/src/main/assets/THIRD_PARTY.txt',licenses/'THIRD_PARTY.txt')
     for file in (PROJECT/'app/src/main/assets/licenses').glob('HYSTERIA-*.txt'): shutil.copy2(file,licenses/file.name)

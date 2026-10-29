@@ -24,7 +24,8 @@ def run(screenshot):
             start.assert_not_called(); stop.assert_not_called()
         window.auth('login'); assert '同意' in window.message.text()
         window.compact.setChecked(False); window.theme.setCurrentIndex(0); window.nav.setCurrentRow(0)
-        application.processEvents(); assert window.status.text()=='未连接'
+        from PySide6.QtTest import QTest
+        QTest.qWait(250); application.processEvents(); assert window.status.text()=='未连接'
         if screenshot: assert window.grab().save(screenshot)
         window.working=False; window.close(); application.processEvents()
     print('PASS: six Qt pages, compatibility default, account consent, themes, compact state preservation, no live credentials.')

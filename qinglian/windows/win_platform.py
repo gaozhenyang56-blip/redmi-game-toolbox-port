@@ -17,7 +17,7 @@ NO_WINDOW=getattr(subprocess,'CREATE_NO_WINDOW',0)
 
 def user_sid():
     import csv
-    output=subprocess.check_output(['whoami','/user','/fo','csv','/nh'],creationflags=NO_WINDOW,text=True)
+    output=subprocess.check_output(['whoami','/user','/fo','csv','/nh'],creationflags=NO_WINDOW).decode('ascii',errors='ignore')
     sid=list(csv.reader(output.splitlines()))[-1][-1]
     if not sid.startswith('S-1-'): raise RuntimeError('无法读取 Windows 用户标识')
     return sid
