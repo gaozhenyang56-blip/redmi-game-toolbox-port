@@ -161,7 +161,9 @@ class ProbeTransport(urllib.request.HTTPSHandler):
                 conn=self.connection
                 sock=(conn.sock if conn else None) or self.active_socket
                 if sock:
-                    try: sock.shutdown(socket.SHUT_RDWR)
+                    # Do not call SSLSocket.shutdown: it clears _sslobj while a
+                    # different thread may be inside OpenSSL's blocking read.
+                    try: socket.socket.shutdown(sock,socket.SHUT_RDWR)
                     except OSError: pass
                 return
     def check(self):

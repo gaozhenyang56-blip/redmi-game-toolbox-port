@@ -41,6 +41,16 @@ def spawn(args,**kwargs):
     return platform.spawn(args,**kwargs)
 common.spawn=spawn
 
+_port_free=common.port_free
+def port_free(port):
+    # Winsock SO_REUSEADDR can bind over an existing listener. Check it first;
+    # never mistake another proxy's listening port for our newly started core.
+    try:
+        with common.socket.create_connection(('127.0.0.1',port),.2):
+            raise RuntimeError('本地代理端口已被占用，请先关闭其他代理')
+    except OSError: _port_free(port)
+common.port_free=port_free
+
 class Api(common.Api):
     hold_session=False
     def begin(self):
@@ -79,10 +89,23 @@ class Connection(common.Connection):
                     continue
                 if errors: notify('error',errors[-1])
                 break
+        except Exception:
+            if not self.cancel.is_set(): notify('error','连接已停止 [S-CLEANUP]，请检查 Windows 代理设置')
         finally:
             self.notify=notify; self.api.hold_session=False
+            # Registry recovery must not prevent native cleanup if it fails.
+            failed=False
+            for process in reversed(self.procs):
+                try: platform.stop_process(process)
+                except Exception: failed=True
+            self.procs.clear()
+            try: self.proxy.close()
+            except Exception: failed=True
             try: self.api.end()
-            finally: notify('stopped','已断开')
+            except Exception: failed=True
+            self.connected=False
+            if failed: notify('error','连接已停止，但清理未全部确认 [S-CLEANUP]，请检查 Windows 代理设置')
+            notify('stopped','已断开')
     def launch_chatgpt(self,path):
         if not self.connected: raise RuntimeError('请先连接轻连')
         path=Path(path)

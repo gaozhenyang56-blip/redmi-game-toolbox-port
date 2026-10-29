@@ -105,7 +105,8 @@ class RuntimeTests(unittest.TestCase):
                     except Exception as error: errors.append(error)
                 worker=threading.Thread(target=run); worker.start()
                 self.assertTrue(entered.wait(2)); start=time.monotonic(); cancel.set(); worker.join(1)
-                self.assertFalse(worker.is_alive()); self.assertLess(time.monotonic()-start,1)
+                self.assertFalse(worker.is_alive(),'cancel '+part+' did not unblock; watchdog alive='+str(transport.watcher.is_alive()))
+                self.assertLess(time.monotonic()-start,1)
                 self.assertIsInstance(errors[0],runtime.ProbeCancelled)
                 self.assertFalse(transport.watcher.is_alive())
             transport=runtime.ProbeTransport(context,None,True); transport.deadline=time.monotonic()+.25

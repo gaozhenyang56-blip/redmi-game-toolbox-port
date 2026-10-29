@@ -10,10 +10,23 @@ import client
 import win_platform as platform
 
 class ClientTests(unittest.TestCase):
+    def test_existing_proxy_listener_is_rejected(self):
+        with client.common.socket.socket() as listener:
+            listener.bind(('127.0.0.1',0)); listener.listen()
+            with self.assertRaisesRegex(RuntimeError,'占用'): client.port_free(listener.getsockname()[1])
+    def test_proxy_recovery_failure_cannot_skip_native_cleanup(self):
+        api=MagicMock(); events=[]
+        c=client.Connection(api,lambda *event:events.append(event)); c.mode='compat'; c.proxy=MagicMock(); c.proxy.close.side_effect=OSError('fixture')
+        child=MagicMock(); c.procs=[child]
+        with patch.object(client.common.Connection,'run',side_effect=OSError('fixture')),patch.object(platform,'stop_process') as stop:
+            c.run(False,False,True,False)
+        stop.assert_called_once_with(child); self.assertFalse(c.procs); api.end.assert_called_once()
+        self.assertTrue(any(event=='error' and 'S-CLEANUP' in value for event,value in events))
     def test_fallback_preserves_guest_identity_and_stops_once(self):
         api=client.Api.__new__(client.Api); api.account={}; api.guest=None; api.config={}; api.request=MagicMock(return_value={})
         events=[]; keys=[]; choices=[]
         with patch.object(client.common.ProxySettings,'__init__',return_value=None): c=client.Connection(api,lambda *event:events.append(event))
+        c.proxy=MagicMock()
         def run(connection,accelerated,*args):
             choices.append(accelerated); api.begin(); keys.append(dict(api.guest)); api.end()
             if accelerated: connection.notify('error','连接失败 [H-TIMEOUT]')
@@ -32,6 +45,7 @@ class ClientTests(unittest.TestCase):
     def test_auto_does_not_fallback_after_cancel(self):
         api=MagicMock(); events=[]
         with patch.object(client.common.ProxySettings,'__init__',return_value=None): c=client.Connection(api,lambda *event:events.append(event))
+        c.proxy=MagicMock()
         c.mode='auto'; choices=[]
         def run(connection,accelerated,*args): choices.append(accelerated); connection.cancel.set(); connection.notify('error','连接失败 [H-TIMEOUT]')
         with patch.object(client.common.Connection,'run',run): c.run(True,True,True,False)
@@ -39,6 +53,7 @@ class ClientTests(unittest.TestCase):
     def test_manual_channel_never_silently_falls_back(self):
         api=MagicMock(); events=[]
         with patch.object(client.common.ProxySettings,'__init__',return_value=None): c=client.Connection(api,lambda *event:events.append(event))
+        c.proxy=MagicMock()
         c.mode='hy2'; choices=[]
         def run(connection,accelerated,*args): choices.append(accelerated); connection.notify('error','连接失败 [H-TIMEOUT]')
         with patch.object(client.common.Connection,'run',run): c.run(True,True,True,False)
