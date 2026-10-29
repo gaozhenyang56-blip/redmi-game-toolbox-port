@@ -1,4 +1,4 @@
-轻连 Windows 1.0.0-preview2，Windows10 1809+/11 x64。
+轻连 Windows 1.0.0-preview3，Windows10 1809+/11 x64。
 
 - Windows 11 Fluent 风格：Segoe UI Variable、图标侧栏与选中条、标准控件和设置卡片、蓝色强调、浅色/深色/跟随Windows，保留原生标题栏和Snap。支持时请求原生Mica，可关闭材质；Windows10使用纯色。保留简约模式、账号输入和运行连接。
 - 安装版及免安装ZIP均内置运行环境，更新前退出旧版，账号和设置保留。

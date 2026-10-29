@@ -2,7 +2,7 @@
 
 Windows 10 1809+ / Windows 11，x64。原生 Qt GUI，内置 V2Ray 5.54.2、Hysteria2 2.13.0 和 Temurin JRE17；无需另装 Python/Java。与原面板共用账号、流量和独立节点。
 
-安装：运行 `Qinglian-1.0.0-preview2-windows-x64-setup.exe`，仅安装当前用户，不要求管理员权限。便携版解压整个 ZIP 后运行 `Qinglian.exe`，保留 `_internal` 目录。更新前先退出旧轻连。卸载保留账号/偏好；数据在 `%LOCALAPPDATA%\Qinglian`。本版未提供 Authenticode 签名，请核对 Release 随附 SHA256SUMS，不冒用 Android 签名。
+安装：运行 `Qinglian-1.0.0-preview3-windows-x64-setup.exe`，仅安装当前用户，不要求管理员权限。便携版解压整个 ZIP 后运行 `Qinglian.exe`，保留 `_internal` 目录。更新前先退出旧轻连。卸载保留账号/偏好；数据在 `%LOCALAPPDATA%\Qinglian`。本版未提供 Authenticode 签名，请核对 Release 随附 SHA256SUMS，不冒用 Android 签名。
 
 界面采用 Windows 11 Fluent 风格：Segoe UI Variable 字体、图标侧栏、蓝色强调、紧凑设置卡片和原生标题栏/Snap。Windows 11 22H2+、开启透明且未启用高对比度时请求原生 Mica；可关闭窗口材质，Windows 10 使用纯色。Qt实现，未改为WinUI3；Windows 11材质外观尚需实机确认。
 
