@@ -41,7 +41,7 @@ def peer_image(pid):
 class Network:
     def __init__(self,isolated=False): self.isolated=isolated; self.process=None; self.index=None; self.exemption=None; self.stage='S-TUN-CONFLICT'
     def start(self):
-        if powershell("if(Get-NetAdapter -Name 'Qinglian' -ErrorAction SilentlyContinue){'exists'}")=='exists': raise RuntimeError('TUN adapter already exists')
+        if powershell("if(Get-NetAdapter|Where-Object Name -eq 'Qinglian'){'exists'}")=='exists': raise RuntimeError('TUN adapter already exists')
         if not self.isolated:
             self.stage='S-TUN-UPSTREAM'
             existing=powershell("@(Get-NetRoute -ErrorAction SilentlyContinue|Where-Object {$_.DestinationPrefix -in @('0.0.0.0/1','128.0.0.0/1','::/1','8000::/1')}).Count")
@@ -61,7 +61,7 @@ class Network:
         self.process=platform.spawn([str(ROOT/'tun2socks.exe'),'-device','tun://'+ADAPTER,'-proxy','socks5://127.0.0.1:10808','-mtu','1500','-loglevel','silent'],cwd=str(ROOT))
         for _ in range(40):
             if self.process.poll() is not None: raise RuntimeError('TUN engine exited')
-            value=powershell("$a=Get-NetAdapter -Name 'Qinglian' -ErrorAction SilentlyContinue;if($a){$a.ifIndex}")
+            value=powershell("$a=Get-NetAdapter|Where-Object Name -eq 'Qinglian';if($a){$a.ifIndex}")
             if value: self.index=int(value); break
             time.sleep(.1)
         if self.index is None: raise RuntimeError('TUN adapter timeout')
@@ -75,10 +75,19 @@ class Network:
         if not self.isolated:
             self.stage='S-TUN-DNS'
             powershell(f"Set-DnsClientServerAddress -InterfaceIndex {index} -ServerAddresses @('1.1.1.1','8.8.8.8')")
+        # Windows IPv6 Duplicate Address Detection is asynchronous. Never report
+        # READY while the source address is still tentative/unusable.
+        self.stage='S-TUN-ADDRESS'
+        for _ in range(12):
+            ready=powershell(f"$a=@(Get-NetIPAddress -InterfaceIndex {index}|Where-Object {{$_.IPAddress -in @('198.18.0.1','fdfe:dcba:9876::1')}});if($a.Count -eq 2 -and @($a|Where-Object AddressState -ne 'Preferred').Count -eq 0){{'ready'}}")
+            if ready=='ready': break
+            if self.process.poll() is not None: raise RuntimeError('TUN engine exited')
+            time.sleep(.1)
+        else: raise RuntimeError('TUN source address not ready')
     def close(self):
         errors=[]
         if self.index is not None:
-            try: powershell(f"Get-NetRoute -InterfaceIndex {int(self.index)} -ErrorAction SilentlyContinue|Remove-NetRoute -Confirm:$false -ErrorAction SilentlyContinue;Set-DnsClientServerAddress -InterfaceIndex {int(self.index)} -ResetServerAddresses -ErrorAction SilentlyContinue")
+            try: powershell(f"if(Get-NetAdapter|Where-Object ifIndex -eq {int(self.index)}){{Get-NetRoute -InterfaceIndex {int(self.index)} -ErrorAction SilentlyContinue|Remove-NetRoute -Confirm:$false -ErrorAction SilentlyContinue;Set-DnsClientServerAddress -InterfaceIndex {int(self.index)} -ResetServerAddresses -ErrorAction SilentlyContinue}}")
             except Exception: errors.append('routes')
         if self.process:
             try: platform.stop_process(self.process)

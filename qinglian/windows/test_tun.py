@@ -71,5 +71,5 @@ if __name__=='__main__':
     finally:
         session.close(); proxy.shutdown(); proxy.server_close(); origin.shutdown(); origin.server_close()
     assert defaults()==baseline
-    assert not tun.powershell("$a=Get-NetAdapter -Name Qinglian -ErrorAction SilentlyContinue;if($a){'exists'}")
+    assert not tun.powershell("if(Get-NetAdapter|Where-Object Name -eq Qinglian){'exists'}")
     print('PASS: real Wintun IPv4/IPv6 -> SOCKS -> HTTP, helper identity, clean routes/adapter; default routes untouched, global takeover not exercised on CI.')
