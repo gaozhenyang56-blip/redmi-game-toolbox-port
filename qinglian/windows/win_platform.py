@@ -137,7 +137,8 @@ class Job:
         if self.handle: self.api.CloseHandle(self.handle); self.handle=None
 
 def spawn(args,**kwargs):
-    process=subprocess.Popen(args,stdin=subprocess.PIPE,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,creationflags=NO_WINDOW,**kwargs)
+    stdout=kwargs.pop('stdout',subprocess.DEVNULL); stderr=kwargs.pop('stderr',subprocess.DEVNULL)
+    process=subprocess.Popen(args,stdin=subprocess.PIPE,stdout=stdout,stderr=stderr,creationflags=NO_WINDOW,**kwargs)
     process._qinglian_job=Job(process)
     return process
 
