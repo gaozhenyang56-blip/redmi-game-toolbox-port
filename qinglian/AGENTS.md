@@ -46,3 +46,7 @@ v16已将HY2高性能移出实验室并设为加速通道默认；连接页可�
 Ubuntu preview2延续手机版Material3配色，类似FlClash的宽屏左栏+双栏，窄屏底部导航；简约为第一版传统桌面标签页/下拉框/完整表单，持久化且切换不能重建连接、改变选项或丢失输入。真实本应用stack毛玻璃在GTK帧绘制后采样、小图高斯/像素复用/约12Hz，隐藏停止；依赖gi-cairo/cairo/Pillow。六页面与原生单选辅助语义、鼠标/键盘、账号告知仍保留。不得把GUI连接状态fixture说成真实公网VPN验收。
 
 v17新增实验室双HY2（默认关，最多2条/同凭据/同额度）；正式TCP协议对照（面板默认/VLESS TLS/Trojan TLS）、可选VMess/VLESS Mux并发4、TCP60/20秒保活、自动选择（默认关，512KiB启动对照/空闲45秒验证/连续3失败/3分钟冷却/10分钟最多2切换）。全部Selection固化，自动选TCP也保留原HY2参数请求，不重置访客会话或配额，不承诺单连接叠加/无缝/固定带宽。NodeConfigCli复用精确App配置，真实双通道与公网小流量检查见新workflow/channel_smoke.py。
+
+## Windows 桌面版
+
+用户授权windows/独立Qt GUI与中国移动网络兼容，先读HANDOFF首节。Windows版本独立，不套用Android签名或更新接口。固定CDN控制入口/原专用CA、默认兼容和同一会话自动回退；不将GitHub运行器测试冒充中国移动现场验证。系统代理不等于TUN，不修改全局WinHTTP/系统信任/路由/防火墙。Windows V2Fly专用CA出站必须disableSystemRoot=true且allowInsecure=false，不能关闭TLS检查。非阻塞probe.py覆盖取消、总截止和真实1字节验证。DPAPI凭据/用户ACL、单实例/崩溃代理恢复、Job Object核心清理必须保留；原生日志只允许公开loopback夹具诊断，不得记录生产配置或凭据。完整Windows平台、五协议、GUI、生产CDN/4MiB通道、打包后守护/安装/卸载验收后再发布。
