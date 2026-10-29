@@ -229,7 +229,7 @@ class Api:
         self.account = read(STATE/'account.json', {})
         self.guest = None
     def request(self, path, body=None, token=None, bootstrap=False):
-        headers = {'User-Agent':'Qinglian/Ubuntu-preview5','Content-Type':'application/json','Accept':'application/json','X-Qinglian-Device':self.device}
+        headers = {'User-Agent':getattr(self,'user_agent','Qinglian/Ubuntu-preview5'),'Content-Type':'application/json','Accept':'application/json','X-Qinglian-Device':self.device}
         token = self.config['clientToken'] if bootstrap else (token or self.account.get('token'))
         if token: headers['Authorization'] = 'Bearer '+token
         bases=api_routes(urllib.parse.urljoin(self.config['url'],'./'))

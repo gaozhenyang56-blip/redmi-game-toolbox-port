@@ -54,6 +54,7 @@ common.port_free=port_free
 
 class Api(common.Api):
     hold_session=False
+    user_agent='Qinglian/Windows-preview1'
     def begin(self):
         # An automatic transport fallback must not mint a fresh 64 GiB guest.
         if not self.account and self.guest is None: super().begin()
@@ -65,7 +66,7 @@ class Api(common.Api):
 
 def may_fallback(error):
     # Permission/quota/auth/TLS errors are never treated as a blocked UDP route.
-    return any('['+code+']' in error for code in ('H-TIMEOUT','H-VERIFY','H-CORE'))
+    return any('['+code+']' in error for code in ('H-TIMEOUT','H-VERIFY','H-CORE','H502','H503','H504'))
 
 class Connection(common.Connection):
     def start(self,mode='compat',performance=True,rule=True,tun=False):
