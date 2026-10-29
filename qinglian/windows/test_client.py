@@ -10,6 +10,11 @@ import client
 import win_platform as platform
 
 class ClientTests(unittest.TestCase):
+    def test_windows_private_ca_is_used_without_disabling_verification(self):
+        result=MagicMock(returncode=0,stdout='{"inbounds":[],"outbounds":[{"streamSettings":{"tlsSettings":{"allowInsecure":false,"certificates":[{"usage":"verify","certificate":["fixture"]}]}}}]}')
+        with patch.object(client.subprocess,'run',return_value=result): config=client.v2_config({},False)
+        tls=config['outbounds'][0]['streamSettings']['tlsSettings']
+        self.assertTrue(tls['disableSystemRoot']); self.assertFalse(tls['allowInsecure'])
     def test_existing_proxy_listener_is_rejected(self):
         with client.common.socket.socket() as listener:
             listener.bind(('127.0.0.1',0)); listener.listen()

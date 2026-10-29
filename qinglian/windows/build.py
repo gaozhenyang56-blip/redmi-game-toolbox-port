@@ -64,6 +64,7 @@ def main():
     (licenses/'Windows-components.txt').write_text('Qinglian integration: GPL-3.0, corresponding source in source/.\nPySide6 6.8.3 / Qt: LGPL-3.0 / GPL-3.0, dynamic libraries distributed with PyInstaller.\nhttps://code.qt.io/pyside/pyside-setup.git/tag/?h=v6.8.3\nhttps://code.qt.io/qt/qtbase.git/tag/?h=v6.8.3\nTemurin OpenJDK 17.0.20+8: GPLv2 with Classpath Exception, notices in jre/legal/.\nhttps://github.com/adoptium/temurin17-binaries/releases/tag/jdk-17.0.20%2B8\nPython and PyInstaller notices are included in licenses/.\n',encoding='utf-8')
     src=resources/'source'; src.mkdir(exist_ok=True)
     for file in HERE.glob('*.py'): shutil.copy2(file,src/file.name)
+    shutil.copy2(HERE/'installer.iss',src/'installer.iss')
     for name in ('README.md','RELEASE_NOTES.md'): shutil.copy2(HERE/name,resources/name)
     shutil.copy2(PROJECT/'ubuntu/runtime.py',src/'shared_runtime.py'); shutil.copy2(PROJECT/'app/src/main/java/com/gzy/qinglian/NodeConfig.java',src/'NodeConfig.java'); shutil.copy2(PROJECT/'server/NodeConfigCli.java',src/'NodeConfigCli.java')
     if args.resources_only: print('Pinned Windows resources verified and prepared.'); return

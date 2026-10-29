@@ -30,6 +30,12 @@ def v2_config(node,rule):
     result=subprocess.run(args,input=json.dumps(node),encoding='utf-8',capture_output=True,timeout=15,creationflags=platform.NO_WINDOW)
     if result.returncode: raise RuntimeError('面板节点配置不受支持或证书不安全')
     config=json.loads(result.stdout)
+    # V2Fly's Windows getCertPool ignores embedded verify CAs unless this is
+    # explicit. Restrict private-CA channels to their supplied CA, keeping
+    # allowInsecure=false and certificate hostname validation intact.
+    for outbound in config['outbounds']:
+        tls=outbound.get('streamSettings',{}).get('tlsSettings',{})
+        if tls.get('certificates'): tls['disableSystemRoot']=True
     for inbound in config['inbounds']: inbound['sniffing']={'enabled':True,'destOverride':['http','tls']}
     config['log']={'loglevel':'none'}
     return config
