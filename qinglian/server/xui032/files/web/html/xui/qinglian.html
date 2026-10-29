@@ -9,7 +9,7 @@
  {{template "commonSider" .}}
  <a-layout><a-layout-content class="ql-content">
   <div class="ql-heading"><div><h1>轻连管理</h1><p class="ql-muted">账号、连接与 App 发布</p></div><a-button @click="refreshPage">刷新当前页</a-button></div>
-  <a-menu mode="horizontal" :selected-keys="[section]" class="ql-pages"><a-menu-item v-for="page in pages" :key="page.id"><a :href="pageLink(page.id)">[[ page.label ]]</a></a-menu-item></a-menu>
+  <a-menu mode="horizontal" :selected-keys="[section]" class="ql-pages"><a-menu-item v-for="page in pages" :key="page.id"><a :href="pageLink(page.id)">[[ page.label ]]</a></a-menu-item><a-menu-item key="ssh"><a href="{{.base_path}}xui/qinglian/ssh">SSH 终端</a></a-menu-item></a-menu>
   <template v-if="section==='overview'">
    <a-alert v-if="apiError||error" type="warning" :message="apiError||error" show-icon style="margin-bottom:16px"></a-alert>
    <a-row :gutter="16">

@@ -1,0 +1,62 @@
+name: Qinglian panel SSH terminal verification and deployment
+on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['.github/workflows/qinglian-ssh-deploy.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: qinglian-server-maintenance
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian/server
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1 websocket-client==1.8.0
+      - name: Encrypted consistent backup before panel upgrade
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/server/github/backup_server.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qinglian-before-panel-ssh
+          path: private-transfer/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Install pinned Go and verify vendored terminal resources
+        run: |
+          curl -fsSL https://go.dev/dl/go1.23.12.linux-amd64.tar.gz -o "$RUNNER_TEMP/go.tar.gz"
+          printf '%s  %s\n' "$(cat qinglian/server/github/go-sdk.sha256)" "$RUNNER_TEMP/go.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/go.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/go/bin" >> "$GITHUB_PATH"
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          p=Path('qinglian/server/xui032/files/web/assets/qinglian-ssh')
+          for name,value in json.loads((p/'UPSTREAM.json').read_text()).items():assert hashlib.sha256((p/name).read_bytes()).hexdigest()==value['sha256']
+          PY
+      - name: Test permissions, origin, concurrency and complete overlay
+        run: |
+          git clone --branch 0.3.2 --depth 1 https://github.com/vaxilu/x-ui.git "$RUNNER_TEMP/x-ui"
+          python3 qinglian/server/xui032/apply.py "$RUNNER_TEMP/x-ui"
+          cd "$RUNNER_TEMP/x-ui"
+          go test -race ./web/controller ./web
+          go build -trimpath -o "$RUNNER_TEMP/qinglian-x-ui" .
+      - name: Deploy binary, preserve nodes and counters, verify real HTTPS SSH PTY
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+          QINGLIAN_SERVER_BINARY: ${{ runner.temp }}/qinglian-x-ui
+        run: python3 qinglian/server/github/ssh_upgrade.py

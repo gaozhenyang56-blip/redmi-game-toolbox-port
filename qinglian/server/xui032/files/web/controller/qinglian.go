@@ -245,6 +245,7 @@ func (s *qStore) snapshot(now int64) ([]qDevice, int, error) {
 }
 
 type QinglianController struct {
+	ssh         *qSSHState
 	tlsServer   *http.Server
 	httpsServer *http.Server
 	apiPrefix   string
@@ -258,7 +259,7 @@ type QinglianController struct {
 }
 
 func NewQinglianController(g *gin.RouterGroup) *QinglianController {
-	a := &QinglianController{apiPrefix: strings.TrimSuffix(g.BasePath(), "/") + "/api/v1/"}
+	a := &QinglianController{apiPrefix: strings.TrimSuffix(g.BasePath(), "/") + "/api/v1/", ssh: qNewSSHState()}
 	path := os.Getenv("QINGLIAN_CONFIG")
 	if path == "" {
 		path = "/etc/x-ui/qinglian.json"
@@ -293,6 +294,8 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	api.POST("/heartbeat", a.heartbeat)
 	panel := g.Group("/xui")
 	panel.GET("/qinglian", a.checkLogin, func(c *gin.Context) { html(c, "qinglian.html", "在线设备", nil) })
+	panel.GET("/qinglian/ssh", a.sshPage)
+	panel.GET("/qinglian/ssh/ws", a.sshSocket)
 	panel.GET("/qinglian/manage/:section", a.checkLogin, func(c *gin.Context) {
 		switch c.Param("section") {
 		case "accounts", "nodes", "history", "updates", "devices":
@@ -677,6 +680,7 @@ func (a *QinglianController) StartTLS(engine http.Handler) error {
 	return nil
 }
 func (a *QinglianController) Close() {
+	a.ssh.close()
 	if a.tlsServer != nil || a.httpsServer != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
