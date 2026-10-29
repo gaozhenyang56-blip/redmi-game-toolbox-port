@@ -1,8 +1,8 @@
 [Setup]
 AppId={{E3026A84-EC16-445C-9789-039394F32298}
 AppName=Qinglian
-AppVersion=1.0.0.1
-AppVerName=Qinglian 1.0.0-preview1
+AppVersion=1.0.0.2
+AppVerName=Qinglian 1.0.0-preview2
 DefaultDirName={localappdata}\Programs\Qinglian
 DefaultGroupName=Qinglian
 PrivilegesRequired=lowest
@@ -11,7 +11,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.17763
 AppMutex=Local\Qinglian.Windows
 OutputDir={#OutputDir}
-OutputBaseFilename=Qinglian-1.0.0-preview1-windows-x64-setup
+OutputBaseFilename=Qinglian-1.0.0-preview2-windows-x64-setup
 Compression=lzma2/fast
 SolidCompression=yes
 CloseApplications=no

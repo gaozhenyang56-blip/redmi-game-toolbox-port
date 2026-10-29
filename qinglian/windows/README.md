@@ -2,7 +2,9 @@
 
 Windows 10 1809+ / Windows 11，x64。原生 Qt GUI，内置 V2Ray 5.54.2、Hysteria2 2.13.0 和 Temurin JRE17；无需另装 Python/Java。与原面板共用账号、流量和独立节点。
 
-安装：运行 `Qinglian-1.0.0-preview1-windows-x64-setup.exe`，仅安装当前用户，不要求管理员权限。便携版解压整个 ZIP 后运行 `Qinglian.exe`，保留 `_internal` 目录。更新前先退出旧轻连。卸载保留账号/偏好；数据在 `%LOCALAPPDATA%\Qinglian`。本版未提供 Authenticode 签名，请核对 Release 随附 SHA256SUMS，不冒用 Android 签名。
+安装：运行 `Qinglian-1.0.0-preview2-windows-x64-setup.exe`，仅安装当前用户，不要求管理员权限。便携版解压整个 ZIP 后运行 `Qinglian.exe`，保留 `_internal` 目录。更新前先退出旧轻连。卸载保留账号/偏好；数据在 `%LOCALAPPDATA%\Qinglian`。本版未提供 Authenticode 签名，请核对 Release 随附 SHA256SUMS，不冒用 Android 签名。
+
+界面采用 Windows 11 Fluent 风格：Segoe UI Variable 字体、图标侧栏、蓝色强调、紧凑设置卡片和原生标题栏/Snap。Windows 11 22H2+、开启透明且未启用高对比度时请求原生 Mica；可关闭窗口材质，Windows 10 使用纯色。Qt实现，未改为WinUI3；Windows 11材质外观尚需实机确认。
 
 ## 中国移动网络
 
@@ -14,13 +16,13 @@ Windows 10 1809+ / Windows 11，x64。原生 Qt GUI，内置 V2Ray 5.54.2、Hyst
 
 ## 界面和使用
 
-- 连接、测速、分流、账号、ChatGPT、关于六个页面；Material3配色、亮暗/系统、简约侧栏、页面动画和托盘。
-- 系统代理模式：规则绕大陆/私网，全局走代理；不提供 TUN 或 Windows 按应用黑白名单。不遵循系统代理的软件不会自动接管，也不是断网保护。
+- 连接、测速、分流、账号、ChatGPT、关于六个页面；Windows 11 Fluent 风格、亮暗/系统、简约侧栏、页面动画和托盘。
+- 系统代理模式支持规则/全局；新增可选 TUN 全局接管，使用官方 Wintun 驱动与 tun2socks，首次需确认 Windows 管理员授权。TUN 强制全局并接管 IPv4/IPv6，仅支持同服务器节点；服务器IP保留物理网络直达，断开/父进程退出清理自建路由、DNS和适配器。不修改原物理网卡DNS或防火墙，不提供按应用黑白名单或断网保护。
 - 访客免登录，明确告知后每次手动连接64GiB，不记录域名。账号需明确同意服务器永久记录连接域名/时间，再登录或注册。设备摘要由Windows用户SID和MachineGuid加盐哈希生成，不上传原值。账号凭据由当前用户DPAPI加密；本地目录仅当前用户和SYSTEM访问，管理员仍可取得本机控制权。
 - 账号累计用量与周导出256GiB分开显示。VMess/VLESS/Trojan/Shadowsocks/HY2 导出可选备注，独立节点7天过期；失败后保留幂等申请，使用相同参数重试避免重复扣额。ZIP含节点凭据。
 - 自定义1..2048MiB下载测试，数据必须经实际代理到服务器，计入额度；测速失败不直接判定VPN掉线。
 - ChatGPT先用兼容。可检查三个HTTPS域名，或打开网页版。完整退出桌面ChatGPT后选择exe，启动为该进程附加显式代理和WebView2参数，不关闭TLS/沙箱；安装形式不同可能忽略参数，原运行实例不会被强杀。HTTP403不是登录成功。
-- 断开恢复原WinINET系统代理及PAC设置；独立管道守护恢复GUI崩溃，Job Object限制核心生命周期。其他程序已接管的代理配置不覆盖。不修改全局WinHTTP、系统证书、路由、防火墙或VPN服务。
+- 断开恢复原WinINET系统代理及PAC设置；独立管道守护恢复GUI崩溃，Job Object限制核心生命周期。其他程序已接管的代理配置不覆盖。不修改全局WinHTTP、系统证书或防火墙；仅启用TUN时临时创建本应用路由与适配器。
 
 ## 开发和许可
 
@@ -32,3 +34,5 @@ python qinglian/windows/build.py --assets <private-bootstrap-directory> --output
 ```
 
 构建机需要JDK17+和Inno Setup6，包内已带独立JRE。依赖二进制URL及SHA256固定，原管理员/SSH/Cloudflare/用户会话/Android私钥不打包。App引导token与手机/Ubuntu一样可提取，权限边界由服务器控制。源码GPL-3.0；Qt/PySide6动态库及OpenJDK等许可证和对应源码地址随包。完整CI含Windows DPAPI/注册表恢复/Job、真实原生五协议、GUI、生产CDN/三通道与同会话回退；没有移动网络现场或真实ChatGPT账号登录验收。
+
+TUN CI只在保留测试前缀验证真实IPv4/IPv6转发、管理员助手和清理，绝不接管GitHub运行器的默认路由。全局路由计划、固定服务器豁免与输入边界另行检查；用户真实Windows全局切换、UAC交互和中国移动出口仍需现场验收。

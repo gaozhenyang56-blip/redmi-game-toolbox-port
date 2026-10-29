@@ -69,6 +69,13 @@ class Api(common.Api):
     def verify_proxy(self,cancel=None,cold_hy2=False):
         try: probe.verify(self,cancel,cold_hy2)
         except probe.Cancelled: raise common.ProbeCancelled('已取消连接') from None
+    def current(self,path,body=None):
+        value=super().current(path,body)
+        if path=='profile' and getattr(self,'tun_required',False) and value.get('ready'):
+            host=urllib.parse.urlsplit(self.config['url']).hostname
+            nodes=[value.get('node',{}),value.get('acceleration',{}).get('node',{})]
+            if any(node and node.get('add')!=host for node in nodes): raise RuntimeError('TUN 仅支持面板同服务器节点，请使用系统代理模式')
+        return value
 
 def may_fallback(error):
     # Permission/quota/auth/TLS errors are never treated as a blocked UDP route.
@@ -76,9 +83,9 @@ def may_fallback(error):
 
 class Connection(common.Connection):
     def start(self,mode='compat',performance=True,rule=True,tun=False):
-        if mode not in ('compat','hy2','auto') or tun: raise ValueError('不支持的连接模式')
-        self.mode=mode
-        super().start(mode!='compat',performance,rule,False)
+        if mode not in ('compat','hy2','auto'): raise ValueError('不支持的连接模式')
+        self.mode=mode; self.tun_requested=tun; self.api.tun_required=tun
+        super().start(mode!='compat',performance,False if tun else rule,False)
     def run(self,accelerated,performance,rule,tun):
         notify=self.notify; self.api.hold_session=True
         try:
@@ -88,7 +95,15 @@ class Connection(common.Connection):
                 def capture(event,value):
                     if event=='error': errors.append(value)
                     elif event!='stopped':
-                        if event=='connected': reached[0]=True
+                        if event=='connected':
+                            if getattr(self,'tun_requested',False):
+                                from tun_ipc import TunSession
+                                self.connected=False; notify('state','正在请求管理员授权并建立 TUN…')
+                                helper=TunSession().start(self.cancel); self.procs.append(helper)
+                                self.api.verify_proxy(self.cancel,cold_hy2=choice)
+                                if self.cancel.is_set(): raise common.ProbeCancelled('已取消连接')
+                                self.connected=True; value=value.split(' · ')[0]+' · TUN 全局'
+                            reached[0]=True
                         notify(event,value)
                 self.notify=capture
                 super().run(choice,performance,rule,False)

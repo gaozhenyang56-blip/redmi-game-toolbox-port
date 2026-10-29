@@ -35,3 +35,4 @@ windows/build/
 windows/dist/
 windows/*.exe
 windows/*.zip
+windows/resources/

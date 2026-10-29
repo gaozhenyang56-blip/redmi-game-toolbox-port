@@ -52,6 +52,10 @@ jobs:
         env:
           QINGLIAN_SCREENSHOT: ${{ runner.temp }}/qinglian-windows.png
         run: python qinglian/windows/test_gui.py
+      - name: Real Wintun in reserved IPv4/IPv6 prefixes, never runner global routes
+        run: |
+          New-Item -ItemType Junction -Path qinglian/windows/resources -Target "$env:RUNNER_TEMP/fixture/resources" | Out-Null
+          python qinglian/windows/test_tun.py
       - name: Restore deployed bootstrap and public CA only
         if: github.event_name == 'workflow_dispatch' && inputs.release
         env:
@@ -87,7 +91,7 @@ jobs:
           $p = Start-Process -FilePath $app -ArgumentList @('--smoke-test', $screenshot) -PassThru
           if (-not $p.WaitForExit(30000)) { $p.Kill(); throw 'Packaged GUI timeout' }
           if ($p.ExitCode -ne 0 -or -not (Test-Path $screenshot)) { throw 'Packaged GUI failed' }
-          $setup = "$env:RUNNER_TEMP/production/Qinglian-1.0.0-preview1-windows-x64-setup.exe"
+          $setup = "$env:RUNNER_TEMP/production/Qinglian-1.0.0-preview2-windows-x64-setup.exe"
           $install = "$env:RUNNER_TEMP/installed-qinglian"
           $p = Start-Process -FilePath $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$install") -Wait -PassThru
           if ($p.ExitCode -ne 0 -or -not (Test-Path "$install/Qinglian.exe")) { throw 'Installer failed' }
@@ -99,7 +103,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $delivery = "$env:RUNNER_TEMP/production"
-          gh release create qinglian-windows-v1.0.0-preview1 -R "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --prerelease --title '轻连 Windows 1.0.0-preview1' --notes-file qinglian/windows/RELEASE_NOTES.md "$delivery/Qinglian-1.0.0-preview1-windows-x64-setup.exe" "$delivery/Qinglian-1.0.0-preview1-windows-x64-portable.zip" "$delivery/SHA256SUMS.txt"
+          gh release create qinglian-windows-v1.0.0-preview2 -R "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --prerelease --title '轻连 Windows 1.0.0-preview2' --notes-file qinglian/windows/RELEASE_NOTES.md "$delivery/Qinglian-1.0.0-preview2-windows-x64-setup.exe" "$delivery/Qinglian-1.0.0-preview2-windows-x64-portable.zip" "$delivery/SHA256SUMS.txt"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

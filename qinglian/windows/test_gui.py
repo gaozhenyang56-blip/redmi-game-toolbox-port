@@ -17,11 +17,13 @@ def run(screenshot):
         assert window.channel.currentIndex()==0 and not window.consent.isChecked()
         for index in range(6):
             window.nav.setCurrentRow(index); application.processEvents(); assert window.stack.currentIndex()==index
+        window.tun.setChecked(True); assert not window.route.isEnabled()
         connection=window.conn; window.username.setText('draft-user'); window.password.setText('draft-pass')
         with patch.object(connection,'start') as start,patch.object(connection,'disconnect') as stop:
             window.compact.setChecked(True); window.theme.setCurrentIndex(1); application.processEvents()
             assert window.conn is connection and window.username.text()=='draft-user' and window.password.text()=='draft-pass'
-            start.assert_not_called(); stop.assert_not_called()
+            start.assert_not_called(); stop.assert_not_called(); assert window.tun.isChecked() and not window.route.isEnabled()
+        window.tun.setChecked(False); assert window.route.isEnabled()
         window.auth('login'); assert '同意' in window.message.text()
         window.compact.setChecked(False); window.theme.setCurrentIndex(0); window.nav.setCurrentRow(0)
         from PySide6.QtTest import QTest
