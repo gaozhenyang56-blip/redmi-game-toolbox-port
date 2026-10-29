@@ -37,7 +37,7 @@ class Socks(socketserver.BaseRequestHandler):
             elif header[3]==3: exact(self.request,exact(self.request,1)[0])
             else: return
             exact(self.request,2)
-            with socket.create_connection(('127.0.0.1',origin.server_port),3) as upstream:
+            with socket.create_connection(('127.0.0.1',self.server.origin_port),3) as upstream:
                 self.request.sendall(b'\x05\x00\x00\x01\x7f\x00\x00\x01\x00\x00')
                 while True:
                     readable,_,_=select.select([self.request,upstream],[],[],10)
@@ -49,7 +49,7 @@ class Socks(socketserver.BaseRequestHandler):
         except OSError: pass
 def defaults():
     return tun.powershell("@(Get-NetRoute|Where-Object {$_.DestinationPrefix -in @('0.0.0.0/0','::/0')}|Select-Object DestinationPrefix,InterfaceIndex,NextHop,RouteMetric|Sort-Object DestinationPrefix,InterfaceIndex,NextHop)|ConvertTo-Json -Compress")
-if __name__=='__main__':
+def run(result_path=None):
     if os.name!='nt': raise SystemExit('Windows only')
     import ctypes
     if not ctypes.WinDLL('shell32').IsUserAnAdmin(): raise SystemExit('Disposable Windows CI administrator required')
@@ -57,14 +57,14 @@ if __name__=='__main__':
     assert set(tun.plan(False))=={'0.0.0.0/1','128.0.0.0/1','::/1','8000::/1'}
     baseline=defaults(); origin=http.server.ThreadingHTTPServer(('127.0.0.1',0),Origin); threading.Thread(target=origin.serve_forever,daemon=True).start()
     class Server(socketserver.ThreadingTCPServer): allow_reuse_address=True; daemon_threads=True
-    proxy=Server(('127.0.0.1',10808),Socks); threading.Thread(target=proxy.serve_forever,daemon=True).start()
+    proxy=Server(('127.0.0.1',10808),Socks); proxy.origin_port=origin.server_port; threading.Thread(target=proxy.serve_forever,daemon=True).start()
     session=TunSession(isolated=True)
     try:
         session.start(threading.Event()); time.sleep(1)
-        print('Reserved-prefix adapter metadata:',tun.powershell("$a=Get-NetAdapter -Name Qinglian;@{adapter=($a|Select-Object Name,Status,ifIndex);address=@(Get-NetIPAddress -InterfaceIndex $a.ifIndex|Select-Object IPAddress,AddressState,AddressFamily);routes=@(Get-NetRoute -InterfaceIndex $a.ifIndex|Select-Object DestinationPrefix,NextHop)}|ConvertTo-Json -Compress -Depth 4"),flush=True)
+        if sys.stdout is not None: print('Reserved-prefix adapter metadata:',tun.powershell("$a=Get-NetAdapter -Name Qinglian;@{adapter=($a|Select-Object Name,Status,ifIndex);address=@(Get-NetIPAddress -InterfaceIndex $a.ifIndex|Select-Object IPAddress,AddressState,AddressFamily);routes=@(Get-NetRoute -InterfaceIndex $a.ifIndex|Select-Object DestinationPrefix,NextHop)}|ConvertTo-Json -Compress -Depth 4"),flush=True)
         opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
         for host in ('198.18.10.2','[fdfe:dcba:1234::2]'):
-            print('Reserved-prefix traffic target:',host,'helper running:',session.poll() is None,flush=True)
+            if sys.stdout is not None: print('Reserved-prefix traffic target:',host,'helper running:',session.poll() is None,flush=True)
             with opener.open('http://'+host+':'+str(origin.server_port)+'/',timeout=15) as response:
                 assert len(response.read())==len(b'qinglian-wintun-fixture'*8192)
         assert defaults()==baseline,'isolated fixture changed default routing'
@@ -72,4 +72,6 @@ if __name__=='__main__':
         session.close(); proxy.shutdown(); proxy.server_close(); origin.shutdown(); origin.server_close()
     assert defaults()==baseline
     assert not tun.powershell("if(Get-NetAdapter|Where-Object Name -eq Qinglian){'exists'}")
-    print('PASS: real Wintun IPv4/IPv6 -> SOCKS -> HTTP, helper identity, clean routes/adapter; default routes untouched, global takeover not exercised on CI.')
+    if result_path: Path(result_path).write_text(json.dumps({'ok':True,'ipv4':True,'ipv6':True,'defaultRoutesPreserved':True}),encoding='utf-8')
+    if sys.stdout is not None: print('PASS: real Wintun IPv4/IPv6 -> SOCKS -> HTTP, helper identity, clean routes/adapter; default routes untouched, global takeover not exercised on CI.')
+if __name__=='__main__': run()

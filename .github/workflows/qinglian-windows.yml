@@ -91,6 +91,12 @@ jobs:
           $p = Start-Process -FilePath $app -ArgumentList @('--smoke-test', $screenshot) -PassThru
           if (-not $p.WaitForExit(30000)) { $p.Kill(); throw 'Packaged GUI timeout' }
           if ($p.ExitCode -ne 0 -or -not (Test-Path $screenshot)) { throw 'Packaged GUI failed' }
+          $tunResult = "$env:RUNNER_TEMP/packaged-tun.json"
+          $p = Start-Process -FilePath $app -ArgumentList @('--tun-self-test', $tunResult) -PassThru
+          if (-not $p.WaitForExit(120000)) { $p.Kill(); throw 'Packaged TUN helper timeout' }
+          if ($p.ExitCode -ne 0 -or -not (Test-Path $tunResult)) { throw 'Packaged TUN test failed' }
+          $tunCheck = Get-Content $tunResult | ConvertFrom-Json
+          if (-not ($tunCheck.ok -and $tunCheck.ipv4 -and $tunCheck.ipv6 -and $tunCheck.defaultRoutesPreserved)) { throw 'Packaged TUN verification incomplete' }
           $setup = "$env:RUNNER_TEMP/production/Qinglian-1.0.0-preview2-windows-x64-setup.exe"
           $install = "$env:RUNNER_TEMP/installed-qinglian"
           $p = Start-Process -FilePath $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$install") -Wait -PassThru

@@ -10,6 +10,10 @@ if __name__=='__main__' and len(sys.argv)==5 and sys.argv[1]=='--tun-helper':
     import tun
     tun.helper(sys.argv[2],int(sys.argv[3]),sys.argv[4]); raise SystemExit(0)
 
+if __name__=='__main__' and len(sys.argv)==3 and sys.argv[1]=='--tun-self-test':
+    import test_tun
+    test_tun.run(sys.argv[2]); raise SystemExit(0)
+
 import json
 import threading
 import time
