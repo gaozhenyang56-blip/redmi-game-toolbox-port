@@ -6,6 +6,9 @@ Windows工作流40966148461成功：源码和打包后真实Wintun IPv4/IPv6保�
 
 面板SSH部署40967055013（源码ed4a0d41）成功，入口 https://gaozy.tech/xui/qinglian/ssh 。仅配置的面板管理员HTTPS会话可用，连接固定本机127.0.0.1:22，校验本机SSH主机公钥；用户输入SSH凭据，不保存密码或面板终端记录。真实公网HTTPS登录、本地终端资产、严格WSS认证、SSH PTY命令收发/窗口调整均通过；原配置、节点和流量计数保留。完整Go race、实际Chromium桌面/窄屏交互通过。详见server/SSH_TERMINAL.md。此前模板commonJs错误导致验证失败，自动回滚；现改为上游js模板并加入完整HTML/浏览器回归，不能将此前失败运行算成功。
 
+
+部署后通道复检40968282020成功：原CA严格验证、VLESS TLS/Mux、Trojan TLS和两条独立HY2经App双通道均实际传输，访客64GiB合并计量且无域名历史，测试设备已清理。首次复检40968022238在TCP成功后遇到无定位断言失败；加入仅输出源码行号的安全诊断后再次完整检查通过，未修改生产通道参数，首次失败原因未确认，不能据此承诺HY2长时稳定或运营商现场可用。
+
 # Windows 1.0.0-preview1（2026-10-29，已发布）
 
 用户授权新增Windows版并要求考虑中国移动。新增windows/ Qt六页GUI、亮暗/简约/托盘、账号DPAPI存储、现有面板账号/节点/导出、1..2048MiB测速、ChatGPT显式代理/WebView2参数与HTTPS诊断。系统代理模式，不提供Windows TUN/按应用分流/断网保护。安装和便携版内置Windows V2Fly5.54.2/Hysteria2.13.0/Temurin17.0.20+8，固定URL+SHA256校验，独立Windows版本；不递增Android/Ubuntu，不修改服务器。
