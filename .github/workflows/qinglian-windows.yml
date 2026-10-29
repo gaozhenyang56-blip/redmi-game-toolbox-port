@@ -42,6 +42,8 @@ jobs:
           python -m unittest discover -s qinglian/windows -p test_client.py -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python qinglian/windows/test_transport.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python qinglian/windows/test_probe.py
       - name: Actual Windows native five protocols and HY2 high performance
         env:
           QINGLIAN_TEST_LIB: ${{ runner.temp }}/fixture/resources

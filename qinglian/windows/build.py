@@ -69,20 +69,26 @@ def main():
     if args.resources_only: print('Pinned Windows resources verified and prepared.'); return
     if os.name!='nt': raise RuntimeError('Executable packaging must run on Windows')
     import PySide6
+    from PySide6.QtWidgets import QApplication
+    sys.path.insert(0,str(HERE))
+    from app import icon
+    application=QApplication.instance() or QApplication([])
+    icon_file=resources/'qinglian.ico'
+    if not icon(256).pixmap(256,256).save(str(icon_file),'ICO'): raise RuntimeError('Windows icon generation failed')
     for directory in (Path(PySide6.__file__).parent/'LICENSES',Path(sys.base_prefix)):
         for file in directory.glob('LICENSE*'):
             if file.is_file(): shutil.copy2(file,licenses/('Python-'+file.name if directory==Path(sys.base_prefix) else file.name))
     for file in (Path(PySide6.__file__).parent/'LICENSES').glob('*'):
         if file.is_file(): shutil.copy2(file,licenses/file.name)
     staging=output/'staging'; staging.mkdir(exist_ok=True); shutil.copy2(PROJECT/'ubuntu/runtime.py',staging/'shared_runtime.py')
-    subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--windowed','--onedir','--name','Qinglian','--paths',str(HERE),'--paths',str(staging),'--distpath',str(output/'dist'),'--workpath',str(output/'pyinstaller'),'--specpath',str(staging),'--add-data',str(resources)+os.pathsep+'resources',str(HERE/'app.py')],check=True)
+    subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--windowed','--onedir','--name','Qinglian','--icon',str(icon_file),'--paths',str(HERE),'--paths',str(staging),'--distpath',str(output/'dist'),'--workpath',str(output/'pyinstaller'),'--specpath',str(staging),'--add-data',str(resources)+os.pathsep+'resources',str(HERE/'app.py')],check=True)
     app=output/'dist/Qinglian'
     (resources/'build-info.json').write_text(json.dumps({'version':VERSION,'architecture':'x64','sha256':{name:digest(resources/name) for name in ('v2ray.exe','hysteria.exe','node-config.jar','profile.json',ca)}}))
     shutil.copy2(resources/'build-info.json',app/'_internal/resources/build-info.json')
     shutil.make_archive(str(output/('Qinglian-'+VERSION+'-windows-x64-portable')),'zip',output/'dist','Qinglian')
     iscc=Path(os.environ.get('ProgramFiles(x86)',r'C:\Program Files (x86)'))/'Inno Setup 6/ISCC.exe'
     if not iscc.exists(): raise RuntimeError('Inno Setup 6 is required for the installer')
-    subprocess.run([str(iscc),'/DSourceDir='+str(app),'/DOutputDir='+str(output),str(HERE/'installer.iss')],check=True)
+    subprocess.run([str(iscc),'/DSourceDir='+str(app),'/DOutputDir='+str(output),'/DIconFile='+str(icon_file),str(HERE/'installer.iss')],check=True)
     delivery=[output/('Qinglian-'+VERSION+'-windows-x64-setup.exe'),output/('Qinglian-'+VERSION+'-windows-x64-portable.zip')]
     (output/'SHA256SUMS.txt').write_text(''.join(digest(file)+'  '+file.name+'\n' for file in delivery),encoding='utf-8')
     print('Windows installer and portable package built; no SSH/admin/account secrets included.')

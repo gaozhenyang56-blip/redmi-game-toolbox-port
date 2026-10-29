@@ -16,6 +16,7 @@ Compression=lzma2/fast
 SolidCompression=yes
 CloseApplications=no
 UninstallDisplayIcon={app}\Qinglian.exe
+SetupIconFile={#IconFile}
 WizardStyle=modern
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

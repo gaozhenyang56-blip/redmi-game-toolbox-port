@@ -11,6 +11,10 @@ if sys.platform=='win32':
 spec=importlib.util.spec_from_file_location('transport_fixture',Path(__file__).resolve().parents[1]/'ubuntu/test_runtime.py')
 fixture=importlib.util.module_from_spec(spec); spec.loader.exec_module(fixture)
 names=[name for name in dir(fixture.RuntimeTests) if name.startswith(('test_api_','test_cdn_','test_proxy_verification','test_real_api','test_real_probe','test_safe_connection'))]
+if sys.platform=='win32':
+    # Windows production uses nonblocking probe.py, with its own real TLS,
+    # cancellation and deadline fixture in test_probe.py instead of SSL file IO.
+    names.remove('test_real_probe_slow_headers_cancel_and_deadline')
 assert len(names)>=10
 if __name__=='__main__':
     result=unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(fixture.RuntimeTests(name) for name in names))

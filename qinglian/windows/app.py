@@ -35,11 +35,12 @@ def card(layout,*items):
     for item in items: box.addWidget(item)
     layout.addWidget(frame); return frame
 
-def icon():
-    pixmap=QPixmap(64,64); pixmap.fill(Qt.transparent)
-    p=QPainter(pixmap); p.setRenderHint(QPainter.Antialiasing)
+def icon(size=64):
+    pixmap=QPixmap(size,size); pixmap.fill(Qt.transparent)
+    p=QPainter(pixmap); p.setRenderHint(QPainter.Antialiasing); p.scale(size/64,size/64)
     p.setBrush(QColor('#b9f1ce')); p.setPen(Qt.NoPen); p.drawRoundedRect(1,1,62,62,18,18)
-    p.setPen(QColor('#24573e')); font=p.font(); font.setPixelSize(34); font.setBold(True); p.setFont(font); p.drawText(pixmap.rect(),Qt.AlignCenter,'轻'); p.end()
+    from PySide6.QtCore import QRect
+    p.setPen(QColor('#24573e')); font=p.font(); font.setPixelSize(34); font.setBold(True); p.setFont(font); p.drawText(QRect(0,0,64,64),Qt.AlignCenter,'轻'); p.end()
     return QIcon(pixmap)
 
 class Window(QMainWindow):
@@ -58,7 +59,7 @@ class Window(QMainWindow):
         self.message=label('准备就绪'); self.message.setTextInteractionFlags(Qt.TextSelectableByMouse); main.addWidget(self.message)
         self.pages=[]
         for title in ['连接','网络测速','分流规则','我的账号','ChatGPT 优化','关于轻连']:
-            scroll=QScrollArea(); scroll.setWidgetResizable(True); scroll.setFrameShape(QFrame.NoFrame); content=QWidget(); layout=QVBoxLayout(content); layout.setContentsMargins(6,6,12,10); layout.setSpacing(18); layout.addWidget(label(title,'heading')); scroll.setWidget(content); self.stack.addWidget(scroll); self.pages.append(layout)
+            scroll=QScrollArea(); scroll.setWidgetResizable(True); scroll.setFrameShape(QFrame.NoFrame); content=QWidget(); content.setObjectName('page'); scroll.viewport().setObjectName('page'); layout=QVBoxLayout(content); layout.setContentsMargins(6,6,12,10); layout.setSpacing(18); layout.addWidget(label(title,'heading')); scroll.setWidget(content); self.stack.addWidget(scroll); self.pages.append(layout)
         self.build_connect(); self.build_speed(); self.build_rules(); self.build_account(); self.build_chat(); self.build_about()
         for layout in self.pages: layout.addStretch()
         self.nav.currentRowChanged.connect(self.navigate); self.nav.setCurrentRow(0)
@@ -109,6 +110,7 @@ class Window(QMainWindow):
         bg,fg,cardbg,accent,muted=('#171c19','#e2e9e2','#252e28','#a9d7b6','#adbaae') if dark else ('#f8faf5','#1a211b','#eef2e9','#335f42','#4e5d51')
         self.setStyleSheet(f'''QMainWindow,QScrollArea,QStackedWidget{{background:{bg};color:{fg}}} QWidget{{color:{fg};font-family:"Segoe UI","Microsoft YaHei UI";font-size:14px}} QFrame#card{{background:{cardbg};border-radius:22px}} QLabel#title{{font-size:28px;font-weight:600}} QLabel#heading{{font-size:26px;font-weight:600;padding:10px}} QLabel#hero{{font-size:32px;font-weight:650}} QLabel#section{{font-size:20px;font-weight:600}} QPushButton,QComboBox,QLineEdit,QSpinBox{{background:{bg};border:1px solid {muted};border-radius:12px;padding:10px;min-height:20px}} QPushButton#primary{{background:{accent};color:{bg};font-size:19px;border:0;padding:15px}} QPushButton:disabled{{color:{muted}}} QListWidget{{background:{cardbg};border:0;border-radius:18px;padding:8px}} QListWidget::item{{padding:16px;border-radius:12px}} QListWidget::item:selected{{background:{accent};color:{bg}}} QPlainTextEdit{{background:{bg};border-radius:12px;padding:12px}} QProgressBar{{border:0;background:{bg};border-radius:6px;text-align:center}} QProgressBar::chunk{{background:{accent};border-radius:6px}}''')
         self.nav.setFixedWidth(100 if self.compact.isChecked() else 150)
+        self.setStyleSheet(self.styleSheet()+f' QWidget#page{{background:{bg}}}')
         self.store()
     def store(self):
         self.settings.update(compact=self.compact.isChecked(),theme=self.theme.currentIndex(),channel=self.channel.currentIndex(),performance=self.performance.currentIndex(),route=self.route.currentIndex(),testMiB=self.size.value(),chatPath=self.chat_path.text())

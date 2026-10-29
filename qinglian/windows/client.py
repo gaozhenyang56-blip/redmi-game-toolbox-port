@@ -11,6 +11,7 @@ import urllib.parse
 import uuid
 import zipfile
 import win_platform as platform
+import probe
 
 try: import shared_runtime as common
 except ModuleNotFoundError:
@@ -58,6 +59,9 @@ class Api(common.Api):
         if not self.account and self.guest is None: super().begin()
     def end(self):
         if not self.hold_session: super().end()
+    def verify_proxy(self,cancel=None,cold_hy2=False):
+        try: probe.verify(self,cancel,cold_hy2)
+        except probe.Cancelled: raise common.ProbeCancelled('已取消连接') from None
 
 def may_fallback(error):
     # Permission/quota/auth/TLS errors are never treated as a blocked UDP route.
