@@ -10,6 +10,14 @@ import client
 import win_platform as platform
 
 class ClientTests(unittest.TestCase):
+    def test_tun_profiles_cannot_add_remote_bypass_destinations(self):
+        api=client.Api.__new__(client.Api); api.config={'url':'https://203.0.113.1/api/v1/profile'}; api.tun_required=True
+        for address,allowed in [('203.0.113.1',True),('198.51.100.1',False),('external.example',False)]:
+            value={'ready':True,'node':{'add':address},'acceleration':None}
+            with patch.object(client.common.Api,'current',return_value=value):
+                if allowed: self.assertEqual(api.current('profile'),value)
+                else:
+                    with self.assertRaises(RuntimeError): api.current('profile')
     def test_windows_private_ca_is_used_without_disabling_verification(self):
         result=MagicMock(returncode=0,stdout='{"inbounds":[],"outbounds":[{"streamSettings":{"tlsSettings":{"allowInsecure":false,"certificates":[{"usage":"verify","certificate":["fixture"]}]}}}]}')
         with patch.object(client.subprocess,'run',return_value=result): config=client.v2_config({},False)

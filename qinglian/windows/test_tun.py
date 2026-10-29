@@ -61,8 +61,10 @@ if __name__=='__main__':
     session=TunSession(isolated=True)
     try:
         session.start(threading.Event()); time.sleep(1)
+        print('Reserved-prefix adapter metadata:',tun.powershell("$a=Get-NetAdapter -Name Qinglian;@{adapter=($a|Select-Object Name,Status,ifIndex);address=@(Get-NetIPAddress -InterfaceIndex $a.ifIndex|Select-Object IPAddress,AddressState,AddressFamily);routes=@(Get-NetRoute -InterfaceIndex $a.ifIndex|Select-Object DestinationPrefix,NextHop)}|ConvertTo-Json -Compress -Depth 4"),flush=True)
         opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
         for host in ('198.18.10.2','[fdfe:dcba:1234::2]'):
+            print('Reserved-prefix traffic target:',host,'helper running:',session.poll() is None,flush=True)
             with opener.open('http://'+host+':'+str(origin.server_port)+'/',timeout=15) as response:
                 assert len(response.read())==len(b'qinglian-wintun-fixture'*8192)
         assert defaults()==baseline,'isolated fixture changed default routing'

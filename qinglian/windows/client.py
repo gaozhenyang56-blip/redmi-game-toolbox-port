@@ -73,7 +73,7 @@ class Api(common.Api):
         value=super().current(path,body)
         if path=='profile' and getattr(self,'tun_required',False) and value.get('ready'):
             host=urllib.parse.urlsplit(self.config['url']).hostname
-            nodes=[value.get('node',{}),value.get('acceleration',{}).get('node',{})]
+            nodes=[value.get('node',{}),(value.get('acceleration') or {}).get('node',{})]
             if any(node and node.get('add')!=host for node in nodes): raise RuntimeError('TUN 仅支持面板同服务器节点，请使用系统代理模式')
         return value
 
