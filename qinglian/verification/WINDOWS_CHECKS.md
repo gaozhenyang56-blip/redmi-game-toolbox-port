@@ -1,3 +1,9 @@
+# Windows preview3 与面板 SSH（2026-10-29，已发布/部署）
+
+Windows 1.0.0-preview3（源码79476bde）采用Windows 11 Fluent风格，保留原生标题栏/Snap、亮暗/简约与托盘；符合条件的Windows 11请求Mica，其他系统纯色。安装和免安装ZIP均包含可选Wintun/tun2socks全局TUN，启用需管理员授权，固定同服务器节点并保留服务器物理直达，IPv4/IPv6临时路由与本应用适配器清理。系统代理仍可使用。详见windows/README.md。
+
+Windows工作流40966148461成功：源码和打包后真实Wintun IPv4/IPv6保留测试前缀转发、助手IPC/清理、GUI、原生协议、生产三通道、同会话回退、安装/卸载。公开重下核验包内源码、manifest、固定CDN、核心架构和SHA256SUMS。安装包104,793,414字节，SHA256 `52acd630cb5085b69dd09887d00d2ee44092cf4481a9c83ccfd7b3cfecf0aad5`；便携ZIP122,896,914字节，SHA256 `3b8c2a89f1737af456790c373c862c9966e85e68af2e91e71050f62f7d56a345`。标签qinglian-windows-v1.0.0-preview3；中间preview2保留，下一Windows至少preview4。Android仍code21，Ubuntu仍preview5。没有Windows 11材质实机、中国移动现场、真实ChatGPT登录、用户全局TUN/UAC或长期稳定性验收；CI未接管运行器默认路由。
+
 # Windows 1.0.0-preview1（2026-10-29，已发布）
 
 用户授权新增Windows版并要求考虑中国移动。新增windows/ Qt六页GUI、亮暗/简约/托盘、账号DPAPI存储、现有面板账号/节点/导出、1..2048MiB测速、ChatGPT显式代理/WebView2参数与HTTPS诊断。系统代理模式，不提供Windows TUN/按应用分流/断网保护。安装和便携版内置Windows V2Fly5.54.2/Hysteria2.13.0/Temurin17.0.20+8，固定URL+SHA256校验，独立Windows版本；不递增Android/Ubuntu，不修改服务器。

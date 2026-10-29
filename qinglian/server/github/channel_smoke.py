@@ -100,4 +100,9 @@ print(json.dumps({'fixtureCleaned':True}))'''
     assert remote_json(ssh,script,timeout=20)['fixtureCleaned']
 if __name__=='__main__':
  try:main()
- except Exception as error:print('Channel verification stopped:',type(error).__name__,'; private details suppressed.');raise SystemExit(1)
+ except Exception as error:
+  trace=error.__traceback__;line=0
+  while trace is not None:
+   if trace.tb_frame.f_code.co_filename==__file__:line=trace.tb_lineno
+   trace=trace.tb_next
+  print('Channel verification stopped:',type(error).__name__,'sourceLine='+str(line),'; private details suppressed.');raise SystemExit(1)

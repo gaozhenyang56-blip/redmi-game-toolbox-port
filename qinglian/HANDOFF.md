@@ -1,3 +1,11 @@
+# Windows preview3 与面板 SSH（2026-10-29，已发布/部署）
+
+Windows 1.0.0-preview3（源码79476bde）采用Windows 11 Fluent风格，保留原生标题栏/Snap、亮暗/简约与托盘；符合条件的Windows 11请求Mica，其他系统纯色。安装和免安装ZIP均包含可选Wintun/tun2socks全局TUN，启用需管理员授权，固定同服务器节点并保留服务器物理直达，IPv4/IPv6临时路由与本应用适配器清理。系统代理仍可使用。详见windows/README.md。
+
+Windows工作流40966148461成功：源码和打包后真实Wintun IPv4/IPv6保留测试前缀转发、助手IPC/清理、GUI、原生协议、生产三通道、同会话回退、安装/卸载。公开重下核验包内源码、manifest、固定CDN、核心架构和SHA256SUMS。安装包104,793,414字节，SHA256 `52acd630cb5085b69dd09887d00d2ee44092cf4481a9c83ccfd7b3cfecf0aad5`；便携ZIP122,896,914字节，SHA256 `3b8c2a89f1737af456790c373c862c9966e85e68af2e91e71050f62f7d56a345`。标签qinglian-windows-v1.0.0-preview3；中间preview2保留，下一Windows至少preview4。Android仍code21，Ubuntu仍preview5。没有Windows 11材质实机、中国移动现场、真实ChatGPT登录、用户全局TUN/UAC或长期稳定性验收；CI未接管运行器默认路由。
+
+面板SSH部署40967055013（源码ed4a0d41）成功，入口 https://gaozy.tech/xui/qinglian/ssh 。仅配置的面板管理员HTTPS会话可用，连接固定本机127.0.0.1:22，校验本机SSH主机公钥；用户输入SSH凭据，不保存密码或面板终端记录。真实公网HTTPS登录、本地终端资产、严格WSS认证、SSH PTY命令收发/窗口调整均通过；原配置、节点和流量计数保留。完整Go race、实际Chromium桌面/窄屏交互通过。详见server/SSH_TERMINAL.md。此前模板commonJs错误导致验证失败，自动回滚；现改为上游js模板并加入完整HTML/浏览器回归，不能将此前失败运行算成功。
+
 # Windows 1.0.0-preview1（2026-10-29，已发布）
 
 用户授权新增Windows版并要求考虑中国移动。新增windows/ Qt六页GUI、亮暗/简约/托盘、账号DPAPI存储、现有面板账号/节点/导出、1..2048MiB测速、ChatGPT显式代理/WebView2参数与HTTPS诊断。系统代理模式，不提供Windows TUN/按应用分流/断网保护。安装和便携版内置Windows V2Fly5.54.2/Hysteria2.13.0/Temurin17.0.20+8，固定URL+SHA256校验，独立Windows版本；不递增Android/Ubuntu，不修改服务器。
