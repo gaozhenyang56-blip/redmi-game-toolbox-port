@@ -29,3 +29,9 @@ app/src/main/assets/*.dat
 ubuntu/.cache/
 ubuntu/build/
 ubuntu/*.deb
+
+windows/.cache/
+windows/build/
+windows/dist/
+windows/*.exe
+windows/*.zip

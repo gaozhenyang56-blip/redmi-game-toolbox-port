@@ -1,6 +1,5 @@
 """Qinglian Ubuntu runtime. Panel-owned configs; credentials never enter argv/logs."""
 import concurrent.futures
-import fcntl
 import hashlib
 import http.client
 import json
