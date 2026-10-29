@@ -19,7 +19,7 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout: qinglian/server
-      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1 websocket-client==1.8.0
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1 websocket-client==1.8.0 playwright==1.62.0
       - name: Encrypted consistent backup before panel upgrade
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
@@ -46,12 +46,18 @@ jobs:
           for name,value in json.loads((p/'UPSTREAM.json').read_text()).items():assert hashlib.sha256((p/name).read_bytes()).hexdigest()==value['sha256']
           PY
       - name: Test permissions, origin, concurrency and complete overlay
+        env:
+          QINGLIAN_SSH_RENDER: ${{ runner.temp }}/ssh-rendered.html
         run: |
           git clone --branch 0.3.2 --depth 1 https://github.com/vaxilu/x-ui.git "$RUNNER_TEMP/x-ui"
           python3 qinglian/server/xui032/apply.py "$RUNNER_TEMP/x-ui"
           cd "$RUNNER_TEMP/x-ui"
           go test -race ./web/controller ./web
           go build -trimpath -o "$RUNNER_TEMP/qinglian-x-ui" .
+      - name: Chromium terminal page, fixture WSS and mobile layout
+        env:
+          QINGLIAN_CHROME: /usr/bin/google-chrome
+        run: python3 qinglian/server/github/test_ssh_ui.py "$RUNNER_TEMP/ssh-rendered.html" "$RUNNER_TEMP/x-ui/web/assets"
       - name: Deploy binary, preserve nodes and counters, verify real HTTPS SSH PTY
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -8,6 +9,7 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"html/template"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -19,6 +21,28 @@ import (
 	"x-ui/database/model"
 	"x-ui/web/session"
 )
+
+func TestQSSHTerminalRendersCompleteBundledPage(t *testing.T) {
+	paths := []string{"../html/common/head.html", "../html/common/js.html", "../html/xui/common_sider.html", "../html/xui/qinglian_ssh.html"}
+	tpl, err := template.New("").ParseFiles(paths...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rendered bytes.Buffer
+	if err = tpl.ExecuteTemplate(&rendered, "qinglian_ssh.html", map[string]interface{}{"title": "SSH test", "base_path": "/", "cur_ver": "0.3.2", "request_uri": "/xui/qinglian/ssh"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, marker := range []string{"assets/vue@2.6.12/vue.min.js", "assets/qinglian-ssh/xterm.js", "assets/qinglian-ssh/addon-fit.js", "new WebSocket", "new Terminal"} {
+		if !strings.Contains(rendered.String(), marker) {
+			t.Fatalf("incomplete terminal page: %s", marker)
+		}
+	}
+	if path := os.Getenv("QINGLIAN_SSH_RENDER"); path != "" {
+		if err = os.WriteFile(path, rendered.Bytes(), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
 
 func TestQSSHOriginRequiresActualTLSAndExactBrowserOrigin(t *testing.T) {
 	for _, value := range []struct {
