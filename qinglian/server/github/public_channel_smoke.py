@@ -33,6 +33,7 @@ def main():
     if profile.get('ready'):break
     time.sleep(.5)
    assert profile and profile.get('ready')
+   if os.environ.get('QINGLIAN_CDN_CHECK')=='1':assert profile['node']['add']=='gaozy.tech' and profile['node']['net']=='ws' and profile['node']['port']==443
    def transfer(node,hy2):
     assert node['add'] in (original.hostname,'gaozy.tech')
     if node['add']=='gaozy.tech':assert node['net']=='ws' and node['port']==443 and not node.get('caPem')

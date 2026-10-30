@@ -1,3 +1,21 @@
+# 移动网络443兼容入口与桌面preview6（2026-10-30 UTC，已上线，手机现场待确认）
+
+用户恢复GitHub SSH凭据后，41144725838检查成功：x-ui/exports/HY2均active，原配额未满，无OOM/重启/异常记录。用户给出Android C-TIMEOUT/H-TIMEOUT，均为建立TUN之前的链路验证超时；独立公网原直连仍成功，不能把此结果当作移动运营商现场可达或封锁定论。
+
+新增域名443/WSS数据桥接：复用现有gaozy.tech/Cloudflare Full(strict)，只将原生协议二进制流转交同一独立worker的127.0.0.1端口，原TLS后端继续私有CA/主机名验证，外部改为公共TLS根；原账号认证、父节点/账号流量、访客64GiB、续租/撤销和告知后的域名历史由原worker继续执行。没有新worker、数据库节点、端口/防火墙/BBR参数修改或额度重置。Go race覆盖完整流、TLS拒绝、失效/告知/额度拒绝、并发上限、复制节点及原生凭据不变；详见server/CDN_TRANSPORT.md。
+
+既有域名部署默认启用，配置cdnCompatibility:false可关闭。Android21的User-Agent自动选择WSS，现有APK的NodeConfig已支持WS，断开后选择兼容即可取新入口，显示VMESS/WS或所选协议；不需新签APK，Android仍code21。Windows/Ubuntu preview6系统代理明确申请该数据通道；TUN明确申请原直连，保留同服务器/物理路由限制，不能宣称移动网络TUN已恢复。HY2仍是原UDP，普通CDN不能修复UDP受限。
+
+服务器部署41146024522（源码cf54e110）加密备份后成功，配置/节点/计数保留；原HTTPS面板/WSS SSH PTY及Windows更新API保持。回滚门禁用精确Android转换器、固定V2Fly/HY2真实经CDN -> 原worker -> 原私有CA测速接口传输，验证CDN WSS、原额度/访客停止、独立原HY2均成功；不是只测试API或把直连测速冒充VPN。测试访客按正常API停止，未宣称删除无SSH测试的数据库行。
+
+Windows工作流41146667091、Ubuntu41146669968均完整成功并发布各自1.0.0-preview6，含新接口的真实通道/原计量，原生协议、GUI、隔离/保留前缀TUN、安装卸载，Windows打包助手重启升级。公开重下核对SHA256SUMS、包内app/runtime/helper与源码、manifest和版本通过。Windows面板发布41147133154成功，真实owner导入官方Release与严格CDN完整ZIP下载/资源验证通过；preview5可在关于页检测并升级6。
+
+- Qinglian-1.0.0-preview6-windows-x64-setup.exe：113,684,114字节，SHA256 `00593857da959d07f235037aecd65b7a5924481662121163e40399677527e53c`。
+- Qinglian-1.0.0-preview6-windows-x64-portable.zip：131,812,501字节，SHA256 `b96389f9f29582ca13bca140023cbc5f16ed6d017f432c25b295e4ee0d2e2d72`。
+- Qinglian-1.0.0-preview6-amd64.deb：20,869,132字节，SHA256 `40ba7174fdb12d577ae5a93406efe3f9874b6a355c847275e8f2fcbde2c3c1f8`。
+
+下一Windows/Ubuntu至少preview7，Android下一版至少22；不得覆写已发布资产。已请求用户用移动数据重连手机兼容，目前尚未收到现场结果，不能记录为用户网络已恢复。电脑此前仅推测失败，不记录为实测复现。
+
 # 移动网络双通道超时调查（2026-10-30 UTC，未解决用户现场）
 
 用户明确仅实测Android手机，移动数据下兼容/HY2均超时；在线设备和剩余流量仍正常。电脑端“应该也一样”为推测，不能记录为电脑复现。完整客户端错误码仍待回复。

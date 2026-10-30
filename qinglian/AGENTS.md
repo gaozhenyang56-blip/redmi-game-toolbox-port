@@ -51,6 +51,8 @@ v17新增实验室双HY2（默认关，最多2条/同凭据/同额度）；正�
 
 用户授权windows/独立Qt GUI与中国移动网络兼容，先读HANDOFF首节。Windows版本独立，不套用Android签名或更新接口。固定CDN控制入口/原专用CA、默认兼容和同一会话自动回退；不将GitHub运行器测试冒充中国移动现场验证。系统代理不等于TUN，不修改全局WinHTTP/系统信任/防火墙。用户后续明确授权可选TUN：仅固定哈希的Wintun/tun2socks与提权助手创建本应用适配器/临时路由，固定同服务器节点及物理直达豁免，禁止任意命令/路由输入；SID限权管道、对端PID/映像校验、父进程心跳和反序清理必须保留。Windows V2Fly专用CA出站必须disableSystemRoot=true且allowInsecure=false，不能关闭TLS检查。非阻塞probe.py覆盖取消、总截止和真实1字节验证。DPAPI凭据/用户ACL、单实例/崩溃代理恢复、Job Object核心清理必须保留；原生日志只允许公开loopback夹具诊断，不得记录生产配置或凭据。完整Windows平台、五协议、GUI、生产CDN/4MiB通道、打包后守护/安装/卸载验收后再发布。
 
-Windows最新公开preview5，下一版至少preview6；面板SSH已部署，仅HTTPS配置owner会话连接本机22，详见server/SSH_TERMINAL.md，不开放任意主机/命令执行API。
+Windows最新公开preview6，下一版至少preview7；面板SSH已部署，仅HTTPS配置owner会话连接本机22，详见server/SSH_TERMINAL.md，不开放任意主机/命令执行API。
 
 Windows后台统计与更新轮询必须独立于前台working锁，不得阻挡连接或清除账号任务状态。关闭窗口默认驻留托盘，明确退出/更新须request_exit；无托盘时正常退出。两种面板更新边界、固定Release来源与父进程文件身份校验见server/WINDOWS_UPDATES.md；禁止向TUN提权助手传更新命令。
+
+域名443/WSS数据桥接已部署，Android21重连自动取WS；桌面Windows/Ubuntu最新preview6系统代理申请cdnCompatibility:true，TUN必须false。保留原worker认证/计量/告知及原后端私有CA，不能为修移动网络放宽TUN任意地址限制或把HY2 UDP宣称经普通CDN。手机现场结果待用户确认，详见server/CDN_TRANSPORT.md。
