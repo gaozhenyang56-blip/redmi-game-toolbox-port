@@ -25,11 +25,12 @@ import client
 import fluent
 QCheckBox=fluent.CheckBox
 
-VERSION='1.0.0-preview3'
+VERSION='1.0.0-preview4'
 class Bridge(QObject):
     event=Signal(str,object)
     finished=Signal(object,object)
     progress=Signal(float,str)
+    public_finished=Signal(object)
 
 def label(text,kind=None):
     value=QLabel(text); value.setWordWrap(True)
@@ -57,9 +58,9 @@ class Window(QMainWindow):
         super().__init__(); self.setWindowTitle('轻连 Qinglian'); self.setWindowIcon(icon()); self.resize(1060,760); self.setMinimumSize(700,560)
         self.dark=False; self.mica=False
         self.setAttribute(Qt.WA_TranslucentBackground,fluent.material_available())
-        self.api=api or client.Api(); self.bridge=Bridge(); self.bridge.event.connect(self.on_event); self.bridge.finished.connect(self.task_done); self.bridge.progress.connect(self.speed_progress)
+        self.api=api or client.Api(); self.bridge=Bridge(); self.bridge.event.connect(self.on_event); self.bridge.finished.connect(self.task_done); self.bridge.progress.connect(self.speed_progress); self.bridge.public_finished.connect(self.public_done)
         self.conn=client.Connection(self.api,self.bridge.event.emit)
-        self.busy=False; self.working=False; self.closing=False; self.test_running=False; self.test_cancel=threading.Event(); self.started=None
+        self.busy=False; self.working=False; self.public_pending=False; self.closing=False; self.test_running=False; self.test_cancel=threading.Event(); self.started=None
         self.settings=client.read(client.STATE/'settings.json',{})
         body=QWidget(); body.setObjectName('root'); self.setCentralWidget(body); main=QVBoxLayout(body); main.setContentsMargins(12,6,12,12); main.setSpacing(8)
         header=QHBoxLayout(); header.addWidget(label('轻连','title')); header.addStretch()
@@ -182,9 +183,19 @@ class Window(QMainWindow):
         elif 'limitBytes' in value: names['remainingBytes']='本次访客剩余'
         return '\n'.join('%s：%.2f GiB'%(title,value[key]/1024**3) for key,title in names.items() if isinstance(value.get(key),(int,float))) or '流量数据暂不可用'
     def refresh_public(self):
-        if self.working or self.closing: return
-        def work(): return self.api.request('online',bootstrap=True),self.api.request('quota',bootstrap=True)
-        def show(values):
+        # Read-only polling must never acquire or release the foreground task lock.
+        # Keep one poll in flight even when a slow endpoint spans timer ticks.
+        if self.public_pending or self.closing: return
+        self.public_pending=True
+        def work():
+            try: values=self.api.request('online',bootstrap=True),self.api.request('quota',bootstrap=True)
+            except Exception: values=None
+            self.bridge.public_finished.emit(values)
+        threading.Thread(target=work,daemon=True).start()
+    def public_done(self,values):
+        self.public_pending=False
+        if self.closing: return
+        if values is not None:
             online,quota=values
             count=online.get('online')
             self.online.setText('在线设备：'+str(count) if isinstance(count,int) else '在线设备：数据暂不可用')
@@ -192,7 +203,9 @@ class Window(QMainWindow):
             if all(isinstance(v,int) and v>=0 for v in (total,up,down)):
                 self.public_quota.setText('服务端剩余：%.2f GiB'%(max(0,total-up-down)/1024**3) if total else '服务端流量：不限额')
             else: self.public_quota.setText('服务端流量：数据暂不可用')
-        self.task(work,show)
+        else:
+            self.online.setText('在线设备：数据暂不可用')
+            self.public_quota.setText('服务端流量：数据暂不可用')
     def tick(self):
         if self.started:
             seconds=int(time.monotonic()-self.started); self.session.setText('%02d:%02d:%02d'%(seconds//3600,seconds//60%60,seconds%60))
