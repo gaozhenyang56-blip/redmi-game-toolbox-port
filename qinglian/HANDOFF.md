@@ -1,3 +1,13 @@
+# 移动网络双通道超时调查（2026-10-30 UTC，未解决用户现场）
+
+用户明确仅实测Android手机，移动数据下兼容/HY2均超时；在线设备和剩余流量仍正常。电脑端“应该也一样”为推测，不能记录为电脑复现。完整客户端错误码仍待回复。
+
+域名API独立检查online/quota/profile均200、配额充足，旧共享配置仍VMess TCP58939。服务器SSH可握手且指纹与固定主机身份一致，但现有GitHub Secrets在41141376362/41141375941均被拒绝认证（AuthenticationException），未读取服务器状态、未修改服务/节点。已要求用户确认变更并更新QINGLIAN_SSH_PASSWORD/USER/PORT或说明密钥登录；不得绕过主机密钥校验或把旧聊天密码写入仓库/日志。
+
+为避免SSH阻断全部诊断，新增public_channel_smoke.py与手动qinglian-public-channel-check.yml：从固定SHA256的公开Android21读取引导资产，经严格公开TLS/CDN创建随机临时访客，再使用精确Android NodeConfig和固定V2Fly/HY2核心，实际通过代理访问原服务器原专用CA测速端点。41141771588成功：VMess TCP22685可达且传输256KiB，HY2 UDP22330传输256KiB，访客64GiB及无域名历史有效，最后调用guest/stop。不是CDN测速，也不修改真实用户、节点或额度。无SSH时不能删除测试访客数据库行，已按正常App停止/租约回收处理；不要宣称完成数据库清理。
+
+这些结果只证明独立公网当时两种数据通道工作，不证明中国移动出口可达，也不能仅据此定性运营商封锁。尚无服务器修复或新的线路发布。客户端probe发生在建立TUN之前，不能无证据把初连超时归因MTU或BBR。恢复管理访问并结合错误码后，再考虑443域名/WS备用数据入口；普通CDN不能直接代理HY2 UDP。Android仍21、Ubuntu preview5、Windows preview5。
+
 # Windows preview5 热更新、托盘和图标（2026-10-30，已发布并接入面板）
 
 用户追加要求两种热更新、后台常驻及使用V2Ray图标。Windows 1.0.0-preview5：关于页独立后台同步Windows发布配置（强调色、密度、纯文本公告、材质许可），60秒一次，可关闭，保持连接和输入；代码包只从原固定HTTPS/CDN API下载，严格TLS、大小/摘要/版本/资源和归档路径校验，禁止降级/任意URL/脚本。必须先断开VPN并确认重启。非提权one-file助手校验父进程文件身份、等待旧GUI退出，仅替换Qinglian.exe/_internal，保留卸载程序和用户数据，新版启动check-in前保留备份，失败尝试恢复。不是无重启代码执行；首次必须手动安装preview5。完整说明见server/WINDOWS_UPDATES.md与windows/README.md。
