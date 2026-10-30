@@ -2,6 +2,7 @@
 import hashlib,http.cookiejar,json,re,sys,tempfile,time
 from pathlib import Path
 import urllib.request
+import urllib.parse
 from ssh_common import connection,remote_json
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'windows'))
 import updater
@@ -14,7 +15,6 @@ def main(version):
         def redirect_request(self,*args,**kwargs):return None
     jar=http.cookiejar.CookieJar();opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),urllib.request.HTTPCookieProcessor(jar),NoRedirect())
     origin='https://gaozy.tech';headers={'User-Agent':'Qinglian/WindowsPublicationCheck'}
-    import urllib.parse
     with opener.open(urllib.request.Request(origin+'/login',urllib.parse.urlencode(private['user']).encode(),headers=headers),timeout=15) as r:assert json.load(r)['success']
     def call(path,body=None,api=False,timeout=20):
         extra={'Authorization':'Bearer '+private['token']} if api else {'Origin':origin,'X-Requested-With':'XMLHttpRequest'}
