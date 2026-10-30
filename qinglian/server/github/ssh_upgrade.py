@@ -9,6 +9,7 @@ from pathlib import Path
 import secrets
 import ssl
 import tempfile
+import subprocess,sys
 import urllib.parse
 import urllib.request
 import websocket
@@ -106,6 +107,12 @@ def public_check(ssh,meta):
         else:raise RuntimeError('terminal command not observed')
         ws.send(json.dumps({'type':'close'}))
     finally:ws.close()
+    if os.environ.get('QINGLIAN_VERIFY_CDN')=='1':
+        phase='cdn-native-data'
+        result=subprocess.run([sys.executable,str(Path(__file__).with_name('public_channel_smoke.py'))],env={**os.environ,'QINGLIAN_CDN_CHECK':'1'},capture_output=True,timeout=240)
+        summary=json.loads(result.stdout.splitlines()[-1]);compat=summary.get('compatibility',{})
+        assert compat.get('transferVerified') and compat.get('viaCdn') and summary.get('quotaValid') and summary.get('nativeBytesMetered') and summary.get('testGuestStopped')
+        print(json.dumps({'cdnWssNativeAndroidConfigTransferVerified':True,'originalQuotaAndGuestStopVerified':True,'udpIndependentTransferVerified':summary.get('acceleration',{}).get('transferVerified',False)}))
     print(json.dumps({'httpsPanelOwnerVerified':True,'bundledTerminalAssetsVerified':True,'strictWssSshAuthenticationVerified':True,'realPtyResizeAndCommandVerified':True,'credentialsOrTerminalOutputLogged':False,'windowsUpdateApiAndPanelVerified':True}))
 try:
     with connection() as ssh,tempfile.TemporaryDirectory() as directory:

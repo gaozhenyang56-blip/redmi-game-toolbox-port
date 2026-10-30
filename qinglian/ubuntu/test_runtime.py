@@ -394,4 +394,18 @@ class TunTests(unittest.TestCase):
         result,calls=self.exercise(conflict=True); self.assertEqual(result,1)
         self.assertFalse(any('add' in c or 'delete' in c for c in calls))
 
+
+class ProfileTransportNegotiation(unittest.TestCase):
+    def test_cdn_flag_stays_with_session_and_explicit_tun_preference(self):
+        from unittest.mock import Mock
+        api=runtime.Api.__new__(runtime.Api);api.account={'token':'fixture'};api.request=Mock(return_value={})
+        api.cdn_compatibility=True
+        api.current('profile',{'labHy2':True})
+        api.request.assert_called_with('exports/profile',{'labHy2':True,'cdnCompatibility':True})
+        api.cdn_compatibility=False
+        api.current('profile',{'labHy2':False})
+        api.request.assert_called_with('exports/profile',{'labHy2':False,'cdnCompatibility':False})
+        api.current('quota')
+        api.request.assert_called_with('exports/quota',None)
+
 if __name__=='__main__': unittest.main()

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -14,8 +15,9 @@ import (
 // Main traffic consumes the panel-selected parent quota, never export allocation.
 func (a *QinglianController) accountProfile(c *gin.Context) {
 	var options struct {
-		LabHy2      bool   `json:"labHy2"`
-		TCPProtocol string `json:"tcpProtocol"`
+		LabHy2           bool   `json:"labHy2"`
+		TCPProtocol      string `json:"tcpProtocol"`
+		CDNCompatibility *bool  `json:"cdnCompatibility"`
 	}
 	if c.Request.Body != nil {
 		if e := json.NewDecoder(io.LimitReader(c.Request.Body, 4096)).Decode(&options); e != nil && e != io.EOF {
@@ -73,6 +75,10 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 		}
 	}
 
+	useCDN := a.cfg.CDNCompatibility && a.cfg.TLS.DomainName != "" && strings.Contains(c.GetHeader("User-Agent"), "(Android)")
+	if options.CDNCompatibility != nil {
+		useCDN = a.cfg.CDNCompatibility && a.cfg.TLS.DomainName != "" && *options.CDNCompatibility
+	}
 	now := time.Now().Unix()
 	a.store.mu.Lock()
 	defer a.store.mu.Unlock()
@@ -161,7 +167,17 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 		if e = json.Unmarshal(data, &profile); e != nil {
 			return nil, false, e
 		}
-		return map[string]interface{}{"node": profile["node"], "revision": qHash(string(data)), "label": label + " · " + p + map[bool]string{true: " · 性能实验"}[experimental]}, status == "active" && previousExpiry > now, nil
+		response := map[string]interface{}{"node": profile["node"], "revision": qHash(string(data)), "label": label + " · " + p + map[bool]string{true: " · 性能实验"}[experimental]}
+		if useCDN && p != "hysteria2" {
+			response["node"] = a.cdnNode(profile["node"].(map[string]interface{}), id)
+			encoded, e := json.Marshal(response["node"])
+			if e != nil {
+				return nil, false, e
+			}
+			response["revision"] = qHash(string(encoded))
+			response["label"] = label + " · " + p + " · CDN 443"
+		}
+		return response, status == "active" && previousExpiry > now, nil
 	}
 	primary, ready, err := makeNode(protocol)
 	if err != nil {

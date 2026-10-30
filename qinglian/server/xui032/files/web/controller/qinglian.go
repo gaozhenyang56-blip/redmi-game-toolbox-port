@@ -51,6 +51,7 @@ type qConfig struct {
 	TLS               qTLSConfig `json:"tls"`
 	ClientToken       string     `json:"clientToken"`
 	NodeUUID          string     `json:"nodeUuid"`
+	CDNCompatibility  bool       `json:"cdnCompatibility,omitempty"`
 	StatePath         string     `json:"statePath"`
 	TrustedProxyCIDRs []string   `json:"trustedProxyCidrs"`
 }
@@ -250,6 +251,7 @@ func (s *qStore) snapshot(now int64) ([]qDevice, int, error) {
 
 type QinglianController struct {
 	ssh         *qSSHState
+	stream      *qStreamState
 	tlsServer   *http.Server
 	httpsServer *http.Server
 	apiPrefix   string
@@ -263,7 +265,8 @@ type QinglianController struct {
 }
 
 func NewQinglianController(g *gin.RouterGroup) *QinglianController {
-	a := &QinglianController{apiPrefix: strings.TrimSuffix(g.BasePath(), "/") + "/api/v1/", ssh: qNewSSHState()}
+	a := &QinglianController{apiPrefix: strings.TrimSuffix(g.BasePath(), "/") + "/api/v1/", ssh: qNewSSHState(), stream: qNewStreamState()}
+	a.cfg.CDNCompatibility = true // Existing domain deployments gain the data gateway; explicit false opts out.
 	path := os.Getenv("QINGLIAN_CONFIG")
 	if path == "" {
 		path = "/etc/x-ui/qinglian.json"
@@ -691,6 +694,9 @@ func (a *QinglianController) StartTLS(engine http.Handler) error {
 }
 func (a *QinglianController) Close() {
 	a.ssh.close()
+	if a.stream != nil {
+		a.stream.close()
+	}
 	if a.tlsServer != nil || a.httpsServer != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()

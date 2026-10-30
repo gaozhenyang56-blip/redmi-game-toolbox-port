@@ -4,6 +4,11 @@ on:
     branches: [codex/qinglian-routing-and-presence]
     paths: ['.github/workflows/qinglian-public-channel-check.yml']
   workflow_dispatch:
+    inputs:
+      cdn:
+        description: Verify the domain443 WSS compatibility data path
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -19,5 +24,6 @@ jobs:
       - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
       - name: Pinned released Android profile, temporary guest, real TCP and UDP data
         env:
+          QINGLIAN_CDN_CHECK: ${{ inputs.cdn && '1' || '0' }}
           QINGLIAN_TEST_CACHE: ${{ runner.temp }}/qinglian-public-paths
         run: python3 qinglian/server/github/public_channel_smoke.py

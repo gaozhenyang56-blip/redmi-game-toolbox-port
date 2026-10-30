@@ -1,4 +1,10 @@
-轻连 Ubuntu 1.0.0-preview5，适配 Ubuntu 24.04 amd64 GNOME（含 ubuntu-to-go 分支的系统）。这是独立桌面版。
+轻连 Ubuntu 1.0.0-preview6
+
+- 系统代理兼容通道申请域名443/WSS数据入口；TUN保持原IP节点和原路由防循环保护。
+- 原账号、访客64GiB、严格TLS、CDN控制API、ChatGPT优化及界面保留。HY2仍需可用UDP线路，普通CDN不能代理。
+
+此前更新：
+轻连 Ubuntu 1.0.0-preview6，适配 Ubuntu 24.04 amd64 GNOME（含 ubuntu-to-go 分支的系统）。这是独立桌面版。
 
 - 同步 Android v21 连接修复：HY2 首次验证读取预算12秒、总预算15秒；兼容通道读取3秒、总预算8秒。取消/截止会关闭验证套接字，取消不会误报连接失败。连接失败提供固定阶段/HTTP/超时/TLS错误码，不显示原始异常或凭据；仍需严格CA与真实1字节响应确认，未修改服务器HY2参数。
 - 域名/CDN连接：安装包可内置固定域名入口，优先使用标准公网HTTPS证书验证的CDN，保留原IP 443/11452入口与独立专用CA，不跟随重定向。原服务器链路测速和TUN节点约束仍固定原服务器，不能把CDN下载当作VPN测速。注册、导出等POST仅在确认尚未发送时切换入口，发送后超时提示结果未确认，避免自动重复执行。
@@ -13,7 +19,7 @@
 下载 deb 后，在安装包所在目录执行：
 
 ```sh
-sudo apt install ./Qinglian-1.0.0-preview5-amd64.deb
+sudo apt install ./Qinglian-1.0.0-preview6-amd64.deb
 qinglian
 ```
 

@@ -83,7 +83,7 @@ def run(screenshot):
                 window.close(); application.processEvents(); assert not window.isVisible(); stop.assert_not_called(); assert window.busy
             window.busy=False; window.show()
         window.auth('login'); assert '同意' in window.message.text()
-        remote={'schema':1,'revision':2,'ui':{'accent':'teal','density':'compact','notice':'fixture notice','material':False},'package':{'version':'1.0.0-preview6','sha256':'a'*64,'size':100}}
+        remote={'schema':1,'revision':2,'ui':{'accent':'teal','density':'compact','notice':'fixture notice','material':False},'package':{'version':'1.0.0-preview7','sha256':'a'*64,'size':100}}
         with patch.object(window.conn,'start') as start,patch.object(window.conn,'disconnect') as stop:
             window.updates_done(remote); application.processEvents()
             assert window.notice.text()=='fixture notice' and window.update_apply.isEnabled()

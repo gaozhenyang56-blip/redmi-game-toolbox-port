@@ -29,14 +29,15 @@ def main():
    assert re_id(value.get('id',''))
    phase='guest-profile';profile=None
    for _ in range(40):
-    profile=request('profile',{'labHy2':True})
+    profile=request('profile',{'labHy2':True,'cdnCompatibility':os.environ.get('QINGLIAN_CDN_CHECK')=='1'})
     if profile.get('ready'):break
     time.sleep(.5)
    assert profile and profile.get('ready')
    def transfer(node,hy2):
-    assert node['add']==original.hostname
+    assert node['add'] in (original.hostname,'gaozy.tech')
+    if node['add']=='gaozy.tech':assert node['net']=='ws' and node['port']==443 and not node.get('caPem')
     processes=[];http=port()
-    result={'protocol':'hysteria2' if hy2 else node.get('protocol'),'port':node['port'],'ready':True}
+    result={'protocol':'hysteria2' if hy2 else node.get('protocol'),'port':node['port'],'ready':True,'transport':node.get('net'),'viaCdn':node['add']=='gaozy.tech'}
     if not hy2:
      try:
       with socket.create_connection((node['add'],int(node['port'])),5):result['tcpReachable']=True
@@ -72,7 +73,14 @@ def main():
    if acceleration:
     phase='acceleration-transfer';node=acceleration['node'];node['compatibility']=profile['node'];results['acceleration']=transfer(node,True)
    else:results['acceleration']={'ready':False,'transferVerified':False}
-   phase='guest-quota';quota=request('quota');results['quotaValid']=quota.get('limitBytes')==64*1024**3 and quota.get('domainHistory') is False
+   phase='guest-quota'
+   expected=sum(262144 for name in ['compatibility','acceleration'] if results.get(name,{}).get('transferVerified'))
+   for _ in range(30):
+    quota=request('quota')
+    if quota.get('usedBytes',0)>=expected:break
+    time.sleep(.5)
+   results['nativeBytesMetered']=quota.get('usedBytes',0)>=expected
+   results['quotaValid']=quota.get('limitBytes')==64*1024**3 and quota.get('domainHistory') is False
   except Exception as error:results['error']={'phase':phase,'errorType':type(error).__name__,'httpStatus':error.code if isinstance(error,urllib.error.HTTPError) else None}
   finally:
    if started:
@@ -80,7 +88,7 @@ def main():
     except Exception:pass
   results['testGuestStopped']=stopped;results['credentialsOrPayloadLogged']=False
   print(json.dumps(results))
-  return 0 if results.get('compatibility',{}).get('transferVerified') and results.get('acceleration',{}).get('transferVerified') and stopped else 1
+  return 0 if results.get('compatibility',{}).get('transferVerified') and results.get('acceleration',{}).get('transferVerified') and results.get('quotaValid') and results.get('nativeBytesMetered') and stopped else 1
 
 def re_id(value):
  import re

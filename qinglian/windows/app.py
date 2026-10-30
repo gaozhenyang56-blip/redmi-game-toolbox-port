@@ -26,7 +26,7 @@ import fluent
 import updater
 QCheckBox=fluent.CheckBox
 
-VERSION='1.0.0-preview5'
+VERSION='1.0.0-preview6'
 class Bridge(QObject):
     event=Signal(str,object)
     finished=Signal(object,object)

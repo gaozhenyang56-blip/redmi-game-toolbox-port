@@ -229,7 +229,7 @@ class Api:
         self.account = read(STATE/'account.json', {})
         self.guest = None
     def request(self, path, body=None, token=None, bootstrap=False):
-        headers = {'User-Agent':getattr(self,'user_agent','Qinglian/Ubuntu-preview5'),'Content-Type':'application/json','Accept':'application/json','X-Qinglian-Device':self.device}
+        headers = {'User-Agent':getattr(self,'user_agent','Qinglian/Ubuntu-preview6'),'Content-Type':'application/json','Accept':'application/json','X-Qinglian-Device':self.device}
         token = self.config['clientToken'] if bootstrap else (token or self.account.get('token'))
         if token: headers['Authorization'] = 'Bearer '+token
         bases=api_routes(urllib.parse.urljoin(self.config['url'],'./'))
@@ -273,6 +273,7 @@ class Api:
             self.guest = dict(requestId=str(uuid.uuid4()), sessionKey=secrets.token_hex(32))
             self.request('guest/start',self.guest,bootstrap=True)
     def current(self, path, body=None):
+        if path=='profile' and isinstance(body,dict) and hasattr(self,'cdn_compatibility'): body={**body,'cdnCompatibility':self.cdn_compatibility}
         if self.account: return self.request('exports/'+path,body)
         if not self.guest: raise RuntimeError('请先连接')
         return self.request('guest/'+path,body,self.guest['sessionKey'])
@@ -369,6 +370,7 @@ class Connection:
         try:
             self.notify('state','正在获取专属节点…')
             for port in (10808,10809,10810): port_free(port)
+            self.api.cdn_compatibility=not (tun or getattr(self.api,'tun_required',False))
             self.api.begin()
             node=None
             for _ in range(12):

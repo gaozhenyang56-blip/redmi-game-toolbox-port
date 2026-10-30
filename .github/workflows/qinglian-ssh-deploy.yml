@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
-          sparse-checkout: qinglian/server
+          sparse-checkout: qinglian
       - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1 websocket-client==1.8.0 playwright==1.62.0
       - name: Encrypted consistent backup before panel upgrade
         env:
@@ -64,5 +64,6 @@ jobs:
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
           QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
           QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+          QINGLIAN_VERIFY_CDN: '1'
           QINGLIAN_SERVER_BINARY: ${{ runner.temp }}/qinglian-x-ui
         run: python3 qinglian/server/github/ssh_upgrade.py

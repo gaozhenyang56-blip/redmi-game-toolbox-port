@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -109,6 +110,27 @@ func TestQMainCredentialsSeparateUsersAndPreserveExportAllocation(t *testing.T) 
 	guest, e := a.guestQuotaValue("fixture")
 	if e != nil || guest["usedBytes"] != int64(600) || guest["remainingBytes"] != qGuestBytes-600 {
 		t.Fatal("guest per-protocol quota not combined")
+	}
+	a.cfg.CDNCompatibility = true
+	a.cfg.TLS.DomainName = "cdn.fixture"
+	a.apiPrefix = "/api/v1/"
+	request := httptest.NewRequest("POST", "/main-fixture", strings.NewReader("{}"))
+	request.Header.Set("User-Agent", "Qinglian/fixture (Android)")
+	request.Header.Set("X-Qinglian-Device", device)
+	recorder := httptest.NewRecorder()
+	r.ServeHTTP(recorder, request)
+	var cdn map[string]interface{}
+	json.Unmarshal(recorder.Body.Bytes(), &cdn)
+	node := cdn["node"].(map[string]interface{})
+	original := first["node"].(map[string]interface{})
+	if recorder.Code != 200 || node["net"] != "ws" || node["add"] != "cdn.fixture" || node["port"] != float64(443) || node["caPem"] != nil || node["id"] != original["id"] || cdn["revision"] == first["revision"] {
+		t.Fatal("Android CDN did not retain credentials or separate TLS trust")
+	}
+	direct := qExportRequest(r, "POST", "/main-fixture", `{"cdnCompatibility":false}`, token, device)
+	var raw map[string]interface{}
+	json.Unmarshal(direct.Body.Bytes(), &raw)
+	if raw["revision"] != first["revision"] || raw["node"].(map[string]interface{})["net"] != "tcp" {
+		t.Fatal("raw transport/TUN credentials changed")
 	}
 	database.GetDB().Model(&parent).Update("enable", false)
 	if qExportRequest(r, "POST", "/main-fixture", "{}", token, device).Code != 503 {

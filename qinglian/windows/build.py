@@ -12,7 +12,7 @@ import urllib.request
 import zipfile
 
 HERE=Path(__file__).resolve().parent; PROJECT=HERE.parent
-VERSION='1.0.0-preview5'
+VERSION='1.0.0-preview6'
 PINS={
  'tun2socks.zip':('https://github.com/xjasonlyu/tun2socks/releases/download/v2.6.0/tun2socks-windows-amd64.zip','1429e2e3b1ea09052da2c65e5005538b5730d63da37e304f4ad6fd2698a66695'),
  'wintun.zip':('https://www.wintun.net/builds/wintun-0.14.1.zip','07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51'),

@@ -89,6 +89,10 @@ func (a *QinglianController) domainHandler(api, panel http.Handler, cdn []*net.I
 			request.Header.Del(name)
 		}
 		w.Header().Set("Cache-Control", "private, no-store")
+		if strings.HasPrefix(request.URL.Path, a.streamPrefix()) {
+			a.serveStream(w, request)
+			return
+		}
 		panel.ServeHTTP(w, request)
 	})
 }
