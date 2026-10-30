@@ -1,0 +1,23 @@
+name: Qinglian public Android paths without SSH
+on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['.github/workflows/qinglian-public-channel-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - name: Pinned released Android profile, temporary guest, real TCP and UDP data
+        env:
+          QINGLIAN_TEST_CACHE: ${{ runner.temp }}/qinglian-public-paths
+        run: python3 qinglian/server/github/public_channel_smoke.py
