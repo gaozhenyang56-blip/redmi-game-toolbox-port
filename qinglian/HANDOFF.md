@@ -1,3 +1,11 @@
+# Windows preview4 连接状态修复（2026-10-30，已发布）
+
+用户截图在没有前台任务时持续提示“请先等待当前操作完成”。根因是10秒一次的online/quota后台统计复用了前台task/working锁，慢请求阻挡连接，下一次轮询又重复占用。preview4将统计改为独立signal和单条在途请求，不取得/释放前台锁，不覆盖连接提示，失败显示统计暂不可用且下轮可重试，退出不等待统计超时。
+
+本地与真实Windows Qt回归覆盖停滞/失败统计下连接可启动、重复计时不重叠、统计完成不释放正在执行的账号任务、失败恢复、退出、主题/简约与TUN选项。工作流40990143802（源码7fb7a807）全部通过，含真实协议/公网三通道及回退、源码/打包TUN、安装/卸载；首次40989721035漏改installer.iss版本导致构建中止，未发布。公开重下preview4后归一CRLF核对app.py/test_gui.py/installer.iss与修复源码一致，SHA256SUMS通过。
+
+标签qinglian-windows-v1.0.0-preview4：setup 104,794,670字节，SHA256 `d9abf8537ef129e0c6a5423bc973a3716e957f65a1eba01c7dda42adddfb4c48`；portable ZIP 122,898,348字节，SHA256 `7afd3f443efa7866a888f2207b3a61e6ca4038cab6250f81bf9c68acefd9039a`。用户已收到直链。Android21/Ubuntu preview5不变。
+
 # Windows preview3 与面板 SSH（2026-10-29，已发布/部署）
 
 Windows 1.0.0-preview3（源码79476bde）采用Windows 11 Fluent风格，保留原生标题栏/Snap、亮暗/简约与托盘；符合条件的Windows 11请求Mica，其他系统纯色。安装和免安装ZIP均包含可选Wintun/tun2socks全局TUN，启用需管理员授权，固定同服务器节点并保留服务器物理直达，IPv4/IPv6临时路由与本应用适配器清理。系统代理仍可使用。详见windows/README.md。
