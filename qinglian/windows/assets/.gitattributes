@@ -1,0 +1,3 @@
+# Keep pinned upstream license and icon bytes unchanged on Windows checkouts.
+V2RAYN-LICENSE.txt -text
+*.ico binary
