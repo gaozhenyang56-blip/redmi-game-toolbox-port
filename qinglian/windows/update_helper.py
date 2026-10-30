@@ -20,15 +20,26 @@ def mark(value,error=None):
     phase=value
     if status_path is not None:status_path.write_text(json.dumps({'phase':value,'failed':error is not None,'errorType':type(error).__name__ if error else None}),encoding='utf-8')
 
+class ParentOpenError(RuntimeError): pass
+class ParentQueryError(RuntimeError): pass
+class ParentImageError(RuntimeError): pass
+
 def parent_handle(pid,target):
     kernel=ctypes.WinDLL('kernel32',use_last_error=True)
     kernel.OpenProcess.argtypes=[wintypes.DWORD,wintypes.BOOL,wintypes.DWORD];kernel.OpenProcess.restype=wintypes.HANDLE
     kernel.QueryFullProcessImageNameW.argtypes=[wintypes.HANDLE,wintypes.DWORD,wintypes.LPWSTR,ctypes.POINTER(wintypes.DWORD)]
     handle=kernel.OpenProcess(0x100000|0x1000,False,pid)
-    if not handle:raise RuntimeError('Parent unavailable')
+    if not handle:raise ParentOpenError('Parent unavailable')
     length=wintypes.DWORD(32768);image=ctypes.create_unicode_buffer(length.value)
-    if not kernel.QueryFullProcessImageNameW(handle,0,image,ctypes.byref(length)) or os.path.normcase(image.value)!=os.path.normcase(str(target/'Qinglian.exe')):
-        kernel.CloseHandle.argtypes=[wintypes.HANDLE];kernel.CloseHandle(handle);raise RuntimeError('Parent mismatch')
+    kernel.CloseHandle.argtypes=[wintypes.HANDLE]
+    if not kernel.QueryFullProcessImageNameW(handle,0,image,ctypes.byref(length)):
+        kernel.CloseHandle(handle);raise ParentQueryError('Parent image unavailable')
+    try: same=os.path.samefile(image.value,target/'Qinglian.exe')
+    except OSError: same=False
+    # Compare file identity, not the spelling of the path: Win32 may report an
+    # 8.3 name while pathlib resolved a long name or a directory junction.
+    if not same:
+        kernel.CloseHandle(handle);raise ParentImageError('Parent mismatch')
     return kernel,handle
 
 def apply(plan_path):
