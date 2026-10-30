@@ -17,7 +17,10 @@ def main(app,archive):
         try:
             deadline=time.monotonic()+150;result=state/'update-result.json'
             while not result.exists():
-                if time.monotonic()>deadline:raise AssertionError('Packaged update timed out')
+                if time.monotonic()>deadline:
+                    jobs=list((state/'updates').glob('[0-9a-f]'*32)) if (state/'updates').exists() else []
+                    phases=[{'plan':(job/'plan.json').exists(),'waiting':(job/'waiting').exists(),'ready':(job/'ready').exists()} for job in jobs]
+                    raise AssertionError('Packaged update timed out; parentExit='+str(parent.poll())+' phases='+json.dumps(phases))
                 time.sleep(.2)
             value=json.loads(result.read_text());assert value.get('ok'), 'Packaged update rolled back'
             pid=value['pid'];assert isinstance(pid,int) and pid>0

@@ -112,7 +112,7 @@ def restore_payload(target,backup,moved=('Qinglian.exe','_internal'),installed=(
 def launch_update(path,package,state):
     import subprocess
     if not getattr(sys,'frozen',False):raise RuntimeError('源码运行不支持替换，请使用正式Windows安装包')
-    state=Path(state);root=state/'updates';token=uuid.uuid4().hex;job=root/token;job.mkdir()
+    state=Path(state);root=state/'updates';root.mkdir(exist_ok=True);token=uuid.uuid4().hex;job=root/token;job.mkdir()
     helper=Path(sys._MEIPASS)/'resources/updater.exe'
     shutil.copy2(helper,job/'updater.exe')
     plan={'parent':os.getpid(),'target':str(Path(sys.executable).resolve().parent),'package':descriptor(package),'token':token}
