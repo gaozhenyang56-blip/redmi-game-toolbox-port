@@ -118,9 +118,10 @@ def launch_update(path,package,state):
     plan={'parent':os.getpid(),'target':str(Path(sys.executable).resolve().parent),'package':descriptor(package),'token':token}
     # Each update has a private directory inherited from the per-user state ACL.
     shutil.copy2(path,job/'package.zip');(job/'plan.json').write_text(json.dumps(plan),encoding='utf-8')
-    process=subprocess.Popen([str(job/'updater.exe'),'--apply',str(job/'plan.json')],creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+    environment=dict(os.environ,PYINSTALLER_RESET_ENVIRONMENT='1')
+    process=subprocess.Popen([str(job/'updater.exe'),'--apply',str(job/'plan.json')],env=environment,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
     # Wait for the helper's parent attestation before asking the GUI to exit.
-    deadline=time.monotonic()+8
+    deadline=time.monotonic()+30
     while not (job/'waiting').exists():
         if process.poll() is not None or time.monotonic()>deadline:raise RuntimeError('更新助手启动失败，当前程序未被替换')
         time.sleep(.05)

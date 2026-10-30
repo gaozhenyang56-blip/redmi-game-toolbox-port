@@ -17,9 +17,13 @@ def main(app,archive):
         try:
             deadline=time.monotonic()+150;result=state/'update-result.json'
             while not result.exists():
+                for job in (state/'updates').glob('[0-9a-f]'*32):
+                    if (job/'status.json').exists():
+                        status=json.loads((job/'status.json').read_text())
+                        if status.get('failed'):raise AssertionError('Helper failed: '+json.dumps(status))
                 if time.monotonic()>deadline:
                     jobs=list((state/'updates').glob('[0-9a-f]'*32)) if (state/'updates').exists() else []
-                    phases=[{'plan':(job/'plan.json').exists(),'waiting':(job/'waiting').exists(),'ready':(job/'ready').exists()} for job in jobs]
+                    phases=[{'plan':(job/'plan.json').exists(),'waiting':(job/'waiting').exists(),'ready':(job/'ready').exists(),'status':json.loads((job/'status.json').read_text()) if (job/'status.json').exists() else None} for job in jobs]
                     raise AssertionError('Packaged update timed out; parentExit='+str(parent.poll())+' phases='+json.dumps(phases))
                 time.sleep(.2)
             value=json.loads(result.read_text());assert value.get('ok'), 'Packaged update rolled back'
