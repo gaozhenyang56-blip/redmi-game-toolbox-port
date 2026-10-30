@@ -1,3 +1,17 @@
+# Windows preview5 热更新、托盘和图标（2026-10-30，已发布并接入面板）
+
+用户追加要求两种热更新、后台常驻及使用V2Ray图标。Windows 1.0.0-preview5：关于页独立后台同步Windows发布配置（强调色、密度、纯文本公告、材质许可），60秒一次，可关闭，保持连接和输入；代码包只从原固定HTTPS/CDN API下载，严格TLS、大小/摘要/版本/资源和归档路径校验，禁止降级/任意URL/脚本。必须先断开VPN并确认重启。非提权one-file助手校验父进程文件身份、等待旧GUI退出，仅替换Qinglian.exe/_internal，保留卸载程序和用户数据，新版启动check-in前保留备份，失败尝试恢复。不是无重启代码执行；首次必须手动安装preview5。完整说明见server/WINDOWS_UPDATES.md与windows/README.md。
+
+关闭窗口默认隐藏到托盘并保持连接，菜单打开/断开/退出，关于页可关闭常驻；无托盘时正常退出，明确退出和程序升级始终执行清理并完整结束。用户选择的2dust/v2rayN蓝色图标来自固定提交57f17d5939e88c8e643ab49b90869d637765e75a，ICO/许可证SHA256固定、GPL-3.0来源许可随包保留，assets/.gitattributes确保Windows不改写被固定校验的许可证。应用仍是轻连，不冒充v2rayN官方构建。
+
+服务端工作流40991488208（源码210c21b2）备份后部署成功：Windows独立更新表/API和面板、原HTTPS/WSS SSH PTY、原节点配置/流量计数保留。App更新页的Windows区可发布UI，或输入本仓库已发布版本让服务器校验并导入完整ZIP，避免CDN单次上传大小限制。Android更新表/API不变，原IP严格白名单只增加两个固定Windows读取端点。Go race权限/同源/CAS/回滚/归档测试与Qt数据热更新、连接中禁止替换、忙碌锁回归通过。
+
+最终Windows工作流40994039222（源码cc651379）完整成功：真实平台/DPAPI/代理守护、TLS取消与截止、五协议、生产CDN与三通道及同会话回退、Qt、源码/打包TUN、打包Qt -> 独立one-file助手 -> ZIP替换 -> 新Qt check-in及卸载程序保留、实际安装/卸载。早期失败门禁均未发布：许可证CRLF校验、首次更新目录缺失、冻结子进程环境/父进程路径字符串比较。最终使用PYINSTALLER_RESET_ENVIRONMENT重启独立程序及os.path.samefile比较父映像文件身份，兼容8.3短路径/长路径/目录联接；诊断仅固定阶段与异常类，不记原始路径、凭据或终端输出。文件锁部分替换回滚有逻辑测试，但无断电、强杀助手或任意目录ACL故障保证。
+
+公开标签qinglian-windows-v1.0.0-preview5：setup 113,683,732字节，SHA256 `147ea700e4051aa43790c291ba11497e88e6e9d9cb2088babbfc8bf34618799d`；portable ZIP 131,812,015字节，SHA256 `05c279a17e28a1083102e9e2734b1b4c06e7b165cc73a871d9c3996142dbfb5e`。公开重下校验SHA256SUMS、包内app/updater/helper/fluent/测试/installer归一CRLF源码、原生资源manifest、GUI/助手PE x64与图标一致。面板发布工作流40994718157成功：真实owner登录、固定官方Release导入、严格CDN完整ZIP下载及摘要/资源检查；首次40994570181因脚本urllib导入作用域错误在发布前停止，已修复后成功。没有中国移动现场、真实ChatGPT登录、Windows11 Mica外观或用户全局TUN实机验收。
+
+下一Windows至少preview6；Android仍21，Ubuntu仍preview5。不覆写旧发布资产。Windows当前版本解析仅支持1.0.0-previewN，改正式语义版本前须同时扩展服务端/客户端解析和验收。ZIP更新保留卸载程序但不重写Windows安装器登记版本；需同步安装列表可运行对应setup。
+
 # Windows preview4 连接状态修复（2026-10-30，已发布）
 
 用户截图在没有前台任务时持续提示“请先等待当前操作完成”。根因是10秒一次的online/quota后台统计复用了前台task/working锁，慢请求阻挡连接，下一次轮询又重复占用。preview4将统计改为独立signal和单条在途请求，不取得/释放前台锁，不覆盖连接提示，失败显示统计暂不可用且下轮可重试，退出不等待统计超时。
