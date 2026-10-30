@@ -1,0 +1,35 @@
+name: Qinglian panel Windows publication and strict download check
+on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['.github/workflows/qinglian-windows-publish.yml']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Existing official Windows release (for example 1.0.0-preview5)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: qinglian-server-maintenance
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - name: Existing owner publication, strict CDN package and native resource hashes
+        env:
+          QINGLIAN_VERSION: ${{ inputs.version }}
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/server/github/windows_publish.py "$QINGLIAN_VERSION"
