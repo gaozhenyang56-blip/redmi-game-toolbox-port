@@ -23,14 +23,16 @@ from PySide6.QtGui import QAction,QColor,QIcon,QPainter,QPixmap
 from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QListWidget,QStackedWidget,QFrame,QComboBox,QCheckBox,QSpinBox,QLineEdit,QPlainTextEdit,QFileDialog,QMessageBox,QProgressBar,QSystemTrayIcon,QGraphicsOpacityEffect,QScrollArea)
 import client
 import fluent
+import updater
 QCheckBox=fluent.CheckBox
 
-VERSION='1.0.0-preview4'
+VERSION='1.0.0-preview5'
 class Bridge(QObject):
     event=Signal(str,object)
     finished=Signal(object,object)
     progress=Signal(float,str)
     public_finished=Signal(object)
+    updates_finished=Signal(object)
 
 def label(text,kind=None):
     value=QLabel(text); value.setWordWrap(True)
@@ -58,10 +60,13 @@ class Window(QMainWindow):
         super().__init__(); self.setWindowTitle('轻连 Qinglian'); self.setWindowIcon(icon()); self.resize(1060,760); self.setMinimumSize(700,560)
         self.dark=False; self.mica=False
         self.setAttribute(Qt.WA_TranslucentBackground,fluent.material_available())
-        self.api=api or client.Api(); self.bridge=Bridge(); self.bridge.event.connect(self.on_event); self.bridge.finished.connect(self.task_done); self.bridge.progress.connect(self.speed_progress); self.bridge.public_finished.connect(self.public_done)
+        self.api=api or client.Api(); self.bridge=Bridge(); self.bridge.event.connect(self.on_event); self.bridge.finished.connect(self.task_done); self.bridge.progress.connect(self.speed_progress); self.bridge.public_finished.connect(self.public_done); self.bridge.updates_finished.connect(self.updates_done)
         self.conn=client.Connection(self.api,self.bridge.event.emit)
         self.busy=False; self.working=False; self.public_pending=False; self.closing=False; self.test_running=False; self.test_cancel=threading.Event(); self.started=None
         self.settings=client.read(client.STATE/'settings.json',{})
+        try: self.remote_ui=updater.ui_config(self.settings.get('remoteUI',updater.DEFAULT_UI))
+        except ValueError: self.remote_ui=dict(updater.DEFAULT_UI)
+        self.update_pending=False; self.publication=None; self.update_package=None; self.update_file=None
         body=QWidget(); body.setObjectName('root'); self.setCentralWidget(body); main=QVBoxLayout(body); main.setContentsMargins(12,6,12,12); main.setSpacing(8)
         header=QHBoxLayout(); header.addWidget(label('轻连','title')); header.addStretch()
         self.compact=QCheckBox('简约模式'); self.compact.setChecked(bool(self.settings.get('compact',False))); header.addWidget(self.compact)
@@ -72,6 +77,7 @@ class Window(QMainWindow):
         row.addWidget(self.nav)
         self.surface=QFrame(); self.surface.setObjectName('surface'); surface_layout=QVBoxLayout(self.surface); surface_layout.setContentsMargins(24,20,16,16)
         self.stack=QStackedWidget(); surface_layout.addWidget(self.stack); row.addWidget(self.surface,1); main.addLayout(row,1)
+        self.notice=label('','muted'); self.notice.hide(); main.addWidget(self.notice)
         self.message=label('准备就绪','message'); self.message.setTextInteractionFlags(Qt.TextSelectableByMouse); main.addWidget(self.message)
         self.pages=[]
         for title in ['连接','网络测速','分流规则','我的账号','ChatGPT 优化','关于轻连']:
@@ -82,6 +88,7 @@ class Window(QMainWindow):
         self.compact.toggled.connect(self.style); self.material.toggled.connect(self.style); self.theme.currentIndexChanged.connect(self.style); QApplication.styleHints().colorSchemeChanged.connect(self.style); self.style()
         self.clock=QTimer(self); self.clock.timeout.connect(self.tick); self.clock.start(1000)
         self.poll=QTimer(self); self.poll.timeout.connect(self.refresh_public); self.poll.start(10000); QTimer.singleShot(0,self.refresh_public)
+        self.update_timer=QTimer(self); self.update_timer.timeout.connect(self.check_updates); self.update_timer.start(60000); QTimer.singleShot(1500,self.check_updates)
         self.tray=None
         if QSystemTrayIcon.isSystemTrayAvailable():
             from PySide6.QtWidgets import QMenu
@@ -127,16 +134,21 @@ class Window(QMainWindow):
         card(self.pages[4],label('ChatGPT 连接路径','section'),label('先用兼容通道连接。HY2 下 OpenAI 和静态资源域名沿用兼容通道策略；可分别检查 HTTPS 响应，HTTP 403 不表示登录成功。'),button('检查 ChatGPT HTTPS',lambda:self.task(self.conn.probe,self.chat_result.setText)),self.chat_result,button('打开 ChatGPT 网页',self.open_chat_web))
         card(self.pages[4],label('显式代理启动桌面程序','section'),label('先完整退出正在运行的 ChatGPT，再选择其 exe。启动只为该进程添加代理及 WebView2 参数，不修改全局环境、不关闭 TLS 或沙箱。不同安装形式可能忽略参数，可用网页版验证。'),self.chat_path,button('选择 ChatGPT.exe',self.choose_chat),button('带代理启动',lambda:self.task(lambda:self.conn.launch_chatgpt(self.chat_path.text()),lambda _:self.message.setText('已启动，请在 ChatGPT 中确认联网'))))
     def build_about(self):
+        self.update_status=label('尚未检查更新'); self.remote_enabled=QCheckBox('接收面板界面配置'); self.remote_enabled.setChecked(self.settings.get('remoteEnabled',True)); self.remote_enabled.toggled.connect(self.style)
+        self.update_apply=button('下载并重启更新',self.install_update); self.update_apply.setEnabled(False)
+        card(self.pages[5],label('更新','section'),self.update_status,self.remote_enabled,button('检查更新',lambda:self.check_updates(True)),self.update_apply,label('界面配置无需重启；程序更新需先断开VPN并确认重启。安装版和免安装版均保留账号与设置。'))
         card(self.pages[5],label('轻连 Windows '+VERSION,'section'),label('Windows 10/11 x64 · Qt / V2Ray / Hysteria2\n与现有面板共用账号、统计和节点；无需手动导入订阅。'),label('移动网络优先使用兼容通道。控制 API 使用固定 gaozy.tech HTTPS/CDN 和原 IP 备用入口，严格验证证书；代理数据能否通过仍取决于实际网络。'),label('访客每次手动连接 64 GiB，不记录域名。账号连接须同意服务器永久域名记录。Windows 用户会话使用 DPAPI 加密，原始 MachineGuid/SID 不上传。'),label('可选 TUN 全局接管需要管理员授权，不是断网保护。退出会恢复原代理，崩溃由独立守护进程恢复；其他程序已更改的代理配置保留。'),button('查看随包许可证',lambda:os.startfile(str(client.ROOT/'licenses'))),button('查看源码与说明',lambda:webbrowser.open('https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/tree/codex/qinglian-routing-and-presence/qinglian/windows')))
     def style(self,*_):
         self.dark=self.theme.currentIndex()==1 or (self.theme.currentIndex()==2 and QApplication.styleHints().colorScheme()==Qt.ColorScheme.Dark)
-        self.mica=fluent.native_frame(self,self.dark,self.material.isChecked())
+        self.mica=fluent.native_frame(self,self.dark,self.material.isChecked() and (not self.remote_enabled.isChecked() or self.remote_ui['material']))
         self.setAttribute(Qt.WA_TranslucentBackground,self.mica)
-        self.setStyleSheet(fluent.stylesheet(self.dark,self.mica))
-        self.nav.setFixedWidth(56 if self.compact.isChecked() else 200); self.nav.viewport().update()
+        self.setStyleSheet(fluent.stylesheet(self.dark,self.mica,self.remote_ui['accent'] if self.remote_enabled.isChecked() else 'blue'))
+        self.nav.setFixedWidth(56 if self.compact.isChecked() else 200); self.nav.doItemsLayout(); self.nav.viewport().update()
+        for layout in self.pages: layout.setSpacing(12 if self.remote_enabled.isChecked() and self.remote_ui['density']=='compact' else 18)
+        self.notice.setText(self.remote_ui['notice'] if self.remote_enabled.isChecked() else ''); self.notice.setVisible(bool(self.notice.text()))
         self.store()
     def store(self):
-        self.settings.update(compact=self.compact.isChecked(),material=self.material.isChecked(),theme=self.theme.currentIndex(),channel=self.channel.currentIndex(),performance=self.performance.currentIndex(),route=self.route.currentIndex(),tun=self.tun.isChecked(),testMiB=self.size.value(),chatPath=self.chat_path.text())
+        self.settings.update(remoteEnabled=self.remote_enabled.isChecked(),remoteUI=self.remote_ui,compact=self.compact.isChecked(),material=self.material.isChecked(),theme=self.theme.currentIndex(),channel=self.channel.currentIndex(),performance=self.performance.currentIndex(),route=self.route.currentIndex(),tun=self.tun.isChecked(),testMiB=self.size.value(),chatPath=self.chat_path.text())
         client.save(client.STATE/'settings.json',self.settings)
     def navigate(self,index):
         self.stack.setCurrentIndex(index)
@@ -167,6 +179,7 @@ class Window(QMainWindow):
         self.account_card.setEnabled(False); self.connect_button.setText('取消连接')
         self.conn.start(['compat','hy2','auto'][self.channel.currentIndex()],self.performance.currentIndex()==0,self.route.currentIndex()==0,self.tun.isChecked())
     def on_event(self,event,value):
+        if event=='update_failed': self.update_apply.setEnabled(True); self.update_status.setText('下载或校验失败，当前程序未改变')
         if event in ('state','warning','error'): self.message.setText(str(value))
         if event=='connected':
             self.started=time.monotonic(); self.status.setText('已连接'); self.message.setText(str(value)); self.connect_button.setText('断开连接')
@@ -206,6 +219,38 @@ class Window(QMainWindow):
         else:
             self.online.setText('在线设备：数据暂不可用')
             self.public_quota.setText('服务端流量：数据暂不可用')
+    def check_updates(self,manual=False):
+        if self.update_pending or self.closing: return
+        self.update_pending=True
+        if manual: self.update_status.setText('正在检查更新…')
+        def work():
+            try: value=updater.manifest(self.api.request('windows/updates',bootstrap=True))
+            except Exception: value=None
+            self.bridge.updates_finished.emit(value)
+        threading.Thread(target=work,daemon=True).start()
+    def updates_done(self,value):
+        self.update_pending=False
+        if self.closing: return
+        if value is None: self.update_status.setText('更新暂不可用；不影响连接，可稍后重试'); return
+        self.publication=value; self.remote_ui=value['ui']; self.style()
+        package=value['package']
+        if package and updater.version_number(package['version'])>updater.version_number(VERSION):
+            self.update_package=package; self.update_apply.setEnabled(True); self.update_status.setText('可更新至 '+package['version']+' · 下载后确认重启')
+        else: self.update_package=None; self.update_apply.setEnabled(False); self.update_status.setText('当前已是最新程序 · 界面配置已同步' if self.remote_enabled.isChecked() else '当前已是最新程序 · 面板界面配置已关闭')
+    def install_update(self):
+        if self.busy or self.test_running or self.working: self.message.setText('请先断开连接并等待当前操作完成，再更新程序'); return
+        if not self.update_package: return
+        package=dict(self.update_package)
+        self.update_apply.setEnabled(False); self.update_status.setText('正在下载并校验更新…')
+        def downloaded(path):
+            self.update_file=path; self.update_apply.setEnabled(True); self.update_status.setText('下载校验完成，可重启更新')
+            if QMessageBox.question(self,'更新轻连','更新包已通过SHA256、版本和文件校验。现在退出并更新？账号及设置保留。')!=QMessageBox.Yes: return
+            self.task(lambda:updater.launch_update(path,package,client.STATE),lambda _:self.close())
+        def work():
+            try: return updater.download(self.api,package,client.STATE)
+            except Exception:
+                self.bridge.event.emit('update_failed',None); raise RuntimeError('更新包下载或校验失败，请稍后重试') from None
+        self.task(work,downloaded)
     def tick(self):
         if self.started:
             seconds=int(time.monotonic()-self.started); self.session.setText('%02d:%02d:%02d'%(seconds//3600,seconds//60%60,seconds%60))
@@ -251,7 +296,7 @@ class Window(QMainWindow):
         if self.busy or self.test_running or self.working:
             self.closing=True; self.poll.stop(); self.test_cancel.set(); self.conn.disconnect(); self.message.setText('正在停止连接并恢复代理…'); event.ignore()
             QTimer.singleShot(200,self.close); return
-        self.store(); self.clock.stop(); self.poll.stop()
+        self.store(); self.clock.stop(); self.poll.stop(); self.update_timer.stop()
         if self.tray: self.tray.hide()
         event.accept()
 
@@ -269,7 +314,22 @@ def main():
                 ok=window.status.text()=='未连接' and window.grab().save(sys.argv[2])
                 window.working=False; window.close(); application.exit(0 if ok else 1)
             QTimer.singleShot(500,finish)
-        else: window=Window(); window.show()
+        else:
+            ci_update=os.environ.get('QINGLIAN_CI_WINDOWS')=='1' and len(sys.argv)==3 and sys.argv[1] in ('--update-fixture','--update-checkin')
+            if ci_update:
+                class OfflineApi:
+                    account={}
+                    def request(self,*args,**kwargs): return {}
+                window=Window(OfflineApi())
+            else: window=Window()
+            window.show()
+            if len(sys.argv)==3 and sys.argv[1]=='--update-checkin': QTimer.singleShot(100,lambda:updater.checkin(client.STATE,sys.argv[2]))
+            if ci_update and sys.argv[1]=='--update-fixture':
+                import zipfile
+                path=Path(sys.argv[2])
+                with zipfile.ZipFile(path) as archive: version=json.loads(archive.read('Qinglian/_internal/resources/build-info.json'))['version']
+                package={'version':version,'size':path.stat().st_size,'sha256':updater.digest(path)}
+                QTimer.singleShot(200,lambda:window.task(lambda:updater.launch_update(path,package,client.STATE),lambda _:window.close()))
         code=application.exec()
     except Exception:
         QMessageBox.critical(None,'轻连启动失败','请确认没有其他轻连实例，安装包完整，当前 Windows 用户可写入本地应用数据目录。'); code=1

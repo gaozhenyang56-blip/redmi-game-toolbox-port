@@ -2,7 +2,7 @@
 
 Windows 10 1809+ / Windows 11，x64。原生 Qt GUI，内置 V2Ray 5.54.2、Hysteria2 2.13.0 和 Temurin JRE17；无需另装 Python/Java。与原面板共用账号、流量和独立节点。
 
-安装：运行 `Qinglian-1.0.0-preview4-windows-x64-setup.exe`，仅安装当前用户，不要求管理员权限。便携版解压整个 ZIP 后运行 `Qinglian.exe`，保留 `_internal` 目录。更新前先退出旧轻连。卸载保留账号/偏好；数据在 `%LOCALAPPDATA%\Qinglian`。本版未提供 Authenticode 签名，请核对 Release 随附 SHA256SUMS，不冒用 Android 签名。
+安装：运行 `Qinglian-1.0.0-preview5-windows-x64-setup.exe`，仅安装当前用户，不要求管理员权限。便携版解压整个 ZIP 后运行 `Qinglian.exe`，保留 `_internal` 目录。更新前先退出旧轻连。卸载保留账号/偏好；数据在 `%LOCALAPPDATA%\Qinglian`。本版未提供 Authenticode 签名，请核对 Release 随附 SHA256SUMS，不冒用 Android 签名。
 
 界面采用 Windows 11 Fluent 风格：Segoe UI Variable 字体、图标侧栏、蓝色强调、紧凑设置卡片和原生标题栏/Snap。Windows 11 22H2+、开启透明且未启用高对比度时请求原生 Mica；可关闭窗口材质，Windows 10 使用纯色。Qt实现，未改为WinUI3；Windows 11材质外观尚需实机确认。
 
@@ -36,3 +36,9 @@ python qinglian/windows/build.py --assets <private-bootstrap-directory> --output
 构建机需要JDK17+和Inno Setup6，包内已带独立JRE。依赖二进制URL及SHA256固定，原管理员/SSH/Cloudflare/用户会话/Android私钥不打包。App引导token与手机/Ubuntu一样可提取，权限边界由服务器控制。源码GPL-3.0；Qt/PySide6动态库及OpenJDK等许可证和对应源码地址随包。完整CI含Windows DPAPI/注册表恢复/Job、真实原生五协议、GUI、生产CDN/三通道与同会话回退；没有移动网络现场或真实ChatGPT账号登录验收。
 
 TUN CI只在保留测试前缀验证真实IPv4/IPv6转发、管理员助手和清理，绝不接管GitHub运行器的默认路由。全局路由计划、固定服务器豁免与输入边界另行检查；用户真实Windows全局切换、UAC交互和中国移动出口仍需现场验收。
+
+## 面板热更新（preview5起）
+
+关于页可检查更新，并可关闭“接收面板界面配置”。面板 App更新页新增 Windows 区：强调色、舒适/紧凑密度、公告和窗口材质许可，每60秒前台同步，保持连接和表单，不执行脚本；本地亮暗、简约和材质关闭偏好优先。离线保留上次有效配置，失败不会占用连接任务。
+
+程序更新在面板输入本仓库已发布版本（例如1.0.0-preview5），服务器从固定官方Release下载免安装ZIP及SHA256SUMS，校验后向客户端发布；不接受任意下载地址。客户端下载只使用原固定API/CDN、严格TLS、不跟随重定向、校验大小/哈希/版本/资源及安全归档路径。下载和重启须用户确认，必须先断开VPN。独立非提权助手等待旧程序退出，只替换Qinglian.exe和_internal，保留卸载程序、账号和设置；新版启动回报前保留备份，文件替换或新版启动失败尝试回滚。安装版和免安装版采用相同ZIP更新方式；不可写的安装目录会失败并保留旧版，不自动提权。不是无重启执行代码，也不是断电后必然可恢复的事务。首次需手动安装preview5，preview4及以前没有更新接收器。

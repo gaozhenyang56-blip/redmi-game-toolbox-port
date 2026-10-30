@@ -44,6 +44,8 @@ jobs:
           python qinglian/windows/test_transport.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python qinglian/windows/test_probe.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s qinglian/windows -p test_updater.py -v
       - name: Actual Windows native five protocols and HY2 high performance
         env:
           QINGLIAN_TEST_LIB: ${{ runner.temp }}/fixture/resources
@@ -97,7 +99,9 @@ jobs:
           if ($p.ExitCode -ne 0 -or -not (Test-Path $tunResult)) { throw 'Packaged TUN test failed' }
           $tunCheck = Get-Content $tunResult | ConvertFrom-Json
           if (-not ($tunCheck.ok -and $tunCheck.ipv4 -and $tunCheck.ipv6 -and $tunCheck.defaultRoutesPreserved)) { throw 'Packaged TUN verification incomplete' }
-          $setup = "$env:RUNNER_TEMP/production/Qinglian-1.0.0-preview4-windows-x64-setup.exe"
+          python qinglian/windows/test_update_packaged.py $app "$env:RUNNER_TEMP/production/Qinglian-1.0.0-preview5-windows-x64-portable.zip"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $setup = "$env:RUNNER_TEMP/production/Qinglian-1.0.0-preview5-windows-x64-setup.exe"
           $install = "$env:RUNNER_TEMP/installed-qinglian"
           $p = Start-Process -FilePath $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$install") -Wait -PassThru
           if ($p.ExitCode -ne 0 -or -not (Test-Path "$install/Qinglian.exe")) { throw 'Installer failed' }
@@ -109,7 +113,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $delivery = "$env:RUNNER_TEMP/production"
-          gh release create qinglian-windows-v1.0.0-preview4 -R "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --prerelease --title '轻连 Windows 1.0.0-preview4' --notes-file qinglian/windows/RELEASE_NOTES.md "$delivery/Qinglian-1.0.0-preview4-windows-x64-setup.exe" "$delivery/Qinglian-1.0.0-preview4-windows-x64-portable.zip" "$delivery/SHA256SUMS.txt"
+          gh release create qinglian-windows-v1.0.0-preview5 -R "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --prerelease --title '轻连 Windows 1.0.0-preview5' --notes-file qinglian/windows/RELEASE_NOTES.md "$delivery/Qinglian-1.0.0-preview5-windows-x64-setup.exe" "$delivery/Qinglian-1.0.0-preview5-windows-x64-portable.zip" "$delivery/SHA256SUMS.txt"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

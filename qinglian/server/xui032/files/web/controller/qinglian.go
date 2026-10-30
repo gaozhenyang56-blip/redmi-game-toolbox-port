@@ -137,6 +137,10 @@ func qOpen(path string) (*qStore, error) {
 		db.Close()
 		return nil, err
 	}
+	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS windows_updates (revision INTEGER PRIMARY KEY,data BLOB NOT NULL)`); err != nil {
+		db.Close()
+		return nil, err
+	}
 	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS updates (revision INTEGER PRIMARY KEY,data BLOB NOT NULL)`); err != nil {
 		db.Close()
 		return nil, err
@@ -289,6 +293,8 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	api.GET("/quota", a.quota)
 	api.GET("/profile", a.profile)
 	api.GET("/updates", a.updates)
+	api.GET("/windows/updates", a.windowsUpdates)
+	api.GET("/windows/package/:digest", a.downloadWindows)
 	api.POST("/guest/start", a.startGuest)
 	api.GET("/apk/:digest", a.downloadAPK)
 	api.POST("/heartbeat", a.heartbeat)
@@ -313,6 +319,10 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	panel.POST("/qinglian/updates", a.saveUpdates)
 	panel.POST("/qinglian/updates/rollback", a.rollbackUpdates)
 	panel.POST("/qinglian/updates/apk", a.uploadAPK)
+	panel.GET("/qinglian/windows", a.adminWindows)
+	panel.POST("/qinglian/windows", a.saveWindows)
+	panel.POST("/qinglian/windows/rollback", a.rollbackWindows)
+	panel.POST("/qinglian/windows/import", a.importWindows)
 	guest := g.Group("/api/v1/guest")
 	guest.Use(a.guestAuth)
 	guest.POST("/profile", a.accountProfile)
@@ -642,10 +652,10 @@ func (a *QinglianController) StartTLS(engine http.Handler) error {
 	server := &http.Server{ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 300 * time.Second, IdleTimeout: 60 * time.Second,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.URL.Path {
-			case a.apiPrefix + "guest/start", a.apiPrefix + "guest/profile", a.apiPrefix + "guest/quota", a.apiPrefix + "guest/stop", a.apiPrefix + "guest/speed", a.apiPrefix + "updates", a.apiPrefix + "online", a.apiPrefix + "quota", a.apiPrefix + "heartbeat", a.apiPrefix + "profile":
+			case a.apiPrefix + "windows/updates", a.apiPrefix + "guest/start", a.apiPrefix + "guest/profile", a.apiPrefix + "guest/quota", a.apiPrefix + "guest/stop", a.apiPrefix + "guest/speed", a.apiPrefix + "updates", a.apiPrefix + "online", a.apiPrefix + "quota", a.apiPrefix + "heartbeat", a.apiPrefix + "profile":
 				engine.ServeHTTP(w, r)
 			default:
-				if strings.HasPrefix(r.URL.Path, a.apiPrefix+"exports/") && qExportRoute.MatchString(strings.TrimPrefix(r.URL.Path, a.apiPrefix+"exports/")) || strings.HasPrefix(r.URL.Path, a.apiPrefix+"apk/") && qDigest(strings.TrimPrefix(r.URL.Path, a.apiPrefix+"apk/")) {
+				if strings.HasPrefix(r.URL.Path, a.apiPrefix+"windows/package/") && qDigest(strings.TrimPrefix(r.URL.Path, a.apiPrefix+"windows/package/")) || strings.HasPrefix(r.URL.Path, a.apiPrefix+"exports/") && qExportRoute.MatchString(strings.TrimPrefix(r.URL.Path, a.apiPrefix+"exports/")) || strings.HasPrefix(r.URL.Path, a.apiPrefix+"apk/") && qDigest(strings.TrimPrefix(r.URL.Path, a.apiPrefix+"apk/")) {
 					engine.ServeHTTP(w, r)
 				} else {
 					http.NotFound(w, r)

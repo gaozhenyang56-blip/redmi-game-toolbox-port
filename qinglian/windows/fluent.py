@@ -71,7 +71,7 @@ def glyph(painter,index,rect,color):
 
 class NavigationDelegate(QStyledItemDelegate):
     def __init__(self,window): super().__init__(window); self.window=window
-    def sizeHint(self,option,index): return QSize(50,42)
+    def sizeHint(self,option,index): return QSize(50,36 if getattr(self.window,'remote_enabled',None) and self.window.remote_enabled.isChecked() and getattr(self.window,'remote_ui',{}).get('density')=='compact' else 42)
     def paint(self,painter,option,index):
         painter.save(); painter.setRenderHint(QPainter.Antialiasing)
         dark=self.window.dark; selected=bool(option.state&QStyle.State_Selected); hovered=bool(option.state&QStyle.State_MouseOver)
@@ -79,13 +79,13 @@ class NavigationDelegate(QStyledItemDelegate):
         if selected or hovered:
             painter.setPen(Qt.NoPen); painter.setBrush(QColor('#343434' if dark else '#e7e7e7') if selected else QColor('#303030' if dark else '#ededed')); painter.drawRoundedRect(rect,4,4)
         if selected:
-            painter.setBrush(QColor('#60cdff' if dark else '#0067c0')); painter.drawRoundedRect(QRectF(rect.left(),rect.center().y()-8,3,16),1.5,1.5)
+            painter.setBrush(QColor(accent_color(dark,getattr(self.window,'remote_ui',{}).get('accent','blue')))); painter.drawRoundedRect(QRectF(rect.left(),rect.center().y()-8,3,16),1.5,1.5)
         color='#ffffff' if dark else '#202020'
         glyph(painter,index.row(),QRectF(rect.left()+13,rect.center().y()-10,20,20),color)
         if not self.window.compact.isChecked():
             painter.setPen(QColor(color)); painter.drawText(QRectF(rect.left()+47,rect.top(),rect.width()-55,rect.height()),Qt.AlignVCenter,index.data())
         if option.state&QStyle.State_HasFocus:
-            painter.setPen(QPen(QColor('#60cdff' if dark else '#0067c0'),1)); painter.setBrush(Qt.NoBrush); painter.drawRoundedRect(rect.adjusted(1,1,-1,-1),4,4)
+            painter.setPen(QPen(QColor(accent_color(dark,getattr(self.window,'remote_ui',{}).get('accent','blue'))),1)); painter.setBrush(Qt.NoBrush); painter.drawRoundedRect(rect.adjusted(1,1,-1,-1),4,4)
         painter.restore()
 
 class CheckBox(QCheckBox):
@@ -93,7 +93,7 @@ class CheckBox(QCheckBox):
     def paintEvent(self,event):
         painter=QPainter(self);painter.setRenderHint(QPainter.Antialiasing)
         dark=getattr(self.window(),'dark',False)
-        accent='#60cdff' if dark else '#0067c0'; foreground='#ffffff' if dark else '#202020'
+        accent=accent_color(dark,getattr(self.window(),'remote_ui',{}).get('accent','blue')); foreground='#ffffff' if dark else '#202020'
         if not self.isEnabled(): painter.setOpacity(.45)
         rect=QRectF(2,(self.height()-18)/2,18,18)
         painter.setPen(QPen(QColor(accent if self.isChecked() else '#999999'),1))
@@ -106,10 +106,14 @@ class CheckBox(QCheckBox):
         if self.hasFocus():
             painter.setPen(QPen(QColor(accent),1,Qt.DotLine));painter.setBrush(Qt.NoBrush);painter.drawRoundedRect(QRectF(self.rect()).adjusted(0,0,-1,-1),3,3)
 
-def stylesheet(dark,mica):
+def accent_color(dark,name='blue'):
+    return {'blue':('#0067c0','#60cdff'),'teal':('#006f70','#58d7d2'),'purple':('#7444bd','#d0b3ff')}.get(name,('#0067c0','#60cdff'))[int(dark)]
+
+def stylesheet(dark,mica,accent_name='blue'):
     bg,fg,panel,card,stroke,muted,hover,accent,accent_text=(
         ('#202020','#ffffff','#272727','#2d2d2d','#424242','#c5c5c5','#383838','#60cdff','#00354b') if dark else
         ('#f3f3f3','#1b1b1b','#fafafa','#ffffff','#e5e5e5','#5d5d5d','#f5f5f5','#0067c0','#ffffff'))
+    accent=accent_color(dark,accent_name)
     backdrop='transparent' if mica else bg
     return f'''
     QMainWindow,QWidget#root{{background:{backdrop};color:{fg}}}
@@ -129,7 +133,7 @@ def stylesheet(dark,mica):
     QPushButton:pressed{{background:{stroke}}}
     QPushButton:focus,QLineEdit:focus,QComboBox:focus,QSpinBox:focus{{border-bottom:2px solid {accent}}}
     QPushButton#primary{{background:{accent};color:{accent_text};border:0;font-weight:600;padding:8px 24px;min-height:22px}}
-    QPushButton#primary:hover{{background:{'#78d5ff' if dark else '#1975c5'}}}
+    QPushButton#primary:hover{{background:{accent}}}
     QPushButton:disabled,QComboBox:disabled,QLineEdit:disabled,QSpinBox:disabled{{color:{muted};background:{panel};border-color:{stroke}}}
     QComboBox::drop-down{{border:0;width:26px}}
     QComboBox QAbstractItemView{{background:{card};color:{fg};border:1px solid {stroke};selection-background-color:{hover};selection-color:{fg};padding:6px}}

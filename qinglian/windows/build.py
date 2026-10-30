@@ -12,7 +12,7 @@ import urllib.request
 import zipfile
 
 HERE=Path(__file__).resolve().parent; PROJECT=HERE.parent
-VERSION='1.0.0-preview4'
+VERSION='1.0.0-preview5'
 PINS={
  'tun2socks.zip':('https://github.com/xjasonlyu/tun2socks/releases/download/v2.6.0/tun2socks-windows-amd64.zip','1429e2e3b1ea09052da2c65e5005538b5730d63da37e304f4ad6fd2698a66695'),
  'wintun.zip':('https://www.wintun.net/builds/wintun-0.14.1.zip','07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51'),
@@ -90,6 +90,11 @@ def main():
         if file.is_file(): shutil.copy2(file,licenses/file.name)
     staging=output/'staging'; staging.mkdir(exist_ok=True); shutil.copy2(PROJECT/'ubuntu/runtime.py',staging/'shared_runtime.py')
     subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--windowed','--onedir','--name','Qinglian','--icon',str(icon_file),'--paths',str(HERE),'--paths',str(staging),'--distpath',str(output/'dist'),'--workpath',str(output/'pyinstaller'),'--specpath',str(staging),'--add-data',str(resources)+os.pathsep+'resources',str(HERE/'app.py')],check=True)
+    # Isolated updater is one-file and runs from private state, so it can replace
+    # the GUI's executable/DLLs after shutdown without keeping them locked.
+    subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--windowed','--onefile','--name','updater','--paths',str(HERE),'--distpath',str(output/'helper'),'--workpath',str(output/'helper-work'),'--specpath',str(staging),str(HERE/'update_helper.py')],check=True)
+    shutil.copy2(output/'helper/updater.exe',resources/'updater.exe')
+    shutil.copy2(resources/'updater.exe',output/'dist/Qinglian/_internal/resources/updater.exe')
     app=output/'dist/Qinglian'
     (resources/'build-info.json').write_text(json.dumps({'version':VERSION,'architecture':'x64','sha256':{name:digest(resources/name) for name in ('v2ray.exe','hysteria.exe','tun2socks.exe','wintun.dll','node-config.jar','profile.json',ca)}}))
     shutil.copy2(resources/'build-info.json',app/'_internal/resources/build-info.json')

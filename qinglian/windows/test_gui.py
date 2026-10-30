@@ -77,6 +77,18 @@ def run(screenshot):
             start.assert_not_called(); stop.assert_not_called(); assert window.tun.isChecked() and not window.route.isEnabled()
         window.tun.setChecked(False); assert window.route.isEnabled()
         window.auth('login'); assert '同意' in window.message.text()
+        remote={'schema':1,'revision':2,'ui':{'accent':'teal','density':'compact','notice':'fixture notice','material':False},'package':{'version':'1.0.0-preview6','sha256':'a'*64,'size':100}}
+        with patch.object(window.conn,'start') as start,patch.object(window.conn,'disconnect') as stop:
+            window.updates_done(remote); application.processEvents()
+            assert window.notice.text()=='fixture notice' and window.update_apply.isEnabled()
+            assert window.remote_ui['density']=='compact' and window.conn is connection
+            start.assert_not_called(); stop.assert_not_called()
+            window.busy=True; window.install_update(); assert '先断开' in window.message.text(); window.busy=False
+            window.remote_enabled.setChecked(False); assert not window.notice.isVisible()
+            window.remote_enabled.setChecked(True)
+            window.updates_done(None); assert window.remote_ui['accent']=='teal'
+        window.updates_done({**remote,'package':{'version':'1.0.0-preview4','sha256':'a'*64,'size':100}}); assert not window.update_apply.isEnabled()
+        window.updates_done({**remote,'ui':dict(app.updater.DEFAULT_UI),'package':None})
         window.compact.setChecked(False); window.theme.setCurrentIndex(0); window.nav.setCurrentRow(0)
         from PySide6.QtTest import QTest
         QTest.qWait(250); application.processEvents(); assert window.status.text()=='未连接'

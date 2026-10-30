@@ -76,6 +76,11 @@ def public_check(ssh,meta):
     for path,marker in [('/xui/qinglian/ssh',b'qinglian-ssh/xterm.js'),('/assets/qinglian-ssh/xterm.js',b'Terminal'),('/assets/qinglian-ssh/addon-fit.js',b'FitAddon')]:
         phase='https-terminal-page' if path.startswith('/xui/') else 'https-terminal-assets'
         with opener.open(urllib.request.Request(origin+path,headers=headers),timeout=15) as response:assert response.status==200 and marker in response.read(1048576)
+    phase='windows-update-api'
+    request=urllib.request.Request(origin+'/api/v1/windows/updates',headers={**headers,'Authorization':'Bearer '+meta['cfg']['clientToken']})
+    with opener.open(request,timeout=15) as response:
+        value=json.load(response);assert response.status==200 and value['schema']==1 and value['ui']['accent'] in ('blue','teal','purple')
+    with opener.open(urllib.request.Request(origin+'/xui/qinglian/manage/updates',headers=headers),timeout=15) as response:assert b'Windows' in response.read(1048576)
     phase='wss-upgrade'
     ws=websocket.create_connection('wss://gaozy.tech/xui/qinglian/ssh/ws',origin=origin,cookie='; '.join(c.name+'='+c.value for c in jar),header=['User-Agent: Qinglian/PanelSshCheck'],timeout=15,sslopt={'cert_reqs':ssl.CERT_REQUIRED,'check_hostname':True})
     try:
@@ -101,7 +106,7 @@ def public_check(ssh,meta):
         else:raise RuntimeError('terminal command not observed')
         ws.send(json.dumps({'type':'close'}))
     finally:ws.close()
-    print(json.dumps({'httpsPanelOwnerVerified':True,'bundledTerminalAssetsVerified':True,'strictWssSshAuthenticationVerified':True,'realPtyResizeAndCommandVerified':True,'credentialsOrTerminalOutputLogged':False}))
+    print(json.dumps({'httpsPanelOwnerVerified':True,'bundledTerminalAssetsVerified':True,'strictWssSshAuthenticationVerified':True,'realPtyResizeAndCommandVerified':True,'credentialsOrTerminalOutputLogged':False,'windowsUpdateApiAndPanelVerified':True}))
 try:
     with connection() as ssh,tempfile.TemporaryDirectory() as directory:
         meta=remote_json(ssh,preflight);stage=meta['stage'];assert stage.startswith('/tmp/qinglian-ssh-')
