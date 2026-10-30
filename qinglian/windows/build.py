@@ -61,6 +61,12 @@ def main():
     subprocess.run([javac,'-encoding','UTF-8','--release','17','-cp',str(resources/'json.jar'),'-d',str(classes),str(PROJECT/'app/src/main/java/com/gzy/qinglian/NodeConfig.java'),str(PROJECT/'server/NodeConfigCli.java')],check=True)
     subprocess.run([jar,'--create','--file',str(resources/'node-config.jar'),'-C',str(classes),'.'],check=True)
     licenses=resources/'licenses'; licenses.mkdir(exist_ok=True)
+    assets=HERE/'assets'; pins=json.loads((assets/'UPSTREAM.json').read_text())
+    for name,value in pins.items():
+        if digest(assets/name)!=value['sha256']: raise ValueError('Icon/license integrity failure')
+    (resources/'icons').mkdir(exist_ok=True); shutil.copy2(assets/'v2rayN.ico',resources/'icons/v2rayN.ico')
+    shutil.copy2(assets/'V2RAYN-LICENSE.txt',licenses/'V2RAYN-GPL-3.0.txt')
+    shutil.copy2(assets/'UPSTREAM.json',licenses/'V2RAYN-icon-origin.json')
     shutil.copy2(PROJECT/'LICENSE',licenses/'Qinglian-GPL-3.0.txt'); shutil.copy2(PROJECT/'app/src/main/assets/THIRD_PARTY.txt',licenses/'THIRD_PARTY.txt')
     for file in (PROJECT/'app/src/main/assets/licenses').glob('HYSTERIA-*.txt'): shutil.copy2(file,licenses/file.name)
     with zipfile.ZipFile(fetch('wintun.zip',args.cache)) as archive:

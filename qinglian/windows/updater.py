@@ -79,7 +79,7 @@ def download(api,value,state):
             with (api.cdn_opener if is_cdn else api.opener).open(request,timeout=10) as response,temporary.open('xb') as output:
                 if response.status!=200:raise ValueError('Download refused')
                 while True:
-                    chunk=response.read(256*1024)
+                    chunk=response.read1(256*1024)
                     if not chunk:break
                     total+=len(chunk)
                     if total>package['size'] or time.monotonic()-started>180:raise ValueError('Download limit')

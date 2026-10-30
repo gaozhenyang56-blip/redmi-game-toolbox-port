@@ -48,17 +48,16 @@ def card(layout,*items):
     layout.addWidget(frame); return frame
 
 def icon(size=64):
-    pixmap=QPixmap(size,size); pixmap.fill(Qt.transparent)
-    p=QPainter(pixmap); p.setRenderHint(QPainter.Antialiasing); p.scale(size/64,size/64)
-    p.setBrush(QColor('#b9f1ce')); p.setPen(Qt.NoPen); p.drawRoundedRect(1,1,62,62,18,18)
-    from PySide6.QtCore import QRect
-    p.setPen(QColor('#24573e')); font=p.font(); font.setPixelSize(34); font.setBold(True); p.setFont(font); p.drawText(QRect(0,0,64,64),Qt.AlignCenter,'轻'); p.end()
-    return QIcon(pixmap)
+    for path in (Path(__file__).resolve().parent/'assets/v2rayN.ico',client.ROOT/'icons/v2rayN.ico'):
+        if path.is_file():
+            value=QIcon(str(path))
+            if not value.isNull(): return value
+    raise RuntimeError('安装包缺少图标资源')
 
 class Window(QMainWindow):
     def __init__(self,api=None):
         super().__init__(); self.setWindowTitle('轻连 Qinglian'); self.setWindowIcon(icon()); self.resize(1060,760); self.setMinimumSize(700,560)
-        self.dark=False; self.mica=False
+        self.dark=False; self.mica=False; self.force_exit=False
         self.setAttribute(Qt.WA_TranslucentBackground,fluent.material_available())
         self.api=api or client.Api(); self.bridge=Bridge(); self.bridge.event.connect(self.on_event); self.bridge.finished.connect(self.task_done); self.bridge.progress.connect(self.speed_progress); self.bridge.public_finished.connect(self.public_done); self.bridge.updates_finished.connect(self.updates_done)
         self.conn=client.Connection(self.api,self.bridge.event.emit)
@@ -77,7 +76,7 @@ class Window(QMainWindow):
         row.addWidget(self.nav)
         self.surface=QFrame(); self.surface.setObjectName('surface'); surface_layout=QVBoxLayout(self.surface); surface_layout.setContentsMargins(24,20,16,16)
         self.stack=QStackedWidget(); surface_layout.addWidget(self.stack); row.addWidget(self.surface,1); main.addLayout(row,1)
-        self.notice=label('','muted'); self.notice.hide(); main.addWidget(self.notice)
+        self.notice=label('','muted'); self.notice.setTextFormat(Qt.PlainText); self.notice.hide(); main.addWidget(self.notice)
         self.message=label('准备就绪','message'); self.message.setTextInteractionFlags(Qt.TextSelectableByMouse); main.addWidget(self.message)
         self.pages=[]
         for title in ['连接','网络测速','分流规则','我的账号','ChatGPT 优化','关于轻连']:
@@ -93,7 +92,8 @@ class Window(QMainWindow):
         if QSystemTrayIcon.isSystemTrayAvailable():
             from PySide6.QtWidgets import QMenu
             self.tray=QSystemTrayIcon(self.windowIcon(),self); menu=QMenu()
-            menu.addAction('打开轻连',lambda:(self.showNormal(),self.activateWindow())); menu.addAction('退出',self.close)
+            menu.addAction('打开轻连',lambda:(self.showNormal(),self.activateWindow())); menu.addAction('断开连接',lambda:self.conn.disconnect() if self.busy else None)
+            menu.addAction('退出',self.request_exit)
             self.tray.setContextMenu(menu); self.tray.setToolTip('轻连'); self.tray.activated.connect(lambda reason:self.showNormal() if reason==QSystemTrayIcon.Trigger else None); self.tray.show()
     def build_connect(self):
         layout=self.pages[0]; self.status=label('未连接','hero'); self.session=label('00:00:00','muted')
@@ -134,6 +134,9 @@ class Window(QMainWindow):
         card(self.pages[4],label('ChatGPT 连接路径','section'),label('先用兼容通道连接。HY2 下 OpenAI 和静态资源域名沿用兼容通道策略；可分别检查 HTTPS 响应，HTTP 403 不表示登录成功。'),button('检查 ChatGPT HTTPS',lambda:self.task(self.conn.probe,self.chat_result.setText)),self.chat_result,button('打开 ChatGPT 网页',self.open_chat_web))
         card(self.pages[4],label('显式代理启动桌面程序','section'),label('先完整退出正在运行的 ChatGPT，再选择其 exe。启动只为该进程添加代理及 WebView2 参数，不修改全局环境、不关闭 TLS 或沙箱。不同安装形式可能忽略参数，可用网页版验证。'),self.chat_path,button('选择 ChatGPT.exe',self.choose_chat),button('带代理启动',lambda:self.task(lambda:self.conn.launch_chatgpt(self.chat_path.text()),lambda _:self.message.setText('已启动，请在 ChatGPT 中确认联网'))))
     def build_about(self):
+        self.background=QCheckBox('关闭窗口后驻留托盘，保持连接'); self.background.setChecked(self.settings.get('background',True)); self.background.setEnabled(QSystemTrayIcon.isSystemTrayAvailable())
+        self.background.toggled.connect(self.store)
+        card(self.pages[5],label('后台运行','section'),self.background,label('关闭窗口后仍保持连接；右键托盘图标可打开、断开或退出。托盘不可用时关闭窗口会正常退出。'))
         self.update_status=label('尚未检查更新'); self.remote_enabled=QCheckBox('接收面板界面配置'); self.remote_enabled.setChecked(self.settings.get('remoteEnabled',True)); self.remote_enabled.toggled.connect(self.style)
         self.update_apply=button('下载并重启更新',self.install_update); self.update_apply.setEnabled(False)
         card(self.pages[5],label('更新','section'),self.update_status,self.remote_enabled,button('检查更新',lambda:self.check_updates(True)),self.update_apply,label('界面配置无需重启；程序更新需先断开VPN并确认重启。安装版和免安装版均保留账号与设置。'))
@@ -148,7 +151,7 @@ class Window(QMainWindow):
         self.notice.setText(self.remote_ui['notice'] if self.remote_enabled.isChecked() else ''); self.notice.setVisible(bool(self.notice.text()))
         self.store()
     def store(self):
-        self.settings.update(remoteEnabled=self.remote_enabled.isChecked(),remoteUI=self.remote_ui,compact=self.compact.isChecked(),material=self.material.isChecked(),theme=self.theme.currentIndex(),channel=self.channel.currentIndex(),performance=self.performance.currentIndex(),route=self.route.currentIndex(),tun=self.tun.isChecked(),testMiB=self.size.value(),chatPath=self.chat_path.text())
+        self.settings.update(background=self.background.isChecked(),remoteEnabled=self.remote_enabled.isChecked(),remoteUI=self.remote_ui,compact=self.compact.isChecked(),material=self.material.isChecked(),theme=self.theme.currentIndex(),channel=self.channel.currentIndex(),performance=self.performance.currentIndex(),route=self.route.currentIndex(),tun=self.tun.isChecked(),testMiB=self.size.value(),chatPath=self.chat_path.text())
         client.save(client.STATE/'settings.json',self.settings)
     def navigate(self,index):
         self.stack.setCurrentIndex(index)
@@ -245,7 +248,7 @@ class Window(QMainWindow):
         def downloaded(path):
             self.update_file=path; self.update_apply.setEnabled(True); self.update_status.setText('下载校验完成，可重启更新')
             if QMessageBox.question(self,'更新轻连','更新包已通过SHA256、版本和文件校验。现在退出并更新？账号及设置保留。')!=QMessageBox.Yes: return
-            self.task(lambda:updater.launch_update(path,package,client.STATE),lambda _:self.close())
+            self.task(lambda:updater.launch_update(path,package,client.STATE),lambda _:self.request_exit())
         def work():
             try: return updater.download(self.api,package,client.STATE)
             except Exception:
@@ -292,7 +295,11 @@ class Window(QMainWindow):
     def choose_chat(self):
         path,_=QFileDialog.getOpenFileName(self,'选择 ChatGPT.exe','','Windows 程序 (*.exe)')
         if path: self.chat_path.setText(path); self.store()
+    def request_exit(self):
+        self.force_exit=True; self.close()
     def closeEvent(self,event):
+        if not self.force_exit and self.background.isChecked() and self.tray is not None:
+            self.store(); self.hide(); event.ignore(); return
         if self.busy or self.test_running or self.working:
             self.closing=True; self.poll.stop(); self.test_cancel.set(); self.conn.disconnect(); self.message.setText('正在停止连接并恢复代理…'); event.ignore()
             QTimer.singleShot(200,self.close); return
@@ -312,7 +319,7 @@ def main():
             window=Window(OfflineApi()); window.poll.stop(); window.show()
             def finish():
                 ok=window.status.text()=='未连接' and window.grab().save(sys.argv[2])
-                window.working=False; window.close(); application.exit(0 if ok else 1)
+                window.working=False; window.request_exit(); application.exit(0 if ok else 1)
             QTimer.singleShot(500,finish)
         else:
             ci_update=os.environ.get('QINGLIAN_CI_WINDOWS')=='1' and len(sys.argv)==3 and sys.argv[1] in ('--update-fixture','--update-checkin')
@@ -329,7 +336,7 @@ def main():
                 path=Path(sys.argv[2])
                 with zipfile.ZipFile(path) as archive: version=json.loads(archive.read('Qinglian/_internal/resources/build-info.json'))['version']
                 package={'version':version,'size':path.stat().st_size,'sha256':updater.digest(path)}
-                QTimer.singleShot(200,lambda:window.task(lambda:updater.launch_update(path,package,client.STATE),lambda _:window.close()))
+                QTimer.singleShot(200,lambda:window.task(lambda:updater.launch_update(path,package,client.STATE),lambda _:window.request_exit()))
         code=application.exec()
     except Exception:
         QMessageBox.critical(None,'轻连启动失败','请确认没有其他轻连实例，安装包完整，当前 Windows 用户可写入本地应用数据目录。'); code=1

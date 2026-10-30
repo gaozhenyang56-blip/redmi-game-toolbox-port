@@ -1,0 +1,10 @@
+{
+  "v2rayN.ico": {
+    "url": "https://raw.githubusercontent.com/2dust/v2rayN/57f17d5939e88c8e643ab49b90869d637765e75a/v2rayN/v2rayN/Resources/v2rayN.ico",
+    "sha256": "1c41e4e4df0c16f0536005eb7f9f9f3806a999e70b70a3b79c0378cb7ff5132f"
+  },
+  "V2RAYN-LICENSE.txt": {
+    "url": "https://raw.githubusercontent.com/2dust/v2rayN/57f17d5939e88c8e643ab49b90869d637765e75a/LICENSE",
+    "sha256": "c93d1d90b1111eae8bbc9824405d60186e0cc5f3e643d9feb3fa66e7629e7f17"
+  }
+}

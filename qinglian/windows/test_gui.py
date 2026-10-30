@@ -58,7 +58,7 @@ def check_background_poll(application):
             assert not window.isVisible() and not window.closing
             release.set(); until(lambda:not window.public_pending)
         finally:
-            release.set(); foreground.set(); window.working=False; window.busy=False; window.close()
+            release.set(); foreground.set(); window.working=False; window.busy=False; window.request_exit()
             application.processEvents()
 def run(screenshot):
     application=QApplication.instance() or QApplication([])
@@ -76,6 +76,12 @@ def run(screenshot):
             assert window.conn is connection and window.username.text()=='draft-user' and window.password.text()=='draft-pass'
             start.assert_not_called(); stop.assert_not_called(); assert window.tun.isChecked() and not window.route.isEnabled()
         window.tun.setChecked(False); assert window.route.isEnabled()
+        assert not window.windowIcon().isNull()
+        if window.tray is not None:
+            window.busy=True
+            with patch.object(window.conn,'disconnect') as stop:
+                window.close(); application.processEvents(); assert not window.isVisible(); stop.assert_not_called(); assert window.busy
+            window.busy=False; window.show()
         window.auth('login'); assert '同意' in window.message.text()
         remote={'schema':1,'revision':2,'ui':{'accent':'teal','density':'compact','notice':'fixture notice','material':False},'package':{'version':'1.0.0-preview6','sha256':'a'*64,'size':100}}
         with patch.object(window.conn,'start') as start,patch.object(window.conn,'disconnect') as stop:
@@ -93,6 +99,6 @@ def run(screenshot):
         from PySide6.QtTest import QTest
         QTest.qWait(250); application.processEvents(); assert window.status.text()=='未连接'
         if screenshot: assert window.grab().save(screenshot)
-        window.working=False; window.close(); application.processEvents()
+        window.working=False; window.request_exit(); application.processEvents()
     print('PASS: stalled/failed background polling never blocks connection, foreground lock, single-flight retry, close while polling; six Qt pages, consent, themes and compact state.')
 if __name__=='__main__': run(os.environ.get('QINGLIAN_SCREENSHOT'))

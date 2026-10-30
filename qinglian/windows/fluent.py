@@ -79,13 +79,13 @@ class NavigationDelegate(QStyledItemDelegate):
         if selected or hovered:
             painter.setPen(Qt.NoPen); painter.setBrush(QColor('#343434' if dark else '#e7e7e7') if selected else QColor('#303030' if dark else '#ededed')); painter.drawRoundedRect(rect,4,4)
         if selected:
-            painter.setBrush(QColor(accent_color(dark,getattr(self.window,'remote_ui',{}).get('accent','blue')))); painter.drawRoundedRect(QRectF(rect.left(),rect.center().y()-8,3,16),1.5,1.5)
+            painter.setBrush(QColor(accent_color(dark,self.window.remote_ui['accent'] if self.window.remote_enabled.isChecked() else 'blue'))); painter.drawRoundedRect(QRectF(rect.left(),rect.center().y()-8,3,16),1.5,1.5)
         color='#ffffff' if dark else '#202020'
         glyph(painter,index.row(),QRectF(rect.left()+13,rect.center().y()-10,20,20),color)
         if not self.window.compact.isChecked():
             painter.setPen(QColor(color)); painter.drawText(QRectF(rect.left()+47,rect.top(),rect.width()-55,rect.height()),Qt.AlignVCenter,index.data())
         if option.state&QStyle.State_HasFocus:
-            painter.setPen(QPen(QColor(accent_color(dark,getattr(self.window,'remote_ui',{}).get('accent','blue'))),1)); painter.setBrush(Qt.NoBrush); painter.drawRoundedRect(rect.adjusted(1,1,-1,-1),4,4)
+            painter.setPen(QPen(QColor(accent_color(dark,self.window.remote_ui['accent'] if self.window.remote_enabled.isChecked() else 'blue')),1)); painter.setBrush(Qt.NoBrush); painter.drawRoundedRect(rect.adjusted(1,1,-1,-1),4,4)
         painter.restore()
 
 class CheckBox(QCheckBox):
@@ -93,7 +93,7 @@ class CheckBox(QCheckBox):
     def paintEvent(self,event):
         painter=QPainter(self);painter.setRenderHint(QPainter.Antialiasing)
         dark=getattr(self.window(),'dark',False)
-        accent=accent_color(dark,getattr(self.window(),'remote_ui',{}).get('accent','blue')); foreground='#ffffff' if dark else '#202020'
+        accent=accent_color(dark,self.window().remote_ui['accent'] if self.window().remote_enabled.isChecked() else 'blue'); foreground='#ffffff' if dark else '#202020'
         if not self.isEnabled(): painter.setOpacity(.45)
         rect=QRectF(2,(self.height()-18)/2,18,18)
         painter.setPen(QPen(QColor(accent if self.isChecked() else '#999999'),1))
