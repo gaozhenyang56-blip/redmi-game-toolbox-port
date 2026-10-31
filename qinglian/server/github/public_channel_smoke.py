@@ -3,8 +3,8 @@ import hashlib,json,os,secrets,socket,ssl,subprocess,tempfile,time,urllib.error,
 from pathlib import Path
 from channel_smoke import dependencies,port
 os.umask(0o077)
-APK_URL='https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/releases/download/qinglian-android-v1.1.12-preview-v21/Qinglian-1.1.12-preview-v21.apk'
-APK_SHA='b121bf3538b2ef93d6174e5cf5c8653b7b87ca6fd38c30ac9094fa483c40f66b'
+APK_URL='https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/releases/download/qinglian-android-v1.1.13-preview-v22/Qinglian-1.1.13-preview-v22.apk'
+APK_SHA='149e2ad7a7be6473ca6b4ddd06d3af7e0e44fbdb9c47de17945914f90e77b11b'
 class NoRedirect(urllib.request.HTTPRedirectHandler):
  def redirect_request(self,*args,**kwargs):return None
 
@@ -38,7 +38,7 @@ def main():
     assert node['add'] in (original.hostname,'gaozy.tech')
     if node['add']=='gaozy.tech':assert node['net']=='ws' and node['port']==443 and not node.get('caPem')
     processes=[];http=port()
-    result={'protocol':'hysteria2' if hy2 else node.get('protocol'),'port':node['port'],'ready':True,'transport':node.get('net'),'viaCdn':node['add']=='gaozy.tech'}
+    result={'protocol':'hysteria2' if hy2 else node.get('protocol'),'port':node['port'],'ready':True,'transport':'quic' if hy2 else node.get('net'),'viaCdn':node['add']=='gaozy.tech'}
     if not hy2:
      try:
       with socket.create_connection((node['add'],int(node['port'])),5):result['tcpReachable']=True

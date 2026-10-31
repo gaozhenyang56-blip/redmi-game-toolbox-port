@@ -10,7 +10,7 @@
 - 在线设备详情必须直接整合到用户现有 x-ui 面板。不要把 server/ 中的独立仪表盘原型作为最终方案。
 - 不存在订阅链接，勿再次把订阅链接当作前置要求；需要服务器只读 API。
 - 应用分流可自由开关（默认关闭）；关闭时规则模式绕过大陆/私网，开启后采用黑名单（所选应用直连）/白名单（仅所选应用走VPN），名单独立保存；连接页规则/全局切换，全局忽略名单，修改后重连生效。
-- 必须保留当前正式签名。不得生成新发布私钥替代；证书指纹见 verification/RELEASE_CERT_SHA256。当前已发布 versionCode 为21；发布状态以HANDOFF.md首节及verification记录为准，下一版从22起递增。
+- 必须保留当前正式签名。不得生成新发布私钥替代；证书指纹见 verification/RELEASE_CERT_SHA256。当前已发布 versionCode 为22；发布状态以HANDOFF.md首节及verification记录为准，下一版从23起递增。
 - 真实 VMess、服务器密码、面板凭据、签名私钥和密码禁止进入 Git 或公开日志。要求用户通过私密文件或 Secret 提供。
 
 ## 当前边界与验证
@@ -56,3 +56,5 @@ Windows最新公开preview6，下一版至少preview7；面板SSH已部署，仅
 Windows后台统计与更新轮询必须独立于前台working锁，不得阻挡连接或清除账号任务状态。关闭窗口默认驻留托盘，明确退出/更新须request_exit；无托盘时正常退出。两种面板更新边界、固定Release来源与父进程文件身份校验见server/WINDOWS_UPDATES.md；禁止向TUN提权助手传更新命令。
 
 域名443/WSS数据桥接已部署，Android21重连自动取WS；桌面Windows/Ubuntu最新preview6系统代理申请cdnCompatibility:true，TUN必须false。保留原worker认证/计量/告知及原后端私有CA，不能为修移动网络放宽TUN任意地址限制或把HY2 UDP宣称经普通CDN。手机现场结果待用户确认，详见server/CDN_TRANSPORT.md。
+
+Android22已发布原签名。WS冷启动验证单次15秒，仅1字节可恢复失败最多重试一次，复用核心和会话；对照不重试、稳态短预算/取消/严格TLS保持。失败码只用固定类别，不把H-VERIFY当作已证实UDP限制。用户移动现场需安装22复测，勿宣称已恢复。
