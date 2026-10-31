@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       release:
-        description: Publish the verified original-signed Android v21 APK
+        description: Publish the verified original-signed Android v22 APK
         type: boolean
         default: false
 permissions:
@@ -23,7 +23,7 @@ jobs:
       - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
       - name: Verify private-CA download and original signed APK
         env:
-          QINGLIAN_EXPECTED_VERSION: ${{ inputs.release && '21' || '' }}
+          QINGLIAN_EXPECTED_VERSION: ${{ inputs.release && '22' || '' }}
           QINGLIAN_DELIVERY_DIR: ${{ inputs.release && format('{0}/delivery', runner.temp) || '' }}
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: github.event_name == 'workflow_dispatch' && inputs.release
         with:
-          name: qinglian-android-v21-verified
+          name: qinglian-android-v22-verified
           path: ${{ runner.temp }}/delivery/
           if-no-files-found: error
   release:
@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: qinglian-android-v21-verified
+          name: qinglian-android-v22-verified
           path: delivery
       - name: Publish the verified Android package
         env:
@@ -53,4 +53,4 @@ jobs:
         run: |
           cd delivery
           sha256sum -c SHA256SUMS.txt
-          gh release create qinglian-android-v1.1.12-preview-v21 -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title '轻连 Android 1.1.12-preview · v21' --notes 'HY2首连容错与错误诊断：首次验证读取等待由3秒改为12秒，总验证15秒有界，支持主动取消；兼容与运行中检查仍用原等待。连接失败按配置、核心、握手、认证、证书和系统VPN阶段显示安全错误码，原生日志只提取固定类别，不保存或上传原文。111项测试及lint通过，原签名、全部CDN API资产、HY2参数及配额不变。此更新改善慢握手容错，不能保证解除运营商UDP限制，尚未获用户移动网络验收。' Qinglian-1.1.12-preview-v21.apk SHA256SUMS.txt
+          gh release create qinglian-android-v1.1.13-preview-v22 -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title '轻连 Android 1.1.13-preview · v22' --notes 'WSS首次建连容错：代理CONNECT、TLS与读取等待覆盖冷启动，单次15秒有界；仅首次1字节验证允许一次可恢复错误重试，沿用原核心/节点/账号或访客会话，不重置额度，不重复512KiB通道对照。正常运行检查仍用短等待，取消、严格TLS、响应标记/长度校验保留。Verify增加EOF、SOCKET、TLS及代理状态细分，HY2跨日志分段提取固定原因，不输出原文。原签名和全部CDN API资产核验通过；HY2仍为UDP，不保证运营商线路恢复。' Qinglian-1.1.13-preview-v22.apk SHA256SUMS.txt

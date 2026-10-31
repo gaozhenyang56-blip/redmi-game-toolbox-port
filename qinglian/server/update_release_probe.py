@@ -61,10 +61,10 @@ print(json.dumps({'token':cfg['clientToken'],'ca':Path('/etc/x-ui/qinglian/ca.pe
   assert "name='com.gzy.qinglian'" in badging.stdout and "versionCode='"+str(apk['versionCode'])+"'" in badging.stdout
   if os.environ.get('QINGLIAN_EXPECTED_VERSION'):assert apk['versionCode']==int(os.environ['QINGLIAN_EXPECTED_VERSION'])
   if os.environ.get('QINGLIAN_DELIVERY_DIR'):
-   assert cdnVerified and apk['versionCode']==21 and apk['versionName']=='1.1.12-preview'
+   assert cdnVerified and apk['versionCode']==22 and apk['versionName']=='1.1.13-preview'
    delivery=Path(os.environ['QINGLIAN_DELIVERY_DIR']);delivery.mkdir(parents=True,exist_ok=True)
    import shutil
-   filename='Qinglian-1.1.12-preview-v21.apk';shutil.copyfile(path,delivery/filename)
+   filename='Qinglian-1.1.13-preview-v22.apk';shutil.copyfile(path,delivery/filename)
    (delivery/'SHA256SUMS.txt').write_text(digest+'  '+filename+'\n')
   print(json.dumps({'allApiAssetsCdnVerified':cdnVerified,'cdnUpdateDownloadVerified':cdnVerified,'bothHttpsPortsVerified':True,'publicTlsUpdateDownload':True,'sizeAndDigestMatch':True,'originalApkSignatureVerified':True,'packageAndVersionMatch':True,'versionCode':apk['versionCode']}))
 except Exception as error:

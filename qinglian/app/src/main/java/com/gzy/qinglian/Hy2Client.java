@@ -31,12 +31,16 @@ final class Hy2Client implements AutoCloseable {
   write(config,configuration(n,ca.getAbsolutePath(),lane).toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
   try{
    process=new ProcessBuilder(new File(context.getApplicationInfo().nativeLibraryDir,"libhysteria.so").getAbsolutePath(),"client","--config",config.getAbsolutePath(),"--log-level","error","--disable-update-check").redirectErrorStream(true).start();
-   Process started=process;Thread drain=new Thread(()->{try(Reader in=new InputStreamReader(started.getInputStream(),java.nio.charset.StandardCharsets.UTF_8)){char[] buffer=new char[2048];int count;while((count=in.read(buffer))!=-1){String code=classify(new String(buffer,0,count));if(process==started&&!code.isEmpty())failureCode=code;}}catch(IOException ignored){}});drain.setDaemon(true);drain.start();
+   Process started=process;FailureClassifier classifier=new FailureClassifier();Thread drain=new Thread(()->{try(Reader in=new InputStreamReader(started.getInputStream(),java.nio.charset.StandardCharsets.UTF_8)){char[] buffer=new char[2048];int count;while((count=in.read(buffer))!=-1){String code=classifier.accept(new String(buffer,0,count));java.util.Arrays.fill(buffer,'\0');if(process==started&&!code.isEmpty())failureCode=code;}}catch(IOException ignored){}});drain.setDaemon(true);drain.start();
    for(int i=0;i<50;i++){
     if(Thread.currentThread().isInterrupted()||!started.isAlive())throw new IOException("加速通道启动失败");
     try(Socket socket=new Socket()){socket.connect(new InetSocketAddress("127.0.0.1",10810+lane),100);return;}catch(IOException wait){Thread.sleep(50);}
    }throw new IOException("加速通道启动超时");
   }catch(Exception failure){close();throw failure;}
+ }
+ static final class FailureClassifier {
+  private String tail="";
+  String accept(String chunk){String text=tail+chunk;tail=text.substring(Math.max(0,text.length()-64));return classify(text);}
  }
  static String classify(String text){
   String value=text.toLowerCase(java.util.Locale.ROOT);

@@ -6,16 +6,55 @@ import java.util.function.BooleanSupplier;
 /** Bounded, metered traffic through this app's core and the original authenticated CA. */
 final class ConnectionProbe {
  private static final java.util.concurrent.ScheduledExecutorService watchdog=java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"qinglian-probe-cancel");t.setDaemon(true);return t;});
+ enum Mode { STANDARD, COLD_WS, COLD_HY2 }
+ interface Factory { HttpURLConnection open()throws Exception; }
+ static Mode mode(String protocol,String network,boolean cold){return "hysteria2".equals(protocol)?Mode.COLD_HY2:cold&&"ws".equals(network)?Mode.COLD_WS:Mode.STANDARD;}
  static long measure(Context context,long bytes,BooleanSupplier cancelled)throws Exception{return measure(context,bytes,cancelled,false);}
- static long measure(Context context,long bytes,BooleanSupplier cancelled,boolean coldHy2)throws Exception{
+ static long measure(Context context,long bytes,BooleanSupplier cancelled,boolean coldHy2)throws Exception{return measure(context,bytes,cancelled,coldHy2?Mode.COLD_HY2:Mode.STANDARD,()->{});}
+ static long measure(Context context,long bytes,BooleanSupplier cancelled,Mode mode,Runnable retry)throws Exception{
   Proxy proxy=new Proxy(Proxy.Type.HTTP,new InetSocketAddress("127.0.0.1",10809));
-  HttpURLConnection connection=ApiEndpoint.serverSpeed(context,proxy,bytes);
-  return transfer(connection,bytes,cancelled,coldHy2);
+  return withRetry(()->ApiEndpoint.serverSpeed(context,proxy,bytes),bytes,cancelled,mode,retry);
  }
- static long transfer(HttpURLConnection connection,long bytes,BooleanSupplier cancelled,boolean coldHy2)throws Exception{
-  connection.setConnectTimeout(3000);connection.setReadTimeout(coldHy2?12000:3000);connection.setUseCaches(false);connection.setInstanceFollowRedirects(false);
+ static long withRetry(Factory factory,long bytes,BooleanSupplier cancelled,Mode mode,Runnable retry)throws Exception{
+  int attempts=mode==Mode.COLD_WS&&bytes==1?2:1;
+  for(int attempt=0;;attempt++){
+   if(cancelled.getAsBoolean()||Thread.currentThread().isInterrupted())throw new InterruptedIOException("连接验证已取消");
+   try{return transfer(factory.open(),bytes,cancelled,mode);}
+   catch(Exception error){
+    if(attempt+1>=attempts||cancelled.getAsBoolean()||Thread.currentThread().isInterrupted()||!retryable(error))throw error;
+    retry.run();
+    try{Thread.sleep(250);}catch(InterruptedException stop){Thread.currentThread().interrupt();throw new InterruptedIOException("连接验证已取消");}
+   }
+  }
+ }
+ static boolean securityFailure(Throwable error){for(int i=0;error!=null&&i<12;i++,error=error.getCause())if(error instanceof java.security.GeneralSecurityException||error instanceof javax.net.ssl.SSLPeerUnverifiedException)return true;return false;}
+ static int proxyStatus(Throwable error){
+  for(int i=0;error!=null&&i<12;i++,error=error.getCause()){
+   String text=error.getMessage();if(text==null||text.length()>4096)continue;
+   String prefix="Unexpected response code for CONNECT: ";
+   if(text.startsWith(prefix)){String code=text.substring(prefix.length());if(code.matches("[1-5][0-9]{2}"))return Integer.parseInt(code);}
+   if(text.startsWith("Unable to tunnel through proxy.")){
+    java.util.regex.Matcher match=java.util.regex.Pattern.compile("HTTP/1\\.[01] ([1-5][0-9]{2})(?: |$)").matcher(text);if(match.find())return Integer.parseInt(match.group(1));
+   }
+  }return 0;
+ }
+ static boolean retryable(Throwable error){
+  if(securityFailure(error))return false;
+  if(error instanceof ApiEndpoint.HttpFailure){int code=((ApiEndpoint.HttpFailure)error).code;return code==502||code==503||code==504;}
+  int proxy=proxyStatus(error);if(proxy!=0)return proxy==502||proxy==503||proxy==504;
+  boolean transientError=false;
+  for(int i=0;error!=null&&i<12;i++,error=error.getCause()){
+   if(error instanceof InterruptedIOException&&!(error instanceof SocketTimeoutException))return false;
+   transientError|=error instanceof SocketTimeoutException||error instanceof EOFException||error instanceof SocketException;
+  }return transientError;
+ }
+ static long transfer(HttpURLConnection connection,long bytes,BooleanSupplier cancelled,boolean coldHy2)throws Exception{return transfer(connection,bytes,cancelled,coldHy2?Mode.COLD_HY2:Mode.STANDARD);}
+ static long transfer(HttpURLConnection connection,long bytes,BooleanSupplier cancelled,Mode mode)throws Exception{
+  boolean cold=mode!=Mode.STANDARD;
+  // On HTTPS proxy connections, connectTimeout may also constrain CONNECT/TLS.
+  connection.setConnectTimeout(cold?12000:3000);connection.setReadTimeout(cold?12000:3000);connection.setUseCaches(false);connection.setInstanceFollowRedirects(false);
   connection.setRequestProperty("Accept-Encoding","identity");connection.setRequestProperty("Cache-Control","no-cache");
-  long start=System.nanoTime(),budget=coldHy2?15000000000L:8000000000L;Thread caller=Thread.currentThread();
+  long start=System.nanoTime(),budget=cold?15000000000L:8000000000L;Thread caller=Thread.currentThread();
   java.util.concurrent.atomic.AtomicBoolean cancelledByWatchdog=new java.util.concurrent.atomic.AtomicBoolean(),expired=new java.util.concurrent.atomic.AtomicBoolean();
   java.util.concurrent.ScheduledFuture<?> guard=watchdog.scheduleWithFixedDelay(()->{
    boolean stop=caller.isInterrupted()||cancelled.getAsBoolean(),timeout=System.nanoTime()-start>budget;

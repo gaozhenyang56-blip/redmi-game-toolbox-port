@@ -45,6 +45,7 @@ public class TunnelService extends VpnService {
  private boolean serviceCompatibility;
  public static volatile String activeProtocol="VMess";
  private volatile Network underlying;
+ private volatile boolean coreProbeCold=true;
  private volatile long connectionEpoch;
  private ConnectivityManager cm;
  private ConnectivityManager.NetworkCallback callback;
@@ -146,6 +147,7 @@ public class TunnelService extends VpnService {
  boolean coreHealthy(){synchronized(coreLock){if(core==null||!core.getIsRunning())return false;for(Hy2Client client:hy2Clients)if(!client.alive())return false;return true;}}
  void startCore()throws Exception{
   synchronized(coreLock){
+   coreProbeCold=true;
    if(NodeConfig.protocol(new org.json.JSONObject(runningNode)).equals("hysteria2")){int lanes=selectedProfile.multipath?2:1;for(int lane=0;lane<lanes;lane++){Hy2Client client=new Hy2Client(this,lane);hy2Clients.add(client);client.start(runningNode);}}
    core=Libv2ray.newCoreController(new CoreCallbackHandler(){public long startup(){return 0;}public long shutdown(){return 0;}public long onEmitStatus(long n,String s){return 0;}});
    core.startLoop(runningConfig);if(!core.getIsRunning())throw new IOException("核心启动失败");
@@ -199,7 +201,12 @@ public class TunnelService extends VpnService {
   }finally{recovering.set(false);}});}catch(RejectedExecutionException stopped){recovering.set(false);}
  }
  ProfileMonitor.Bundle candidates()throws Exception{return ProfileMonitor.candidates(this);}
- long probe(long bytes)throws Exception{return ConnectionProbe.measure(this,bytes,()->cancelled||Thread.currentThread().isInterrupted(),runningNode!=null&&NodeConfig.protocol(new org.json.JSONObject(runningNode)).equals("hysteria2"));}
+ long probe(long bytes)throws Exception{
+  org.json.JSONObject node=runningNode==null?new org.json.JSONObject():new org.json.JSONObject(runningNode);
+  ConnectionProbe.Mode mode=ConnectionProbe.mode(NodeConfig.protocol(node),node.optString("net","tcp"),coreProbeCold||!verified);
+  long result=ConnectionProbe.measure(this,bytes,()->cancelled||Thread.currentThread().isInterrupted(),mode,()->status(recovering.get()?"reconnecting":"connecting","连接较慢，正在重试（2/2）"));
+  coreProbeCold=false;return result;
+ }
  void configureProfile(ProfileMonitor.Profile profile)throws Exception{
   runningNode=profile.node;org.json.JSONObject n=new org.json.JSONObject(runningNode);boolean hy2=NodeConfig.protocol(n).equals("hysteria2");
   runningConfig=NodeConfig.build(runningNode,bypassChina,hy2&&selectedProfile.multipath?2:1,selectedProfile.reuse);
