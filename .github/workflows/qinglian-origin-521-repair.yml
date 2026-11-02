@@ -26,3 +26,19 @@ jobs:
           QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
           QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
         run: python3 qinglian/server/github/recover_origin_521.py
+      - name: External Cloudflare HTTPS response check
+        run: |
+          python3 - <<'PY'
+          import json,urllib.error,urllib.request
+          result={}
+          for path in ('/','/login','/api/v1/quota'):
+              req=urllib.request.Request('https://gaozy.tech'+path,headers={'User-Agent':'Qinglian-521-Recheck/1.0'})
+              try:
+                  with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req,timeout=12) as response:
+                      result[path]={'code':response.status}
+              except urllib.error.HTTPError as error:
+                  result[path]={'code':error.code}
+              except Exception as error:
+                  result[path]={'errorType':type(error).__name__}
+          print(json.dumps({'publicHttpsCheck':result},sort_keys=True))
+          PY
