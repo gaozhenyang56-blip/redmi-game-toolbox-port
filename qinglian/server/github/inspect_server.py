@@ -96,6 +96,20 @@ if config.is_file():
  connection.close()
  connection=sqlite3.connect('file:/etc/x-ui/x-ui.db?mode=ro',uri=True)
  result['parentQuotaStates']=[list(row) for row in connection.execute('SELECT enable,total,up,down,expiry_time FROM inbounds')];connection.close()
+result['backupStages']=[]
+for stage in list(Path('/tmp').glob('qinglian-backup-*'))[-10:]:
+ if stage.is_dir() and not stage.is_symlink():
+  result['backupStages'].append({'databaseSnapshotBytes':(stage/'database-consistent.db').stat().st_size if (stage/'database-consistent.db').exists() else 0,'deviceSnapshotBytes':(stage/'devices-consistent.db').stat().st_size if (stage/'devices-consistent.db').exists() else 0,'manifestReady':(stage/'manifest.json').exists(),'archiveBytes':(stage/'server-backup.tar.gz').stat().st_size if (stage/'server-backup.tar.gz').exists() else 0})
+result['backupSourceBytes']={}
+for root in ['/usr/local/x-ui','/etc/x-ui','/usr/local/lib/qinglian']:
+ total=0;entries=0
+ for directory,dirs,files in os.walk(root,followlinks=False):
+  for name in files:
+   try:total+=(Path(directory)/name).lstat().st_size
+   except OSError:pass
+   entries+=1
+  if entries>10000:break
+ result['backupSourceBytes'][root]=total
 print(json.dumps(result,ensure_ascii=False))
 PY'''
     _,out,err=client.exec_command(script,timeout=30)
