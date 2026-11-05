@@ -71,16 +71,7 @@ StandardError=journal
 WantedBy=multi-user.target
 '''
  Path('/etc/systemd/system/'+SERVICE).write_text(unit)
- run(['systemctl','daemon-reload']);run(['systemctl','enable',SERVICE])
- subprocess.run(['systemctl','stop',SERVICE],capture_output=True,timeout=30)
- admin_output=run(['runuser','-u','openlist-astrbot','--',str(executable),'admin','set',credentials['password'],'--data',str(DATA)],timeout=60)
- run(['systemctl','start',SERVICE])
- if 'admin user has been updated' not in admin_output:
-  filtered=[line for line in admin_output.splitlines() if not any(word in line.lower() for word in ('password','token','secret'))]
-  diagnostics['admin_cli_diagnostic']='\n'.join(filtered)[-1800:]
-  import sqlite3
-  with sqlite3.connect(DATA/'data.db') as db:
-   diagnostics['database_users']=db.execute('SELECT username,role FROM x_users').fetchall()
+ run(['systemctl','daemon-reload']);run(['systemctl','enable',SERVICE]);run(['systemctl','restart',SERVICE])
  def api(path,body=None,token=None):
   headers={'Content-Type':'application/json'}
   if token:headers['Authorization']=token
@@ -88,14 +79,16 @@ WantedBy=multi-user.target
   with urllib.request.urlopen(request,timeout=20) as response:result=json.load(response)
   if result.get('code')!=200:raise RuntimeError('OpenList API failed: '+path+' code='+str(result.get('code')))
   return result.get('data')
- for n in range(8):
-  try:token=api('/api/auth/login',credentials)['token'];break
+ for n in range(10):
+  try:initialized=api('/api/public/init_status')['initialized'];break
   except Exception:
-   if n==7 or (isinstance(__import__("sys").exc_info()[1],RuntimeError)):raise
+   if n==9:raise
    time.sleep(1)
+ if not initialized:api('/api/public/init/setup',{**credentials,'site_title':'汐音 · 百度网盘'})
+ token=api('/api/auth/login',credentials)['token']
  users=api('/api/admin/user/list',token=token)
  for user in users.get('content',[]):
-  if user.get('role')==2 or user.get('username')=='guest':
+  if user.get('role')==1 or user.get('username')=='guest':
    user['disabled']=True;api('/api/admin/user/update',user,token)
  storages=api('/api/admin/storage/list',token=token).get('content',[])
  baidu=[s for s in storages if s.get('driver')=='BaiduNetdisk']
