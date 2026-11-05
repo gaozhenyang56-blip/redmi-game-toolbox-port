@@ -20,6 +20,8 @@ jobs:
           persist-credentials: false
           sparse-checkout: qinglian
       - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1 websocket-client==1.8.0 playwright==1.62.0
+      - name: Verify snapshot-only backup restoration
+        run: python3 -m unittest discover -s qinglian/server -p test_backup_server.py -v
       - name: Encrypted consistent backup before panel upgrade
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
