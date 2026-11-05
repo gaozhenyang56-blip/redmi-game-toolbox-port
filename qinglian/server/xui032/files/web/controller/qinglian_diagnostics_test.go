@@ -81,7 +81,20 @@ func TestQDiagnosticOwnerOriginConcurrencyAndCancellation(t *testing.T) {
 		}
 		r.Body.Close()
 	}
-	a.diagnostic.close()
+	a.diagnostic.Lock()
+	jobID := a.diagnostic.job.ID
+	a.diagnostic.Unlock()
+	cancelRequest, _ := http.NewRequest("POST", srv.URL+"/xui/qinglian/diagnostics/cancel", strings.NewReader(`{"id":"`+jobID+`"}`))
+	cancelRequest.Header.Set("Origin", srv.URL)
+	cancelRequest.Header.Set("X-Requested-With", "XMLHttpRequest")
+	cancelResponse, cancelErr := client.Do(cancelRequest)
+	if cancelErr != nil {
+		t.Fatal(cancelErr)
+	}
+	if cancelResponse.StatusCode != 202 {
+		t.Fatal("cancel denied", cancelResponse.StatusCode)
+	}
+	cancelResponse.Body.Close()
 	for i := 0; i < 100; i++ {
 		r = request("GET", "", srv.URL)
 		var job qDiagnosticJob
