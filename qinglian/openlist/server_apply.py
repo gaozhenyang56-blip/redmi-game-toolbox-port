@@ -10,7 +10,7 @@ try:
  assert os.uname().machine=='x86_64','Unsupported architecture'
  plugin_paths=list(Path('/opt/astrbot/data/config').glob('*baidu_curl*config.json'))
  assert len(plugin_paths)==1,'Cannot identify plugin config'
- plugin_path=plugin_paths[0];plugin=json.loads(plugin_path.read_text());plugin_stat=plugin_path.stat()
+ plugin_path=plugin_paths[0];plugin=json.loads(plugin_path.read_text(encoding="utf-8-sig"));plugin_stat=plugin_path.stat()
  assert plugin.get('baidu_cookies'),'Missing Baidu cookie'
  existing=(BASE/'bin/openlist').exists()
  if not existing:
@@ -97,4 +97,4 @@ WantedBy=multi-user.target
  stats={'service_active':run(['systemctl','is-active',SERVICE]).strip()=='active','service_enabled':run(['systemctl','is-enabled',SERVICE]).strip()=='enabled','openlist_version':'v4.2.9','local_only':True,'plugin_link_configured':True,'cookie_preserved':True,'mount_prepared':True,'oauth_required':not any(json.loads(s.get('addition') or '{}').get('refresh_token') for s in baidu),'guest_disabled':True}
  print(json.dumps({'ok':True,**stats}),flush=True)
 except Exception as exc:
- print(json.dumps({'ok':False,'failure_type':type(exc).__name__,'step':'openlist deployment'}),flush=True)
+ print(json.dumps({'ok':False,'failure_type':type(exc).__name__,'step':'openlist deployment','line':__import__('traceback').extract_tb(exc.__traceback__)[-1].lineno}),flush=True)
