@@ -12,6 +12,9 @@ try:
  assert len(plugin_paths)==1,'Cannot identify plugin config'
  plugin_path=plugin_paths[0];plugin=json.loads(plugin_path.read_text(encoding="utf-8-sig"));plugin_stat=plugin_path.stat()
  assert plugin.get('baidu_cookies'),'Missing Baidu cookie'
+ refresh=plugin.get('motrix_rpc_token','') if not plugin.get('motrix_rpc_url') else ''
+ if not refresh.startswith('122.'):refresh=''
+ if refresh:plugin['motrix_rpc_token']=''
  existing=(BASE/'bin/openlist').exists()
  if not existing:
   with socket.socket() as probe:probe.bind(('127.0.0.1',PORT))
@@ -73,7 +76,7 @@ WantedBy=multi-user.target
   if token:headers['Authorization']=token
   request=urllib.request.Request('http://127.0.0.1:5244'+path,data=json.dumps(body).encode() if body is not None else None,headers=headers)
   with urllib.request.urlopen(request,timeout=20) as response:result=json.load(response)
-  if result.get('code')!=200:raise RuntimeError('OpenList API failed: '+path)
+  if result.get('code')!=200:raise RuntimeError('OpenList API failed: '+path+' code='+str(result.get('code')))
   return result.get('data')
  for n in range(25):
   try:token=api('/api/auth/login',credentials)['token'];break
@@ -87,14 +90,24 @@ WantedBy=multi-user.target
  storages=api('/api/admin/storage/list',token=token).get('content',[])
  baidu=[s for s in storages if s.get('driver')=='BaiduNetdisk']
  if not baidu:
-  addition={'root_folder_path':'/','order_by':'name','order_direction':'asc','download_api':'official','use_online_api':True,'api_url_address':'https://api.oplist.org/baiduyun/renewapi','refresh_token':'','upload_thread':'1','upload_timeout':60,'upload_api':'https://d.pcs.baidu.com','use_dynamic_upload_api':True,'custom_crack_ua':'netdisk'}
-  api('/api/admin/storage/create',{'mount_path':'/百度','order':0,'driver':'BaiduNetdisk','cache_expiration':30,'addition':json.dumps(addition),'remark':'AstrBot 百度网盘；等待用户 OAuth 授权','disabled':True},token)
+  addition={'root_folder_path':'/','order_by':'name','order_direction':'asc','download_api':'official','use_online_api':True,'api_url_address':'https://api.oplist.org/baiduyun/renewapi','refresh_token':refresh,'upload_thread':'1','upload_timeout':60,'upload_api':'https://d.pcs.baidu.com','use_dynamic_upload_api':True,'custom_crack_ua':'netdisk'}
+  api('/api/admin/storage/create',{'mount_path':'/百度','order':0,'driver':'BaiduNetdisk','cache_expiration':30,'addition':json.dumps(addition),'remark':'AstrBot 百度网盘','disabled':not bool(refresh)},token)
+ elif refresh:
+  storage=baidu[0];addition=json.loads(storage.get('addition') or '{}');addition.update({'refresh_token':refresh,'use_online_api':True,'api_url_address':'https://api.oplist.org/baiduyun/renewapi','download_api':'official'});storage.update({'addition':json.dumps(addition),'disabled':False,'remark':'AstrBot 百度网盘'});api('/api/admin/storage/update',storage,token)
+ storages=api('/api/admin/storage/list',token=token).get('content',[]);baidu=[s for s in storages if s.get('driver')=='BaiduNetdisk']
+ mount_ready=False
+ if refresh or (baidu and json.loads(baidu[0].get('addition') or '{}').get('refresh_token')):
+  for attempt in range(6):
+   try:api('/api/fs/list',{'path':'/百度','password':'','page':1,'per_page':1,'refresh':False},token);mount_ready=True;break
+   except Exception:
+    if attempt==5:raise
+    time.sleep(2)
  plugin_backup=BASE/'plugin-config-before.json'
- if not plugin_backup.exists():shutil.copy2(plugin_path,plugin_backup);plugin_backup.chmod(0o600)
+ if not plugin_backup.exists():plugin_backup.write_text(json.dumps({k:v for k,v in plugin.items() if not k.startswith('_openlist_setup')},ensure_ascii=False));plugin_backup.chmod(0o600)
  # The existing cookie and session allowlist are preserved. OAuth must finish first.
  plugin.update({'openlist_url':'http://127.0.0.1:5244','openlist_user':credentials['username'],'openlist_pass':credentials['password'],'openlist_pan_path':'/百度','file_retention_hours':0})
  temp=plugin_path.with_suffix('.openlist-new');temp.write_text(json.dumps(plugin,ensure_ascii=False,indent=2));os.chmod(temp,0o600);os.chown(temp,plugin_stat.st_uid,plugin_stat.st_gid);os.replace(temp,plugin_path)
- stats={'service_active':run(['systemctl','is-active',SERVICE]).strip()=='active','service_enabled':run(['systemctl','is-enabled',SERVICE]).strip()=='enabled','openlist_version':'v4.2.9','local_only':True,'plugin_link_configured':True,'cookie_preserved':True,'mount_prepared':True,'oauth_required':not any(json.loads(s.get('addition') or '{}').get('refresh_token') for s in baidu),'guest_disabled':True}
+ stats={'service_active':run(['systemctl','is-active',SERVICE]).strip()=='active','service_enabled':run(['systemctl','is-enabled',SERVICE]).strip()=='enabled','openlist_version':'v4.2.9','local_only':True,'plugin_link_configured':True,'cookie_preserved':True,'mount_prepared':True,'oauth_required':not any(json.loads(s.get('addition') or '{}').get('refresh_token') for s in baidu),'guest_disabled':True,'mount_listing_verified':mount_ready}
  print(json.dumps({'ok':True,**stats}),flush=True)
 except Exception as exc:
- print(json.dumps({'ok':False,'failure_type':type(exc).__name__,'step':'openlist deployment','line':__import__('traceback').extract_tb(exc.__traceback__)[-1].lineno}),flush=True)
+ print(json.dumps({'ok':False,'failure_type':type(exc).__name__,'step':'openlist deployment','safe_error':str(exc) if isinstance(exc,(RuntimeError,AssertionError)) else type(exc).__name__,'line':__import__('traceback').extract_tb(exc.__traceback__)[-1].lineno}),flush=True)
