@@ -2,53 +2,8 @@ import json,sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'server/github'))
 from ssh_common import connection,remote_json
-SCRIPT=r'''
-import subprocess,json
-probe=r"""
-import ast,asyncio,json,logging,pathlib,time,types,urllib.parse
-import aiohttp
-from curl_cffi import requests as cffi_requests
-logging.disable(logging.CRITICAL)
-config=json.loads(pathlib.Path('/opt/astrbot/data/config/astrbot_plugin_baidu_curl_config.json').read_text(encoding='utf-8-sig'))
-source=ast.parse(pathlib.Path('/opt/astrbot/data/plugins/astrbot_plugin_baidu_curl/main.py').read_text())
-cls=next(x for x in source.body if isinstance(x,ast.ClassDef))
-methods=[x for x in cls.body if isinstance(x,(ast.FunctionDef,ast.AsyncFunctionDef)) and x.name in ('_refresh_access_token','_get_dlinks_sync')]
-assert len(methods)==2
-ns={'aiohttp':aiohttp,'time':time,'json':json,'logger':logging.getLogger('probe'),'cffi_requests':cffi_requests,'urllib':__import__('urllib')}
-for method in methods:
- method.decorator_list=[]
- exec(compile(ast.fix_missing_locations(ast.Module(body=[method],type_ignores=[])),'installed_plugin_probe','exec'),ns)
-obj=types.SimpleNamespace(openlist_url=config['openlist_url'],openlist_user=config['openlist_user'],openlist_pass=config['openlist_pass'],_access_token='',_token_expire=0,_TOKEN_CACHE_TTL=3600)
-obj._refresh_access_token=types.MethodType(ns['_refresh_access_token'],obj);obj._get_dlinks_sync=types.MethodType(ns['_get_dlinks_sync'],obj)
-async def main():
- loaded=await obj._refresh_access_token();assert loaded and obj._access_token
- result={'plugin_token_load_verified':True,'cached_token_verified':await obj._refresh_access_token(),'direct_link_verified':False,'download_byte_verified':False}
- # Read-only search for one existing file; do not create transfers or shares.
- async with aiohttp.ClientSession() as session:
-  queue=['/'];chosen=None
-  for count in range(8):
-   if not queue or chosen:break
-   directory=queue.pop(0)
-   async with session.get('https://pan.baidu.com/rest/2.0/xpan/file',params={'method':'list','dir':directory,'limit':'100','access_token':obj._access_token},timeout=aiohttp.ClientTimeout(total=20)) as response:data=await response.json(content_type=None)
-   if data.get('errno')!=0:continue
-   for item in data.get('list',[]):
-    if item.get('isdir'):queue.append(item['path'])
-    elif not chosen:chosen=(directory,item['server_filename'])
-  if chosen:
-   links=await asyncio.to_thread(obj._get_dlinks_sync,[chosen[0]],[chosen[1]])
-   result['direct_link_verified']=bool(links)
-   # No URL, path, filename, credentials or private file content is printed.
-  else:result['file_probe_skipped']='No file found within read-only probe budget'
- print(json.dumps(result))
-asyncio.run(main())
-"""
-p=subprocess.run(['/opt/astrbot/.venv/bin/python','-c',probe],capture_output=True,text=True,timeout=180)
-if p.returncode==0:
- result=json.loads(p.stdout);print(json.dumps({'ok':True,**result}))
-else:
- lines=p.stderr.splitlines();kind=next((line.split(':',1)[0] for line in reversed(lines) if 'Error' in line),'ProbeError');print(json.dumps({'ok':False,'failure_type':kind,'private_error_suppressed':True}))
-'''
+SCRIPT = 'import subprocess,json\nprobe=\'import json,pathlib,re,time,urllib.parse\\nfrom curl_cffi import requests\\nroot=pathlib.Path(\\\'/opt/openlist-astrbot/diagnostics\\\');root.mkdir(mode=0o700,exist_ok=True)\\nconfig=json.loads(pathlib.Path(\\\'/opt/astrbot/data/config/astrbot_plugin_baidu_curl_config.json\\\').read_text(encoding=\\\'utf-8-sig\\\'));sample=json.loads(config[\\\'motrix_rpc_token\\\']);share=\\\'https://pan.baidu.com/s/1\\\'+sample[\\\'surl\\\'];init=\\\'https://pan.baidu.com/share/init?surl=\\\'+sample[\\\'surl\\\']\\ncookies=dict(item.strip().split(\\\'=\\\',1) for item in config[\\\'baidu_cookies\\\'].split(\\\';\\\') if \\\'=\\\' in item)\\ndef describe(response):\\n html=response.text\\n return {\\\'status\\\':response.status_code,\\\'bytes\\\':len(response.content),\\\'final_host\\\':urllib.parse.urlsplit(response.url).hostname,\\\'is_init_page\\\':\\\'/share/init\\\' in response.url,\\\'is_error_page\\\':\\\'/error/\\\' in response.url,\\\'is_login_page\\\':any(t in response.url for t in [\\\'passport.baidu\\\',\\\'/login\\\']),\\\'old_data_marker\\\':bool(re.search(r\\\'(?:yunData\\\\.setData|locals\\\\.mset)\\\\(\\\',html)),\\\'has_shareid\\\':\\\'shareid\\\' in html.lower(),\\\'has_share_uk\\\':\\\'share_uk\\\' in html,\\\'has_file_list\\\':\\\'file_list\\\' in html,\\\'script_sources\\\':[u for u in re.findall(r\\\'<script[^>]+src=[\\\\"\\\\\\\']([^\\\\"\\\\\\\']+)\\\',html) if \\\'?\\\' not in u][:12],\\\'has_yundata_word\\\':\\\'yundata\\\' in html.lower(),\\\'has_locals_word\\\':\\\'locals\\\' in html.lower(),\\\'has_captcha\\\':\\\'请输入验证码\\\' in html or \\\'安全验证\\\' in html,\\\'title_categories\\\':[word for word in [\\\'提取码\\\',\\\'百度网盘\\\',\\\'验证\\\',\\\'登录\\\',\\\'不存在\\\',\\\'失效\\\'] if re.search(r\\\'<title[^>]*>[^<]*\\\'+word,html)]}\\nwith requests.Session(impersonate=\\\'chrome120\\\') as s:\\n for k,v in cookies.items():\\n  if v:s.cookies.set(k,v)\\n result=s.post(\\\'https://pan.baidu.com/share/verify\\\',params={\\\'surl\\\':sample[\\\'surl\\\'],\\\'t\\\':str(int(time.time()*1000)),\\\'channel\\\':\\\'chunlei\\\',\\\'web\\\':\\\'1\\\',\\\'bdstoken\\\':\\\'null\\\',\\\'clienttype\\\':\\\'0\\\',\\\'app_id\\\':\\\'250528\\\'},data={\\\'pwd\\\':sample[\\\'pwd\\\'],\\\'vcode\\\':\\\'\\\',\\\'vcode_str\\\':\\\'\\\'},headers={\\\'Referer\\\':init},timeout=20).json()\\n print(json.dumps({\\\'phase\\\':\\\'verify\\\',\\\'errno\\\':result.get(\\\'errno\\\'),\\\'randsk_present\\\':bool(result.get(\\\'randsk\\\')),\\\'has_bdclnd\\\':any(c.name==\\\'BDCLND\\\' for c in s.cookies.jar)}))\\n response=s.get(share,timeout=20);print(json.dumps({\\\'phase\\\':\\\'original\\\',**describe(response)}));f=root/\\\'share-original-private.html\\\';f.write_text(response.text);f.chmod(0o600)\\n if result.get(\\\'randsk\\\'):\\n  for cookie in list(s.cookies.jar):\\n   if cookie.name==\\\'BDCLND\\\':s.cookies.jar.clear(cookie.domain,cookie.path,cookie.name)\\n  s.cookies.set(\\\'BDCLND\\\',urllib.parse.quote(result[\\\'randsk\\\']),domain=\\\'pan.baidu.com\\\',path=\\\'/\\\')\\n  response=s.get(share,headers={\\\'Referer\\\':init},timeout=20);print(json.dumps({\\\'phase\\\':\\\'current_randsk\\\',**describe(response)}));f=root/\\\'share-randsk-private.html\\\';f.write_text(response.text);f.chmod(0o600)\\n\'\np=subprocess.run([\'/opt/astrbot/.venv/bin/python\',\'-c\',probe],capture_output=True,text=True,timeout=130)\nif p.returncode==0:print(json.dumps({\'ok\':True,\'checks\':[json.loads(line) for line in p.stdout.splitlines() if line]}))\nelse:print(json.dumps({\'ok\':False,\'failure_type\':p.stderr.splitlines()[-1].split(\':\',1)[0] if p.stderr else \'ProbeError\'}))\n'
 with connection() as client:
- result=remote_json(client,SCRIPT,timeout=200)
- print('OPENLIST_PLUGIN_CHECK='+json.dumps(result),flush=True)
+ result=remote_json(client,SCRIPT,timeout=160)
+ print('BAIDU_SHARE_DIAGNOSTIC='+json.dumps(result),flush=True)
  if not result.get('ok'):raise SystemExit(1)
