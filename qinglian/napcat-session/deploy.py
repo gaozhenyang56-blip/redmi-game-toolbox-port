@@ -5,7 +5,7 @@ from ssh_common import connection,remote_json
 with connection() as client:
     remote_json(client,"from pathlib import Path;import json;p=Path('/opt/napcat-login/session-update');p.mkdir(mode=0o700,exist_ok=True);print(json.dumps({'ok':True}))")
     with client.open_sftp() as sftp:
-        for filename in ['portal.py','index.html','server_apply.py','prepare_music.py']:
+        for filename in ['portal.py','index.html','server_apply.py','prepare_music.py','restore_qq.py']:
             destination='/opt/napcat-login/session-update/'+filename
             sftp.put(str(Path(__file__).with_name(filename)),destination)
             sftp.chmod(destination,0o600)
@@ -15,3 +15,5 @@ with connection() as client:
     result=remote_json(client,Path(__file__).with_name('server_apply.py').read_text(),timeout=240)
     print('NAPCAT_SESSION='+json.dumps(result,ensure_ascii=False),flush=True)
     if not result.get('ok'):raise SystemExit(1)
+    restore=remote_json(client,"import subprocess,json; p=subprocess.run(['/opt/napcat-login/venv/bin/python','/opt/napcat-login/session-update/restore_qq.py'],capture_output=True,text=True,timeout=90); print(p.stdout if p.returncode==0 else json.dumps({'logged_in':False,'requires_user_scan':True}))",timeout=100)
+    print('QQ_RESTORE='+json.dumps(restore),flush=True)
