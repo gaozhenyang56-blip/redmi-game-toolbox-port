@@ -73,8 +73,13 @@ WantedBy=multi-user.target
  run(['systemctl','daemon-reload']);run(['systemctl','enable',SERVICE])
  subprocess.run(['systemctl','stop',SERVICE],capture_output=True,timeout=30)
  admin_output=run(['runuser','-u','openlist-astrbot','--',str(executable),'admin','set',credentials['password'],'--data',str(DATA)],timeout=60)
- if 'admin user has been updated' not in admin_output:raise RuntimeError('New-instance admin initialization did not report success')
  run(['systemctl','start',SERVICE])
+ if 'admin user has been updated' not in admin_output:
+  filtered=[line for line in admin_output.splitlines() if not any(word in line.lower() for word in ('password','token','secret'))]
+  print(json.dumps({'admin_cli_diagnostic':'\n'.join(filtered)[-1800:]}),flush=True)
+  import sqlite3
+  with sqlite3.connect(DATA/'data.db') as db:
+   print(json.dumps({'database_users':db.execute('SELECT username,role FROM x_users').fetchall()}),flush=True)
  def api(path,body=None,token=None):
   headers={'Content-Type':'application/json'}
   if token:headers['Authorization']=token
