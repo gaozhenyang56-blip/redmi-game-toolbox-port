@@ -184,6 +184,7 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 		c.Status(503)
 		return
 	}
+	primary["compatibilityReady"] = ready
 	// Acceleration remains controlled by the existing panel switch and parent selection.
 	if a.acceleration(parent.Id) != nil {
 		hy, hyReady, e := makeNode("hysteria2")
@@ -191,6 +192,7 @@ func (a *QinglianController) accountProfile(c *gin.Context) {
 			c.Status(503)
 			return
 		}
+		hy["ready"] = hyReady
 		primary["acceleration"] = hy
 		ready = ready && hyReady
 	}

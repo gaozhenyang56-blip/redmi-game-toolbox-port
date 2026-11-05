@@ -49,6 +49,7 @@ jobs:
         env:
           QINGLIAN_SSH_RENDER: ${{ runner.temp }}/ssh-rendered.html
         run: |
+          python3 -m unittest discover -s qinglian/server -p test_export_engine.py -v
           git clone --branch 0.3.2 --depth 1 https://github.com/vaxilu/x-ui.git "$RUNNER_TEMP/x-ui"
           python3 qinglian/server/xui032/apply.py "$RUNNER_TEMP/x-ui"
           cd "$RUNNER_TEMP/x-ui"
@@ -58,6 +59,13 @@ jobs:
         env:
           QINGLIAN_CHROME: /usr/bin/google-chrome
         run: python3 qinglian/server/github/test_ssh_ui.py "$RUNNER_TEMP/ssh-rendered.html" "$RUNNER_TEMP/x-ui/web/assets"
+      - name: Install guarded worker recovery and verify diagnostic native transfers
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/server/github/deploy_diagnostics.py
       - name: Deploy binary, preserve nodes and counters, verify real HTTPS SSH PTY
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}

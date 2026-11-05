@@ -1,0 +1,11 @@
+# Owner connection diagnostics
+
+Panel: `/xui/qinglian/manage/diagnostics`. HTTPS owner session and exact same browser Origin are required to start or cancel; the App token cannot invoke tests. One job runs at a time with a 90-second deadline. No arbitrary command, URL or port input is accepted.
+
+Checks cover disk/database, local App API, worker health, temporary guest allocation, and real native compatibility/HY2 transfers. Each selected channel requests exactly 1 KiB through an explicit HTTP CONNECT proxy, verifies the original API certificate, response marker and exact length, and stops its guest afterward. Protocol overhead is additional metered traffic. Existing export quotas and node credentials are not reset. Test processes and private temporary configuration files are cleaned up; raw native logs and credentials are not returned. Page results belong to the server source network and cannot prove a particular phone/operator can connect.
+
+The worker health endpoint now reports readiness and sanitized last failure separately from process liveness. A history-storage failure stays fail-closed and exits with code 75 so the existing systemd Restart=on-failure policy can retry, instead of silently staying active without workers. No database schema or existing node is changed. Persistent disk/database failure still requires repair and will not be bypassed.
+
+`github/deploy_diagnostics.py` verifies disk/database, stages two fixed Python files with hashes, backs up previous files, restarts only the worker service, and requires both native tests to pass. Failure restores those files. Panel binary deployment subsequently has its own rollback; the new worker health is backward compatible with the old panel.
+
+2026-11-05 UTC incident: service reported active with zero workers and a pending guest profile; original v2rayNG node remained usable. Guarded worker-only recovery run 42005603298 restored profile readiness and preserved existing export data/counters. Public native check 42006186814 then passed CDN WSS, direct HY2, metering, quotas and guest stop. The original swallowed exception cannot be reconstructed; storage/history failure is a supported failure mode fixed here, not a proven original trigger. Physical Android/operator retest remains separate.

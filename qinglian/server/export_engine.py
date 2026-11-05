@@ -4,10 +4,28 @@ import hashlib,hmac,ipaddress,json,os,re,signal,socket,sqlite3,subprocess,thread
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 
+class EngineUnhealthy(RuntimeError):pass
+
+def failure_code(error):
+ text=str(error).lower()[:512]
+ if isinstance(error,sqlite3.Error):
+  if 'locked' in text or 'busy' in text:return 'DATABASE_BUSY'
+  if 'full' in text or 'space' in text:return 'DISK_FULL'
+  if 'readonly' in text or 'read-only' in text:return 'DATABASE_READONLY'
+  if 'malformed' in text or 'corrupt' in text:return 'DATABASE_CORRUPT'
+  return 'DATABASE_ERROR'
+ if isinstance(error,FileNotFoundError):return 'NATIVE_FILE_MISSING'
+ if isinstance(error,PermissionError):return 'FILE_PERMISSION'
+ if isinstance(error,subprocess.TimeoutExpired):return 'NATIVE_TIMEOUT'
+ return 'WORKER_ERROR'
+
 class ExportEngine:
  def __init__(self,config):
-  self.cfg=config;self.lock=threading.RLock();self.children={};self.failures={};self.stopping=False;self.history_failed=threading.Event()
+  self.cfg=config;self.lock=threading.RLock();self.children={};self.failures={};self.stopping=False;self.history_failed=threading.Event();self.last_failure=None
   self.work=Path(config['work']);self.work.mkdir(mode=0o700,parents=True,exist_ok=True)
+ def health(self):
+  return {'running':not self.stopping,'ready':not self.stopping and not self.history_failed.is_set(),'activeWorkers':len(self.children),'historyFailed':self.history_failed.is_set(),'lastFailure':self.last_failure}
+ def note_failure(self,stage,error):self.last_failure={'stage':stage,'code':failure_code(error),'at':int(time.time())}
  def db(self):
   db=sqlite3.connect(self.cfg['statePath'],timeout=5);db.row_factory=sqlite3.Row;return db
  def rows(self):
@@ -106,7 +124,7 @@ class ExportEngine:
    fifo.unlink(missing_ok=True)
  def tick(self):
   with self.lock:
-   if self.history_failed.is_set():self.close();return
+   if self.history_failed.is_set():self.close();raise EngineUnhealthy('history storage unavailable')
    rows={r['id']:r for r in self.rows()}
    for ident in list(self.children):
     row=rows.get(ident)
@@ -116,6 +134,7 @@ class ExportEngine:
      status='revoked' if not row['enabled'] else 'expired' if row['expires']<=int(time.time()) else 'exhausted'
      with self.db() as db:db.execute('UPDATE exports SET status=? WHERE id=?',(status,ident))
      continue
+    phase='worker_start'
     try:
      if ident not in self.children:
       failures=[t for t in self.failures.get(ident,[]) if time.monotonic()-t<60];self.failures[ident]=failures
@@ -124,10 +143,11 @@ class ExportEngine:
       self.start(row)
      item=self.children[ident]
      if item['process'].poll() is not None:raise RuntimeError('worker exited')
-     self.account(ident,item)
+     phase='accounting';self.account(ident,item)
      with self.db() as db:current=dict(db.execute('SELECT e.*,u.enabled,u.history_consent FROM exports e JOIN api_users u ON e.user_id=u.id WHERE e.id=?',(ident,)).fetchone())
      if not self.allowed(current) or not self.parent_allowed(current):self.stop(ident,False)
-    except Exception:
+    except Exception as error:
+     self.note_failure(phase,error)
      self.stop(ident,False);self.failures.setdefault(ident,[]).append(time.monotonic())
      with self.db() as db:db.execute("UPDATE exports SET status='error' WHERE id=? AND status IN ('pending','active','error')",(ident,))
  def record(self,ident,target):
@@ -143,7 +163,7 @@ class ExportEngine:
     row=db.execute('SELECT e.*,u.enabled,u.history_consent FROM exports e JOIN api_users u ON e.user_id=u.id WHERE e.id=?',(ident,)).fetchone()
     if not self.allowed(row) or not row['history_consent']:return
     db.execute('INSERT INTO history(user_id,node_id,domain,bucket,first_seen,last_seen,hits) VALUES(?,?,?,?,?,?,1) ON CONFLICT(user_id,node_id,domain,bucket) DO UPDATE SET last_seen=excluded.last_seen,hits=hits+1',(row['user_id'],ident,target,now//30,now,now))
-  except Exception:self.history_failed.set()
+  except Exception as error:self.note_failure('history',error);self.history_failed.set()
  def read_native(self,ident,path):
   try:
    with open(path,'r',encoding='utf-8',errors='replace') as stream:
@@ -169,7 +189,7 @@ class Handler(BaseHTTPRequestHandler):
  def do_GET(self):
   engine=self.server.engine
   if not hmac.compare_digest(self.headers.get('Authorization',''),'Bearer '+engine.cfg['managementToken']):self.reply(401,{});return
-  self.reply(200,{'running':True,'activeWorkers':len(engine.children)})
+  self.reply(200,engine.health())
  def do_POST(self):
   self.connection.settimeout(4);engine=self.server.engine
   if not self.path.startswith('/auth/'):self.reply(404,{});return
@@ -187,7 +207,8 @@ def main():
  try:
   while not engine.stopping:
    try:engine.tick()
-   except Exception:engine.close() # Fail closed on database/accounting failures.
+   except Exception as error:
+    engine.close();print(json.dumps({'event':'worker_service_restart','reason':engine.last_failure or {'stage':'service','code':failure_code(error)}}),flush=True);return 75 # Fail closed, then let systemd retry instead of remaining falsely active.
    time.sleep(.5)
  finally:engine.close();server.shutdown();server.server_close()
-if __name__=='__main__':main()
+if __name__=='__main__':raise SystemExit(main())

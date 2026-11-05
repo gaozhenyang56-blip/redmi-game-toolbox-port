@@ -9,6 +9,7 @@ from pathlib import Path
 import secrets
 import ssl
 import tempfile
+import time
 import subprocess,sys
 import urllib.parse
 import urllib.request
@@ -82,6 +83,16 @@ def public_check(ssh,meta):
     with opener.open(request,timeout=15) as response:
         value=json.load(response);assert response.status==200 and value['schema']==1 and value['ui']['accent'] in ('blue','teal','purple')
     with opener.open(urllib.request.Request(origin+'/xui/qinglian/manage/updates',headers=headers),timeout=15) as response:assert b'Windows' in response.read(1048576)
+    phase='owner-diagnostics'
+    with opener.open(urllib.request.Request(origin+'/xui/qinglian/manage/diagnostics',headers=headers),timeout=15) as response:assert b'diagnosticMode' in response.read(1048576)
+    request=urllib.request.Request(origin+'/xui/qinglian/diagnostics',json.dumps({'mode':'all'}).encode(),headers={**headers,'Origin':origin,'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'})
+    with opener.open(request,timeout=15) as response:job=json.load(response);assert response.status==202 and job['running']
+    for _ in range(80):
+        with opener.open(urllib.request.Request(origin+'/xui/qinglian/diagnostics',headers=headers),timeout=10) as response:job=json.load(response)
+        if not job['running']:break
+        time.sleep(1)
+    assert not job['running'] and not job['error'] and job['result']['ok'] and job['result']['testGuestStopped']
+    print(json.dumps({'ownerPanelDiagnosticsVerified':True,'serverTests':job['result']['steps'],'testGuestStopped':True}))
     phase='wss-upgrade'
     ws=websocket.create_connection('wss://gaozy.tech/xui/qinglian/ssh/ws',origin=origin,cookie='; '.join(c.name+'='+c.value for c in jar),header=['User-Agent: Qinglian/PanelSshCheck'],timeout=15,sslopt={'cert_reqs':ssl.CERT_REQUIRED,'check_hostname':True})
     try:

@@ -252,6 +252,7 @@ func (s *qStore) snapshot(now int64) ([]qDevice, int, error) {
 type QinglianController struct {
 	ssh         *qSSHState
 	stream      *qStreamState
+	diagnostic  *qDiagnosticState
 	tlsServer   *http.Server
 	httpsServer *http.Server
 	apiPrefix   string
@@ -265,7 +266,7 @@ type QinglianController struct {
 }
 
 func NewQinglianController(g *gin.RouterGroup) *QinglianController {
-	a := &QinglianController{apiPrefix: strings.TrimSuffix(g.BasePath(), "/") + "/api/v1/", ssh: qNewSSHState(), stream: qNewStreamState()}
+	a := &QinglianController{apiPrefix: strings.TrimSuffix(g.BasePath(), "/") + "/api/v1/", ssh: qNewSSHState(), stream: qNewStreamState(), diagnostic: qNewDiagnosticState()}
 	a.cfg.CDNCompatibility = true // Existing domain deployments gain the data gateway; explicit false opts out.
 	path := os.Getenv("QINGLIAN_CONFIG")
 	if path == "" {
@@ -303,11 +304,14 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	api.POST("/heartbeat", a.heartbeat)
 	panel := g.Group("/xui")
 	panel.GET("/qinglian", a.checkLogin, func(c *gin.Context) { html(c, "qinglian.html", "在线设备", nil) })
+	panel.GET("/qinglian/diagnostics", a.diagnosticView)
+	panel.POST("/qinglian/diagnostics", a.startDiagnostic)
+	panel.POST("/qinglian/diagnostics/cancel", a.cancelDiagnostic)
 	panel.GET("/qinglian/ssh", a.sshPage)
 	panel.GET("/qinglian/ssh/ws", a.sshSocket)
 	panel.GET("/qinglian/manage/:section", a.checkLogin, func(c *gin.Context) {
 		switch c.Param("section") {
-		case "accounts", "nodes", "history", "updates", "devices":
+		case "accounts", "nodes", "history", "updates", "devices", "diagnostics":
 			html(c, "qinglian.html", "轻连管理", nil)
 		default:
 			c.Status(404)
@@ -693,6 +697,7 @@ func (a *QinglianController) StartTLS(engine http.Handler) error {
 	return nil
 }
 func (a *QinglianController) Close() {
+	a.diagnostic.close()
 	a.ssh.close()
 	if a.stream != nil {
 		a.stream.close()

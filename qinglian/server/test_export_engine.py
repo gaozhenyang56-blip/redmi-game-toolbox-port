@@ -101,3 +101,22 @@ class GuestAccounting(unittest.TestCase):
     self.assertEqual(db.execute('SELECT COUNT(*) FROM history').fetchone()[0],0);db.execute("UPDATE exports SET down=1000 WHERE id='hy2'")
    self.assertFalse(engine.parent_allowed(row));self.assertFalse(engine.history_failed.is_set())
 if __name__=='__main__':unittest.main()
+
+class ServiceReadiness(unittest.TestCase):
+ def test_history_failure_is_visible_and_does_not_leave_false_ready_service(self):
+  from export_engine import EngineUnhealthy
+  from unittest.mock import Mock
+  with tempfile.TemporaryDirectory() as directory:
+   engine=ExportEngine({'work':directory})
+   engine.db=Mock(side_effect=sqlite3.OperationalError('database is locked'))
+   engine.record('fixture','fixture.example:443')
+   self.assertFalse(engine.health()['ready']);self.assertTrue(engine.health()['historyFailed'])
+   self.assertEqual(engine.health()['lastFailure']['code'],'DATABASE_BUSY')
+   with self.assertRaises(EngineUnhealthy):engine.tick()
+ def test_service_exits_for_systemd_recovery_after_fatal_health_failure(self):
+  import export_engine
+  from unittest.mock import Mock,patch
+  fake=Mock();fake.stopping=False;fake.last_failure={'stage':'history','code':'DISK_FULL','at':0};fake.tick.side_effect=export_engine.EngineUnhealthy()
+  with patch.object(export_engine.Path,'read_text',return_value=json.dumps({'controlPort':ExportEngine.free_port()})),patch.object(export_engine,'ExportEngine',return_value=fake),patch.object(export_engine.signal,'signal'):
+   self.assertEqual(export_engine.main(),75)
+  self.assertTrue(fake.close.called)
