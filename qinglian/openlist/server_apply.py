@@ -6,6 +6,7 @@ def run(args,timeout=40):
  p=subprocess.run(args,capture_output=True,text=True,timeout=timeout)
  if p.returncode:raise RuntimeError('command failed: '+args[0])
  return p.stdout
+diagnostics={}
 try:
  assert os.uname().machine=='x86_64','Unsupported architecture'
  plugin_paths=list(Path('/opt/astrbot/data/config').glob('*baidu_curl*config.json'))
@@ -76,10 +77,10 @@ WantedBy=multi-user.target
  run(['systemctl','start',SERVICE])
  if 'admin user has been updated' not in admin_output:
   filtered=[line for line in admin_output.splitlines() if not any(word in line.lower() for word in ('password','token','secret'))]
-  print(json.dumps({'admin_cli_diagnostic':'\n'.join(filtered)[-1800:]}),flush=True)
+  diagnostics['admin_cli_diagnostic']='\n'.join(filtered)[-1800:]
   import sqlite3
   with sqlite3.connect(DATA/'data.db') as db:
-   print(json.dumps({'database_users':db.execute('SELECT username,role FROM x_users').fetchall()}),flush=True)
+   diagnostics['database_users']=db.execute('SELECT username,role FROM x_users').fetchall()
  def api(path,body=None,token=None):
   headers={'Content-Type':'application/json'}
   if token:headers['Authorization']=token
@@ -117,6 +118,6 @@ WantedBy=multi-user.target
  plugin.update({'openlist_url':'http://127.0.0.1:5244','openlist_user':credentials['username'],'openlist_pass':credentials['password'],'openlist_pan_path':'/百度','file_retention_hours':0})
  temp=plugin_path.with_suffix('.openlist-new');temp.write_text(json.dumps(plugin,ensure_ascii=False,indent=2));os.chmod(temp,0o600);os.chown(temp,plugin_stat.st_uid,plugin_stat.st_gid);os.replace(temp,plugin_path)
  stats={'service_active':run(['systemctl','is-active',SERVICE]).strip()=='active','service_enabled':run(['systemctl','is-enabled',SERVICE]).strip()=='enabled','openlist_version':'v4.2.9','local_only':True,'plugin_link_configured':True,'cookie_preserved':True,'mount_prepared':True,'oauth_required':not any(json.loads(s.get('addition') or '{}').get('refresh_token') for s in baidu),'guest_disabled':True,'mount_listing_verified':mount_ready}
- print(json.dumps({'ok':True,**stats}),flush=True)
+ print(json.dumps({'ok':True,**stats,**diagnostics}),flush=True)
 except Exception as exc:
- print(json.dumps({'ok':False,'failure_type':type(exc).__name__,'step':'openlist deployment','safe_error':str(exc) if isinstance(exc,(RuntimeError,AssertionError)) else type(exc).__name__,'line':__import__('traceback').extract_tb(exc.__traceback__)[-1].lineno}),flush=True)
+ print(json.dumps({'ok':False,**diagnostics,'failure_type':type(exc).__name__,'step':'openlist deployment','safe_error':str(exc) if isinstance(exc,(RuntimeError,AssertionError)) else type(exc).__name__,'line':__import__('traceback').extract_tb(exc.__traceback__)[-1].lineno}),flush=True)
