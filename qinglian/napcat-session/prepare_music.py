@@ -1,4 +1,4 @@
-import copy,hashlib,http.client,json,os,pathlib,pwd,shutil,socket,subprocess,time,traceback
+import hashlib,json,os,pathlib,pwd,shutil,subprocess,time,traceback
 result={'ok':False};renamed=False;created=False
 name='napcat-astrbot';backup=name+'-before-media-'+str(int(time.time()))
 base=pathlib.Path('/opt/astrbot/data/plugin_data');old_dir=base/'astrbot_plugin_listen_music';new_dir=base/'astrbot_plugin_bili_player';media=new_dir/'media'
@@ -6,16 +6,6 @@ def run(args,timeout=60):
     p=subprocess.run(args,capture_output=True,timeout=timeout)
     if p.returncode:raise RuntimeError('command failed')
     return p.stdout.decode()
-class Docker(http.client.HTTPConnection):
-    def __init__(self):super().__init__('localhost',timeout=60)
-    def connect(self):
-        self.sock=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);self.sock.connect('/var/run/docker.sock')
-def api(method,path,body=None):
-    c=Docker();data=json.dumps(body).encode() if body is not None else None
-    c.request(method,path,body=data,headers={'Content-Type':'application/json'})
-    r=c.getresponse();b=r.read();c.close()
-    if r.status>=300:raise RuntimeError('Docker API HTTP '+str(r.status))
-    return json.loads(b) if b else {}
 try:
     account=pwd.getpwnam('astrbot')
     new_dir.mkdir(mode=0o750,exist_ok=True);media.mkdir(mode=0o750,exist_ok=True)
@@ -64,12 +54,12 @@ try:
         run(['docker','start',name])
     for _ in range(40):
         try:
-            run(['docker','exec',name,'node','--version'],timeout=5);break
+            run(['docker','exec',name,'/bin/sh','-c','test -r /etc/os-release'],timeout=5);break
         except Exception:time.sleep(1)
     probe=media/'napcat-mount-probe.txt';probe.write_bytes(b'napcat-media-read-check\n');probe.chmod(0o600);os.chown(probe,account.pw_uid,account.pw_gid)
     try:
         expected=hashlib.sha256(probe.read_bytes()).hexdigest()
-        actual=run(['docker','exec',name,'node','-e',"const fs=require('fs'),c=require('crypto');process.stdout.write(c.createHash('sha256').update(fs.readFileSync(process.argv[1])).digest('hex'))",str(probe)]).strip()
+        actual=run(['docker','exec',name,'sha256sum',str(probe)]).split()[0]
         assert actual==expected
     finally:probe.unlink(missing_ok=True)
     current=json.loads(run(['docker','inspect',name]))[0]
