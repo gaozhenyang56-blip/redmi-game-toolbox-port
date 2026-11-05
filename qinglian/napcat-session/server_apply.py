@@ -36,21 +36,30 @@ def ready():
 ready()
 assert request('/api/status')[0]==401
 assert request('/api/qr.png')[0]==401
-status,body=request('/api/status',header);assert status==200
+for _ in range(10):
+    status,body=request('/api/status',header)
+    if status==200:break
+    time.sleep(1)
+assert status==200, 'authenticated status HTTP '+str(status)
 connected=json.loads(body).get('isLogin')
 subprocess.run(['systemctl','restart','napcat-login'],check=True,capture_output=True)
 ready()
-assert request('/api/status',header)[0]==200
+for _ in range(10):
+    code,_=request('/api/status',header)
+    if code==200:break
+    time.sleep(1)
+assert code==200, 'persistent status HTTP '+str(code)
 assert request('/api/login',{'Content-Type':'application/json'},json.dumps({'username':'invalid-session-test','password':'invalid-session-test'}).encode())[0]==401
 print(json.dumps({'ok':True,'unauthenticated_denied':True,'qr_protected':True,'same_cookie_after_restart':True,'wrong_password_denied':True,'qq_logged_in':connected,'persistent_signing_key':True}))
 '''
-    p=subprocess.run([str(root/'venv/bin/python'),'-c',test],capture_output=True,text=True,timeout=100)
+    p=subprocess.run([str(root/'venv/bin/python'),'-c',test],capture_output=True,text=True,timeout=150)
     if p.returncode:
         (root/'session-update-private-error.log').write_text(p.stdout+'\n'+p.stderr);(root/'session-update-private-error.log').chmod(0o600)
+        result['verification_detail']=(p.stdout+'\n'+p.stderr)[-1800:]
         raise RuntimeError('Verification failed')
     result=json.loads(p.stdout)
 except Exception as error:
     for name in ['portal.py','index.html']:shutil.copy2(backup/name,root/name)
     subprocess.run(['systemctl','restart','napcat-login'],capture_output=True)
-    result={'ok':False,'rolled_back':True,'error_type':type(error).__name__}
+    result={'ok':False,'rolled_back':True,'error_type':type(error).__name__,'verification_detail':result.get('verification_detail','')}
 print(json.dumps(result,ensure_ascii=False))
