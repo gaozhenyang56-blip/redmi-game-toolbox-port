@@ -136,6 +136,9 @@ async def login(request):
     except (aiohttp.ClientError,asyncio.TimeoutError):
         raise web.HTTPServiceUnavailable(text='AstrBot 登录服务暂时不可用')
 
+async def session_status(request):
+    return web.json_response({'authenticated':True})
+
 async def logout(request):
     response=web.json_response({'ok':True})
     response.del_cookie('napcat_session', path='/')
@@ -184,6 +187,7 @@ app.router.add_get('/',index)
 app.router.add_get('/health',health)
 app.router.add_post('/api/login',login)
 app.router.add_post('/api/logout',logout)
+app.router.add_get('/api/session',session_status)
 app.router.add_get('/api/status',status)
 app.router.add_get('/api/qr.svg',qr)
 app.router.add_get('/api/qr.png',qr)

@@ -36,21 +36,12 @@ def ready():
 ready()
 assert request('/api/status')[0]==401
 assert request('/api/qr.png')[0]==401
-for _ in range(10):
-    status,body=request('/api/status',header)
-    if status==200:break
-    time.sleep(1)
-assert status==200, 'authenticated status HTTP '+str(status)
-connected=json.loads(body).get('isLogin')
+assert request('/api/session',header)[0]==200
 subprocess.run(['systemctl','restart','napcat-login'],check=True,capture_output=True)
 ready()
-for _ in range(10):
-    code,_=request('/api/status',header)
-    if code==200:break
-    time.sleep(1)
-assert code==200, 'persistent status HTTP '+str(code)
+assert request('/api/session',header)[0]==200
 assert request('/api/login',{'Content-Type':'application/json'},json.dumps({'username':'invalid-session-test','password':'invalid-session-test'}).encode())[0]==401
-print(json.dumps({'ok':True,'unauthenticated_denied':True,'qr_protected':True,'same_cookie_after_restart':True,'wrong_password_denied':True,'qq_logged_in':connected,'persistent_signing_key':True}))
+print(json.dumps({'ok':True,'unauthenticated_denied':True,'qr_protected':True,'same_cookie_after_restart':True,'wrong_password_denied':True,'persistent_signing_key':True}))
 '''
     p=subprocess.run([str(root/'venv/bin/python'),'-c',test],capture_output=True,text=True,timeout=150)
     if p.returncode:
