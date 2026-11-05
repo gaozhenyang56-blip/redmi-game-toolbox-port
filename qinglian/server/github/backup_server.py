@@ -23,9 +23,16 @@ manifest={'deviceDatabase':device_path,'restoreDevices':'Use devices-consistent.
  'databaseSha256':hashlib.sha256((root/'database-consistent.db').read_bytes()).hexdigest(),
  'restoreDatabase':'Use database-consistent.db only if required. Binary-only rollback preserves live counters.'}
 (root/'manifest.json').write_text(json.dumps(manifest))
+live_databases={'/etc/x-ui/x-ui.db',device_path}
+def add_stable(archive,name):
+ path=Path(name)
+ if str(path) in live_databases or str(path).endswith(('-wal','-shm','-journal')):return
+ archive.add(path,arcname=str(path).lstrip('/'),recursive=False)
+ if path.is_dir() and not path.is_symlink():
+  for child in sorted(path.iterdir()):add_stable(archive,str(child))
 with tarfile.open(root/'server-backup.tar.gz','w:gz',compresslevel=1) as archive:
  for name in ['/usr/local/x-ui','/etc/x-ui','/etc/systemd/system/x-ui.service','/etc/systemd/system/x-ui.service.d','/usr/local/lib/qinglian','/etc/systemd/system/qinglian-hy2.service','/etc/systemd/system/qinglian-exports.service','/etc/nginx','/etc/caddy','/etc/letsencrypt']:
-  if Path(name).exists():archive.add(name,arcname=name.lstrip('/'))
+  if Path(name).exists():add_stable(archive,name)
  if (root/'devices-consistent.db').is_file():archive.add(root/'devices-consistent.db',arcname='devices-consistent.db')
  archive.add(root/'database-consistent.db',arcname='database-consistent.db');archive.add(root/'manifest.json',arcname='manifest.json')
 sha=hashlib.sha256((root/'server-backup.tar.gz').read_bytes()).hexdigest()
@@ -33,7 +40,11 @@ print(json.dumps({'directory':str(root),'sha256':sha}))
 '''
 try:
     with connection() as client:
-        result=remote_json(client,script,timeout=600);directory=result['directory']
+        wrapped="import json,traceback\ntry:\n exec(compile("+repr(script)+",'server-backup','exec'))\nexcept Exception as error:\n print(json.dumps({'backupError':type(error).__name__,'line':traceback.extract_tb(error.__traceback__)[-1].lineno}))"
+        result=remote_json(client,wrapped,timeout=600)
+        if 'backupError' in result:
+            print('Safe backup diagnostic:',result);raise RuntimeError('consistent backup failed')
+        directory=result['directory']
         if not directory.startswith('/tmp/qinglian-backup-') or '/' in directory[len('/tmp/'):]:raise ValueError('unexpected backup path')
         with client.open_sftp() as sftp,tempfile.TemporaryDirectory() as temp:
             local=Path(temp)/'server-backup.tar.gz'
