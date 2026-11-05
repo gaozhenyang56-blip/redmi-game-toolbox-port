@@ -59,6 +59,19 @@ journal=run(['journalctl','-u','qinglian-exports','--since','12 hours ago','--no
 result['serviceIncidentCounts']={word:len(re.findall(word,journal,re.I)) for word in ['oom','killed','memory','failed','restart','traceback']}
 stat=os.statvfs('/etc/x-ui');result['availableDiskBytes']=stat.f_bavail*stat.f_frsize
 result['hy2Service']=run(['systemctl','show','qinglian-hy2','-p','ActiveState','-p','Result','-p','NRestarts','-p','User'])
+# Loopback worker health, using the management credential only in memory.
+try:
+ control_cfg=json.loads(Path('/etc/x-ui/qinglian/exports.json').read_text())
+ request=urllib.request.Request('http://127.0.0.1:'+str(control_cfg['controlPort'])+'/status',headers={'Authorization':'Bearer '+control_cfg['managementToken']})
+ with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(request,timeout=4) as response:health=json.load(response)
+ result['workerControl']={k:health.get(k) for k in ['running','activeWorkers','historyFailed','ready','lastFailure'] if k in health}
+ result['nativeFilesReady']={k:Path(control_cfg[k]).is_file() and os.access(control_cfg[k],os.X_OK) for k in ['xrayBinary','hy2Binary']}
+ with sqlite3.connect('file:'+control_cfg['statePath']+'?mode=ro',uri=True) as state:
+  result['eligibleWorkerStates']=[list(r) for r in state.execute("SELECT e.kind,e.protocol,e.status,COUNT(*) FROM exports e JOIN api_users u ON u.id=e.user_id WHERE e.expires>strftime('%s','now') AND u.enabled=1 AND (u.history_consent=1 OR e.kind='guest') AND e.up+e.down<e.total GROUP BY e.kind,e.protocol,e.status")]
+  result['stateDatabaseQuickCheck']=state.execute('PRAGMA quick_check(1)').fetchone()[0]
+ result['workerRuntimeConfigCount']=len(list(Path(control_cfg['work']).glob('*.json')))
+except Exception as failure:result['workerControlError']=type(failure).__name__
+
 result['apiCaCertificate']=run(['openssl','x509','-in','/etc/x-ui/qinglian/ca.pem','-noout','-fingerprint','-sha256','-dates'])
 result['apiLeafCertificate']=run(['openssl','x509','-in','/etc/x-ui/qinglian/server.pem','-noout','-fingerprint','-sha256','-dates'])
 # Listener metadata only: omit peer endpoints, process command lines and settings.
