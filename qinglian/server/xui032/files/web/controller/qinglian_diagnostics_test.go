@@ -1,12 +1,14 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"html/template"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -108,5 +110,21 @@ func TestQDiagnosticRejectsUntrustedResult(t *testing.T) {
 	valid.Steps[0].Bytes = 1025
 	if qValidDiagnostic(&valid) {
 		t.Fatal("oversize accepted")
+	}
+}
+
+func TestQDiagnosticPageRenders(t *testing.T) {
+	tpl, e := template.New("").ParseFiles("../html/common/head.html", "../html/common/js.html", "../html/xui/common_sider.html", "../html/xui/qinglian.html")
+	if e != nil {
+		t.Fatal(e)
+	}
+	var b bytes.Buffer
+	if e = tpl.ExecuteTemplate(&b, "qinglian.html", map[string]interface{}{"title": "Diagnostic fixture", "base_path": "/", "cur_ver": "0.3.2", "request_uri": "/xui/qinglian/manage/diagnostics"}); e != nil {
+		t.Fatal(e)
+	}
+	if path := os.Getenv("QINGLIAN_DIAGNOSTIC_RENDER"); path != "" {
+		if e = os.WriteFile(path, b.Bytes(), 0600); e != nil {
+			t.Fatal(e)
+		}
 	}
 }

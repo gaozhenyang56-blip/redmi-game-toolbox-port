@@ -48,6 +48,7 @@ jobs:
       - name: Test permissions, origin, concurrency and complete overlay
         env:
           QINGLIAN_SSH_RENDER: ${{ runner.temp }}/ssh-rendered.html
+          QINGLIAN_DIAGNOSTIC_RENDER: ${{ runner.temp }}/diagnostic-rendered.html
         run: |
           python3 -m unittest discover -s qinglian/server -p test_export_engine.py -v
           git clone --branch 0.3.2 --depth 1 https://github.com/vaxilu/x-ui.git "$RUNNER_TEMP/x-ui"
@@ -58,7 +59,9 @@ jobs:
       - name: Chromium terminal page, fixture WSS and mobile layout
         env:
           QINGLIAN_CHROME: /usr/bin/google-chrome
-        run: python3 qinglian/server/github/test_ssh_ui.py "$RUNNER_TEMP/ssh-rendered.html" "$RUNNER_TEMP/x-ui/web/assets"
+        run: |
+          python3 qinglian/server/github/test_ssh_ui.py "$RUNNER_TEMP/ssh-rendered.html" "$RUNNER_TEMP/x-ui/web/assets"
+          python3 qinglian/server/github/test_diagnostics_ui.py "$RUNNER_TEMP/diagnostic-rendered.html" "$RUNNER_TEMP/x-ui/web/assets"
       - name: Install guarded worker recovery and verify diagnostic native transfers
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
