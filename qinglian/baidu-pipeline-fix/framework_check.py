@@ -1,4 +1,5 @@
 import asyncio,importlib.util,json,logging,pathlib,sys,time,types
+sys.path.insert(0,'/opt/astrbot')
 from astrbot.core.pipeline.scheduler import PipelineScheduler
 from astrbot.core.pipeline.context_utils import call_handler
 from astrbot.core.message.message_event_result import MessageEventResult
@@ -24,6 +25,7 @@ class HandlerStage:
 class ResponseStage:
  def __init__(self):self.calls=0
  async def process(self,event):
+  if event.is_stopped():return
   self.calls+=1
   if event.get_result():await event.send(event.get_result());event.clear_result()
 async def dispatch(obj,event):

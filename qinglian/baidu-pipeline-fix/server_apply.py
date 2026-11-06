@@ -11,7 +11,9 @@ try:
  result=subprocess.run(['/opt/astrbot/.venv/bin/python',str(STAGE/'framework_check.py')],cwd='/opt/astrbot',capture_output=True,text=True,timeout=60)
  if result.returncode:
   last=result.stderr.splitlines()[-1] if result.stderr else 'FrameworkTestError'
-  raise RuntimeError('Native pipeline regression check failed ('+last.split(':',1)[0]+')')
+  kind=last.split(':',1)[0]
+  missing=re.search(r"No module named '([A-Za-z0-9_.]+)'",last)
+  raise RuntimeError('Native pipeline regression check failed ('+kind+(' '+missing[1] if missing else '')+')')
  checks=json.loads(result.stdout.splitlines()[-1]);assert checks.get('ok')
  (P/'metadata.yaml').write_text(re.sub(r'^version:.*$','version: v8.6.0+localdownload.2',old_meta,flags=re.M))
  print(json.dumps({'ok':True,'patched':updated!=original,'checks':checks}))
