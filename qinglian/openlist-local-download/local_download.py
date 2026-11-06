@@ -64,17 +64,19 @@ async def fetch_file(session,url,destination,cookie,*,max_file,max_total,reserve
         budget_check(root,max(length,expected),max_file,max_total,reserve)
         initial_used=disk_usage(root)
         total=0;last_check=0
-        fd=os.open(partial,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o640)
+        fd=os.open(partial,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
         with os.fdopen(fd,'wb') as output:
             async for chunk in response.content.iter_chunked(64*1024):
                 if initial_used+total+len(chunk)>max_total:raise ValueError('本地缓存已达总容量限制，已停止。')
+                if shutil.disk_usage(root).free-len(chunk)<reserve:raise ValueError('服务器剩余空间不足，已停止下载。')
                 if total+len(chunk)>max_file:raise ValueError('文件超过单文件下载大小限制，已停止。')
                 if total-last_check>=4*1024*1024 or not total:
                     budget_check(root,total+len(chunk),max_file,max_total,reserve,current=total);last_check=total
                 output.write(chunk);total+=len(chunk)
             output.flush();os.fsync(output.fileno())
         if (length and total!=length) or (expected and total!=expected):raise ValueError('文件下载不完整，未返回链接。')
-        os.replace(partial,destination);os.chmod(destination,0o640)
+        # Private 0750 job directories gate access; OpenList reads via its private bind mount.
+        os.replace(partial,destination);os.chmod(destination,0o644)
         return total
     finally:
         if response is not None:response.release()
@@ -93,7 +95,7 @@ class LocalDownloads:
         self.reserve=int(cfg.get('openlist_local_reserve_mb',2048))*1024**2
         self.lock=asyncio.Lock()
     async def api(self,session,path,body,token=''):
-        async with session.post(self.api_base+path,json=body,headers={'Authorization':token} if token else {},timeout=aiohttp.ClientTimeout(total=25)) as response:
+        async with session.post(self.api_base+path,json=body,headers={'Accept-Encoding':'identity',**({'Authorization':token} if token else {})},timeout=aiohttp.ClientTimeout(total=25)) as response:
             if response.status!=200:raise ValueError('OpenList 接口暂不可用。')
             data=await response.json(content_type=None)
         if data.get('code')!=200:raise ValueError('OpenList 登录或签名链接生成失败。')
@@ -114,12 +116,12 @@ class LocalDownloads:
             yield event.plain_result('已有本地下载任务正在进行，请稍后再试。');return
         async with self.lock:
             timeout=aiohttp.ClientTimeout(total=900,connect=30,sock_read=90)
-            async with aiohttp.ClientSession(timeout=timeout,cookie_jar=aiohttp.DummyCookieJar(),auto_decompress=False) as session:
+            async with aiohttp.ClientSession(timeout=timeout,cookie_jar=aiohttp.DummyCookieJar(),auto_decompress=False,headers={"Accept-Encoding":"identity"}) as session:
                 auth=await self.api(session,'/api/auth/login',{'username':self.username,'password':self.password})
                 token=auth['token'];bduss=plugin._get_bduss()
                 for index,link in enumerate(links,1):
                     name=safe_name(link.get('name'));folder=self.root/uuid.uuid4().hex
-                    folder.mkdir(mode=0o2750);os.chmod(folder,0o2750);target=folder/name
+                    folder.mkdir(mode=0o750);os.chmod(folder,0o750);target=folder/name
                     yield event.plain_result(f'⬇️ 本地下载 {index}/{len(links)}：{name}，完成后发送 OpenList 链接。')
                     try:
                         size=await fetch_file(session,link['dlink'],target,bduss,max_file=self.max_file,max_total=self.max_total,reserve=self.reserve,expected=int(link.get('size') or 0))

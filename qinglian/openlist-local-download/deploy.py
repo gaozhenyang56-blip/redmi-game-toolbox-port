@@ -5,7 +5,7 @@ from ssh_common import connection,remote_json
 with connection() as client:
  remote_json(client,"from pathlib import Path;import json;Path('/opt/openlist-astrbot/local-download-update').mkdir(mode=0o700,exist_ok=True);print(json.dumps({'ok':True}))")
  with client.open_sftp() as sftp:
-  for name in ['server_setup.py','patch_plugin.py','local_download.py']:
+  for name in ['server_setup.py','patch_plugin.py','local_download.py','verify_as_user.py']:
    dst='/opt/openlist-astrbot/local-download-update/'+name;sftp.put(str(Path(__file__).with_name(name)),dst);sftp.chmod(dst,0o600)
  result=remote_json(client,Path(__file__).with_name('server_setup.py').read_text(),timeout=180)
  url=result.pop('probe_url',None);expected=result.pop('probe_sha256',None);relative=result.pop('probe_relative_path',None)
@@ -31,3 +31,15 @@ with connection() as client:
    script="from pathlib import Path;import json;p=Path('/opt/astrbot/data/plugin_data/astrbot_plugin_baidu_curl/local_downloads')/"+repr(relative)+";p.unlink(missing_ok=True);p.parent.rmdir();print(json.dumps({'ok':True}))"
    remote_json(client,script)
  print('OPENLIST_LOCAL_DEPLOY='+json.dumps(result),flush=True)
+ live=remote_json(client,Path(__file__).with_name('verify_as_user.py').read_text(),timeout=200)
+ live_url=live.pop('probe_url',None);live_sha=live.pop('probe_sha256',None);live_relative=live.pop('probe_relative_path',None)
+ if live.get('ok'):
+  try:
+   with urllib.request.urlopen(live_url,timeout=30) as response:payload=response.read(256*1024+1)
+   assert hashlib.sha256(payload).hexdigest()==live_sha
+   live['external_download_matches']=True
+  finally:
+   if live_relative and live_relative.startswith('verification-') and '..' not in live_relative:
+    remote_json(client,"from pathlib import Path;import json;p=Path('/opt/astrbot/data/plugin_data/astrbot_plugin_baidu_curl/local_downloads')/"+repr(live_relative)+";p.unlink(missing_ok=True);p.parent.rmdir();print(json.dumps({'ok':True}))")
+ print('OPENLIST_WRITER_CHECK='+json.dumps(live),flush=True)
+ if not live.get('ok'):raise SystemExit(1)
