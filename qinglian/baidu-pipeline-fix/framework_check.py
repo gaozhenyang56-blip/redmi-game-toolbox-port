@@ -58,18 +58,18 @@ async def main():
  assert old_count['listed']==0,'Old early-stop regression was not reproduced'
  new=load(PLUGIN/'main.py','baidu_pipeline_new');obj,pending,count=factory(new)
  event=Event('网盘下载 https://pan.baidu.com/s/1stubLink?pwd=abcd');downstream=await dispatch(obj,event)
- assert count['listed']==1 and len(event.sent)==3 and '9' in event.sent[-1]
- assert event.is_stopped() and downstream==0
- assert len(pending[event.session_id]['share_files'])==9
+ assert count['listed']==1 and len(event.sent)==3 and '9' in event.sent[-1], f'listing listed={count["listed"]} sent={len(event.sent)}'
+ assert event.is_stopped() and downstream==0, f'stop={event.is_stopped()} downstream={downstream}'
+ assert len(pending[event.session_id]['share_files'])==9, 'pending list missing'
  saved=dict(pending[event.session_id])
  selected=Event('1');await dispatch(obj,selected)
- assert selected.sent[-1]=='done' and len(selected.sent)==4 and count['transferred']==1
+ assert selected.sent[-1]=='done' and len(selected.sent)==4 and count['transferred']==1, f'selection sent={len(selected.sent)} transfer={count["transferred"]}'
  pending[event.session_id]=saved;too_many=Event('all');await dispatch(obj,too_many)
- assert len(too_many.sent)==1 and '最多' in too_many.sent[0] and pending.get(event.session_id) and count['transferred']==1
+ assert len(too_many.sent)==1 and '最多' in too_many.sent[0] and pending.get(event.session_id) and count['transferred']==1, f'too-many sent={len(too_many.sent)} pending={bool(pending)} transfer={count["transferred"]}'
  async def legacy(*args):
   yield Event('').plain_result('legacy-one')
   yield Event('').plain_result('legacy-two')
  pending.clear();obj._run=legacy;plain=Event('https://pan.baidu.com/s/1stubLink?pwd=abcd');await dispatch(obj,plain)
- assert plain.sent==['legacy-one','legacy-two'] and not plain.is_stopped()
+ assert plain.sent==['legacy-one','legacy-two'] and not plain.is_stopped(), f'legacy sent={len(plain.sent)} stop={plain.is_stopped()}'
  print(json.dumps({'ok':True,'native_scheduler_used':True,'previous_early_stop_reproduced':True,'full_listing_sent':True,'numeric_selection_completes_all_steps':True,'local_selection_works_when_global_selection_disabled':True,'too_many_selection_keeps_pending_state':True,'legacy_share_flow_preserved':True,'qq_message_sent':False}))
 asyncio.run(main())

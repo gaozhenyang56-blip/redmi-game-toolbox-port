@@ -12,6 +12,7 @@ try:
  if result.returncode:
   last=result.stderr.splitlines()[-1] if result.stderr else 'FrameworkTestError'
   kind=last.split(':',1)[0]
+  if last.startswith('AssertionError:'):kind=last[:180]
   missing=re.search(r"No module named '([A-Za-z0-9_.]+)'",last)
   raise RuntimeError('Native pipeline regression check failed ('+kind+(' '+missing[1] if missing else '')+')')
  checks=json.loads(result.stdout.splitlines()[-1]);assert checks.get('ok')
