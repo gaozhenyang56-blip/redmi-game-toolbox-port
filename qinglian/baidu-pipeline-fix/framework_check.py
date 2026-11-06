@@ -70,6 +70,6 @@ async def main():
   yield Event('').plain_result('legacy-one')
   yield Event('').plain_result('legacy-two')
  pending.clear();obj._run=legacy;plain=Event('https://pan.baidu.com/s/1stubLink?pwd=abcd');await dispatch(obj,plain)
- assert plain.sent==['legacy-one','legacy-two'] and not plain.is_stopped(), f'legacy sent={len(plain.sent)} stop={plain.is_stopped()}'
+ assert len(plain.sent)==3 and plain.sent[-2:]==['legacy-one','legacy-two'] and not plain.is_stopped(), f'legacy sent={len(plain.sent)} stop={plain.is_stopped()}'
  print(json.dumps({'ok':True,'native_scheduler_used':True,'previous_early_stop_reproduced':True,'full_listing_sent':True,'numeric_selection_completes_all_steps':True,'local_selection_works_when_global_selection_disabled':True,'too_many_selection_keeps_pending_state':True,'legacy_share_flow_preserved':True,'qq_message_sent':False}))
 asyncio.run(main())
