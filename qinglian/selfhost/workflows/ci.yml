@@ -40,6 +40,7 @@ jobs:
       - name: Validate bootstrap and build actual pinned panel
         run: |
           python3 -m unittest discover -s qinglian/ubuntu -p test_server_config.py -v
+          python3 -m unittest discover -s qinglian/selfhost -p test_installer.py -v
           python3 qinglian/selfhost/build_panel.py --output dist/panel
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

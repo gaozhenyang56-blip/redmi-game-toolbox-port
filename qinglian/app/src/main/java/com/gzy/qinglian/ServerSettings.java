@@ -24,7 +24,8 @@ final class ServerSettings {
   if(p.has("caPem")){String ca=p.getString("caPem");if(ca.length()>32768||ca.contains("PRIVATE KEY"))throw new IOException("仅允许公开CA证书");ApiEndpoint.trustCa(new ByteArrayInputStream(ca.getBytes(StandardCharsets.US_ASCII)));}
   return root;
  }
- private static JSONObject read(Context c)throws Exception{try(InputStream in=new AtomicFile(file(c)).openRead()){return validate(Io.readUtf8(in));}}
+ private static String cachedRaw;private static JSONObject cachedConfig;
+ private static synchronized JSONObject read(Context c)throws Exception{try(InputStream in=new AtomicFile(file(c)).openRead()){String raw=Io.readUtf8(in);if(!raw.equals(cachedRaw)){JSONObject checked=validate(raw);cachedConfig=checked;cachedRaw=raw;}return cachedConfig;}}
  static synchronized JSONObject configuration(Context c,String asset)throws Exception{
   if(!selected(c))return null;
   String part;switch(asset){case "profile.json":part="profile";break;case "online.json":part="online";break;case "quota.json":part="quota";break;case "telemetry.json":part="heartbeat";break;case "updates.json":part="updates";break;default:throw new IOException("无效服务器接口");}

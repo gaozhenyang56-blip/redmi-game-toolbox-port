@@ -108,7 +108,7 @@ def main():
     shutil.make_archive(str(output/('Qinglian-'+VERSION+'-windows-x64-portable')),'zip',output/'dist','Qinglian')
     iscc=Path(os.environ.get('ProgramFiles(x86)',r'C:\Program Files (x86)'))/'Inno Setup 6/ISCC.exe'
     if not iscc.exists(): raise RuntimeError('Inno Setup 6 is required for the installer')
-    subprocess.run([str(iscc),'/DSourceDir='+str(app),'/DOutputDir='+str(output),'/DIconFile='+str(icon_file),str(HERE/'installer.iss')],check=True)
+    subprocess.run([str(iscc),'/DAppDisplayVersion='+VERSION,'/DAppNumericVersion=1.0.0.'+VERSION.split('preview')[1],'/DSourceDir='+str(app),'/DOutputDir='+str(output),'/DIconFile='+str(icon_file),str(HERE/'installer.iss')],check=True)
     delivery=[output/('Qinglian-'+VERSION+'-windows-x64-setup.exe'),output/('Qinglian-'+VERSION+'-windows-x64-portable.zip')]
     (output/'SHA256SUMS.txt').write_text(''.join(digest(file)+'  '+file.name+'\n' for file in delivery),encoding='utf-8')
     print('Windows installer and portable package built; no SSH/admin/account secrets included.')

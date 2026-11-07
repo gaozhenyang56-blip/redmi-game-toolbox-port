@@ -43,3 +43,4 @@ selfhost/build/
 selfhost/*.json
 *server.json
 *server-selection.json
+!selfhost/*.example.json

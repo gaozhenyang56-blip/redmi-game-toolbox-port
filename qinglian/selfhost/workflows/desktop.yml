@@ -1,0 +1,68 @@
+name: Desktop GUI and distributable builds
+on:
+  workflow_dispatch:
+  push:
+    paths: ['qinglian/ubuntu/**','qinglian/windows/**','qinglian/selfhost/**','.github/workflows/desktop.yml']
+permissions:
+  contents: read
+jobs:
+  ubuntu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install GUI and build prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y openjdk-17-jdk-headless python3-gi python3-gi-cairo python3-cairo python3-pil gir1.2-gtk-3.0 xvfb dbus-x11
+      - name: Build an unconfigured package
+        run: |
+          python3 qinglian/scripts/embed_server.py --server qinglian/selfhost/bootstrap.example.json --output "$RUNNER_TEMP/assets"
+          python3 qinglian/ubuntu/build.py --assets "$RUNNER_TEMP/assets" --output dist/Qinglian-amd64.deb
+          dpkg-deb -x dist/Qinglian-amd64.deb "$RUNNER_TEMP/unpacked"
+      - name: Native protocols, account isolation and GUI fixtures
+        env:
+          QINGLIAN_TEST_LIB: ${{ runner.temp }}/unpacked/usr/lib/qinglian
+        run: |
+          /usr/bin/python3 -m unittest discover -s qinglian/ubuntu -p test_runtime.py -v
+          /usr/bin/python3 -m unittest discover -s qinglian/ubuntu -p test_server_config.py -v
+          /usr/bin/python3 -m unittest discover -s qinglian/ubuntu -p test_native.py -v
+          dbus-run-session -- xvfb-run -a /usr/bin/python3 qinglian/ubuntu/test_gui.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qinglian-ubuntu-amd64
+          path: dist/*.deb
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Install pinned GUI and packaging tools
+        run: python -m pip install PySide6==6.8.3 pyinstaller==6.11.1
+      - name: Build unconfigured installer and portable ZIP
+        run: |
+          python qinglian/scripts/embed_server.py --server qinglian/selfhost/bootstrap.example.json --output "$env:RUNNER_TEMP/assets"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python qinglian/windows/build.py --assets "$env:RUNNER_TEMP/assets" --output dist
+      - name: Native protocols and GUI
+        env:
+          QINGLIAN_TEST_LIB: ${{ github.workspace }}/dist/resources
+        run: |
+          python -m unittest discover -s qinglian/windows -p test_client.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python qinglian/windows/test_native.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python qinglian/windows/test_gui.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qinglian-windows-x64
+          path: |
+            dist/Qinglian-*-setup.exe
+            dist/Qinglian-*-portable.zip

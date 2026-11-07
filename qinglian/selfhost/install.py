@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Fresh-server installer. Refuses to replace any existing x-ui installation/data."""
-import argparse,getpass,hashlib,ipaddress,json,os,re,secrets,shutil,socket,sqlite3,ssl,subprocess,time,urllib.request,uuid
+import argparse,getpass,hashlib,ipaddress,platform,json,os,re,secrets,shutil,socket,sqlite3,ssl,subprocess,time,urllib.request,uuid
 from pathlib import Path
 ROOT=Path('/etc/x-ui');PRIVATE=ROOT/'qinglian';BINARY=Path('/usr/local/x-ui');LIB=Path('/usr/local/lib/qinglian')
 def run(*args):return subprocess.run(list(map(str,args)),check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=60)
@@ -18,6 +18,7 @@ def unit(name,command,runtime=None):
  write(Path('/etc/systemd/system')/(name+'.service'),'[Unit]\nDescription=Qinglian '+name+'\nAfter=network-online.target\nWants=network-online.target\n[Service]\nType=simple\nWorkingDirectory=/usr/local/x-ui\nExecStart='+command+'\nRestart=on-failure\nRestartSec=5\nKillMode=control-group\nUMask=0077'+restrictions+'\n[Install]\nWantedBy=multi-user.target\n')
 def main():
  p=argparse.ArgumentParser();p.add_argument('--server-ip',required=True);p.add_argument('--admin-name',required=True);p.add_argument('--release-repository',default='gaozhenyang56-blip/qinglian-vpn');p.add_argument('--domain');p.add_argument('--tls-cert',type=Path);p.add_argument('--tls-key',type=Path);p.add_argument('--check',action='store_true');a=p.parse_args()
+ if platform.machine().lower() not in ('x86_64','amd64'):raise SystemExit('安装包仅支持 amd64')
  address=str(ipaddress.IPv4Address(a.server_ip));assert ipaddress.ip_address(address).is_global,'需要本机公网IPv4'
  if not re.fullmatch('[A-Za-z0-9_.-]{3,64}',a.admin_name):raise SystemExit('管理用户名无效')
  if ROOT.exists() or BINARY.exists() or LIB.exists() or any(Path('/etc/systemd/system/'+s+'.service').exists() for s in ['x-ui','qinglian-hy2','qinglian-exports']):raise SystemExit('仅允许全新服务器；已存在的面板/配置/服务未被修改')
@@ -70,6 +71,7 @@ def main():
    with sqlite3.connect(cfg['statePath']) as db:db.execute('INSERT OR REPLACE INTO acceleration(id,enabled,boundInbound) VALUES(1,1,?)',(parent,))
    break
   except sqlite3.OperationalError:time.sleep(.5)
+ else:raise RuntimeError('HY2 状态尚未初始化，请检查 qinglian-hy2 服务')
  profile={'url':f'https://{address}:11452/api/v1/profile','clientToken':token,'caPem':(PRIVATE/'ca.pem').read_text()}
  if a.domain:profile['cdnUrl']='https://'+a.domain+'/api/v1/profile'
  write(PRIVATE/'client-server.json',{'schema':1,'kind':'qinglian-server','name':a.domain or '轻连面板','profile':profile})
