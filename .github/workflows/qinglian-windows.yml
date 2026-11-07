@@ -9,6 +9,10 @@ on:
         description: Verify real server paths and publish Windows installer and portable ZIP
         type: boolean
         default: false
+      artifacts_only:
+        description: Build verified installation packages as Actions artifacts without publishing a release
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -59,7 +63,7 @@ jobs:
           New-Item -ItemType Junction -Path qinglian/windows/resources -Target "$env:RUNNER_TEMP/fixture/resources" | Out-Null
           python qinglian/windows/test_tun.py
       - name: Restore deployed bootstrap and public CA only
-        if: github.event_name == 'workflow_dispatch' && inputs.release
+        if: github.event_name == 'workflow_dispatch' && (inputs.release || inputs.artifacts_only)
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
@@ -70,7 +74,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python qinglian/windows/build.py --assets "$env:RUNNER_TEMP/production-assets" --output "$env:RUNNER_TEMP/production" --resources-only
       - name: Real CDN and four metered guest paths (4 MiB, no deployment)
-        if: github.event_name == 'workflow_dispatch' && inputs.release
+        if: github.event_name == 'workflow_dispatch' && (inputs.release || inputs.artifacts_only)
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
@@ -78,10 +82,10 @@ jobs:
           QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
         run: python qinglian/windows/live_smoke.py "$env:RUNNER_TEMP/production/resources"
       - name: Build dedicated installer and portable release
-        if: github.event_name == 'workflow_dispatch' && inputs.release
+        if: github.event_name == 'workflow_dispatch' && (inputs.release || inputs.artifacts_only)
         run: python qinglian/windows/build.py --assets "$env:RUNNER_TEMP/production-assets" --output "$env:RUNNER_TEMP/production"
       - name: Verify packaged windowless GUI, proxy guardian and installation
-        if: github.event_name == 'workflow_dispatch' && inputs.release
+        if: github.event_name == 'workflow_dispatch' && (inputs.release || inputs.artifacts_only)
         env:
           QINGLIAN_TEST_APP: ${{ runner.temp }}/production/dist/Qinglian/Qinglian.exe
           QINGLIAN_CI_WINDOWS: '1'
@@ -120,3 +124,11 @@ jobs:
           name: qinglian-windows-gui
           path: ${{ runner.temp }}/qinglian-windows*.png
           if-no-files-found: warn
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: github.event_name == 'workflow_dispatch' && (inputs.release || inputs.artifacts_only)
+        with:
+          name: qinglian-windows-preview7-installers
+          path: |
+            ${{ runner.temp }}/production/Qinglian-*-windows-x64-setup.exe
+            ${{ runner.temp }}/production/Qinglian-*-windows-x64-portable.zip
+          if-no-files-found: error
