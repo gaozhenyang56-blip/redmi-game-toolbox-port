@@ -31,6 +31,9 @@ def main():
   dest=target/'qinglian'/relative;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(src,dest);count+=1
  (target/'README.md').write_text((project/'selfhost/PUBLIC_README.md').read_text())
  shutil.copy2(project/'LICENSE',target/'LICENSE')
+ workflows=target/'.github/workflows';workflows.mkdir(parents=True,exist_ok=True)
+ for workflow in (project/'selfhost/workflows').glob('*.yml'):shutil.copy2(workflow,workflows/workflow.name)
+ (target/'qinglian/README.md').write_text('# 轻连 VPN\n\n三端源码与面板：[部署和构建文档](selfhost/README.md)。\n')
  (target/'.gitignore').write_text('dist/\n.cache/\nprivate/\n*.jks\n*.keystore\n*server.json\n*server-selection.json\n')
  print('已导出 '+str(count)+' 个源码文件；不含原Git历史、生产资产或管理凭据。')
 if __name__=='__main__':main()

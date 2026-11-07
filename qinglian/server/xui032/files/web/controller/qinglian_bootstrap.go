@@ -21,12 +21,16 @@ func (a *QinglianController) serverBootstrap(c *gin.Context) {
 		c.Status(503)
 		return
 	}
-	path := strings.TrimSuffix(a.apiPrefix, "/") + "/profile"
-	profile := gin.H{"url": fmt.Sprintf("https://%s:%d%s", a.cfg.ServerAddress, a.cfg.TLS.Port, path), "clientToken": a.cfg.ClientToken, "caPem": string(ca)}
-	if a.cfg.TLS.DomainName != "" {
-		profile["cdnUrl"] = "https://" + a.cfg.TLS.DomainName + path
-	}
 	c.Header("Cache-Control", "private, no-store")
 	c.Header("Content-Disposition", `attachment; filename="qinglian-server.json"`)
-	c.JSON(200, gin.H{"schema": 1, "kind": "qinglian-server", "name": "轻连面板 · " + a.cfg.ServerAddress, "profile": profile})
+	c.JSON(200, qServerBootstrap(a.cfg, a.apiPrefix, string(ca)))
+}
+
+func qServerBootstrap(cfg qConfig, prefix, ca string) gin.H {
+	path := strings.TrimSuffix(prefix, "/") + "/profile"
+	profile := gin.H{"url": fmt.Sprintf("https://%s:%d%s", cfg.ServerAddress, cfg.TLS.Port, path), "clientToken": cfg.ClientToken, "caPem": ca}
+	if cfg.TLS.DomainName != "" {
+		profile["cdnUrl"] = "https://" + cfg.TLS.DomainName + path
+	}
+	return gin.H{"schema": 1, "kind": "qinglian-server", "name": "轻连面板 · " + cfg.ServerAddress, "profile": profile}
 }

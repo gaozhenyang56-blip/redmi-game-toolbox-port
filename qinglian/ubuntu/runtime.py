@@ -18,7 +18,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
-import server_config
+try: import server_config
+except ModuleNotFoundError:
+    # -I core/proxy guardians exclude the script directory from sys.path.
+    # Load only the sibling shipped with this runtime, never user PYTHONPATH.
+    import importlib.util,sys
+    _spec=importlib.util.spec_from_file_location('server_config',Path(__file__).resolve().with_name('server_config.py'))
+    server_config=importlib.util.module_from_spec(_spec);sys.modules['server_config']=server_config;_spec.loader.exec_module(server_config)
 
 ROOT = Path(__file__).resolve().parent
 STATE = Path(os.environ.get('XDG_CONFIG_HOME', Path.home()/'.config'))/'qinglian'
