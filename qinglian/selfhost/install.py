@@ -27,6 +27,8 @@ def main():
  if a.domain:
   if not re.fullmatch(r'[a-z0-9-]+(?:\.[a-z0-9-]+)+',a.domain):raise SystemExit('域名无效')
   ctx=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);ctx.load_cert_chain(a.tls_cert,a.tls_key)
+  leaf=ssl._ssl._test_decode_cert(str(a.tls_cert));ssl.match_hostname(leaf,a.domain)
+  if not ssl.cert_time_to_seconds(leaf['notBefore'])<=time.time()<ssl.cert_time_to_seconds(leaf['notAfter']):raise SystemExit('域名证书尚未生效或已过期')
  for cmd in ['openssl','systemctl']:assert shutil.which(cmd),cmd+' 缺失'
  bundle=Path(__file__).resolve().parent
  for line in (bundle/'SHA256SUMS').read_text().splitlines():
