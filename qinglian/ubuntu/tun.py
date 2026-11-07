@@ -22,11 +22,14 @@ def run(*args,check=True):
     return subprocess.run(list(args),check=check,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,env={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C'})
 
 def main():
-    if os.geteuid()!=0 or len(sys.argv)!=1: return 1
+    if os.geteuid()!=0 or len(sys.argv) not in (1,2): return 1
     lock=os.open('/run/qinglian-tun.lock',os.O_WRONLY|os.O_CREAT|os.O_NOFOLLOW,0o600)
     fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     config=json.loads((ROOT/'profile.json').read_text())
-    server=str(ipaddress.IPv4Address(urllib.parse.urlsplit(config['url']).hostname))
+    try:embedded=str(ipaddress.IPv4Address(urllib.parse.urlsplit(config['url']).hostname))
+    except ValueError:embedded=None
+    server=str(ipaddress.IPv4Address(sys.argv[1])) if len(sys.argv)==2 else embedded
+    if server!=embedded and not ipaddress.IPv4Address(server).is_global:return 1
     # Fixed server address also required for every panel-issued egress node (checked in GUI).
     for family in ('-4','-6'):
         rules=run('/usr/sbin/ip',family,'-j','rule','show')

@@ -12,7 +12,7 @@ import urllib.request
 import zipfile
 
 HERE=Path(__file__).resolve().parent; PROJECT=HERE.parent
-VERSION='1.0.0-preview6'
+VERSION='1.0.0-preview7'
 PINS={
  'tun2socks.zip':('https://github.com/xjasonlyu/tun2socks/releases/download/v2.6.0/tun2socks-windows-amd64.zip','1429e2e3b1ea09052da2c65e5005538b5730d63da37e304f4ad6fd2698a66695'),
  'wintun.zip':('https://www.wintun.net/builds/wintun-0.14.1.zip','07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51'),
@@ -38,10 +38,10 @@ def main():
     output=args.output.resolve(); output.mkdir(parents=True,exist_ok=True); args.cache.mkdir(parents=True,exist_ok=True)
     config=json.loads((args.assets/'profile.json').read_text(encoding='utf-8')); parsed=urllib.parse.urlsplit(config['url'])
     ca=config.get('caAsset','')
-    if parsed.scheme!='https' or parsed.username or not parsed.hostname or not config.get('clientToken') or Path(ca).name!=ca or not ca.endswith('.pem'): raise ValueError('Invalid bootstrap')
-    if not args.fixture and config.get('cdnUrl')!='https://gaozy.tech/api/v1/profile': raise ValueError('Production Windows release requires deployed fixed CDN')
+    if parsed.scheme!='https' or parsed.username or not parsed.hostname or not config.get('clientToken') or ca and (Path(ca).name!=ca or not ca.endswith('.pem')): raise ValueError('Invalid bootstrap')
+    # Each distribution may embed its own panel; certificate/URL validation remains strict.
     resources=output/'resources'; resources.mkdir(exist_ok=True)
-    for name in ('profile.json',ca): shutil.copy2(args.assets/name,resources/name)
+    for name in (['profile.json',ca] if ca else ['profile.json']): shutil.copy2(args.assets/name,resources/name)
     shutil.copy2(fetch('json.jar',args.cache),resources/'json.jar'); shutil.copy2(fetch('hysteria.exe',args.cache),resources/'hysteria.exe')
     with zipfile.ZipFile(fetch('tun2socks.zip',args.cache)) as archive: (resources/'tun2socks.exe').write_bytes(archive.read('tun2socks-windows-amd64.exe'))
     with zipfile.ZipFile(fetch('wintun.zip',args.cache)) as archive: (resources/'wintun.dll').write_bytes(archive.read('wintun/bin/amd64/wintun.dll'))
@@ -80,6 +80,7 @@ def main():
     shutil.copy2(HERE/'installer.iss',src/'installer.iss')
     for name in ('README.md','RELEASE_NOTES.md'): shutil.copy2(HERE/name,resources/name)
     shutil.copy2(PROJECT/'ubuntu/runtime.py',src/'shared_runtime.py'); shutil.copy2(PROJECT/'app/src/main/java/com/gzy/qinglian/NodeConfig.java',src/'NodeConfig.java'); shutil.copy2(PROJECT/'server/NodeConfigCli.java',src/'NodeConfigCli.java')
+    shutil.copy2(PROJECT/'ubuntu/server_config.py',src/'server_config.py')
     if args.resources_only: print('Pinned Windows resources verified and prepared.'); return
     if os.name!='nt': raise RuntimeError('Executable packaging must run on Windows')
     import PySide6
@@ -94,7 +95,7 @@ def main():
             if file.is_file(): shutil.copy2(file,licenses/('Python-'+file.name if directory==Path(sys.base_prefix) else file.name))
     for file in (Path(PySide6.__file__).parent/'LICENSES').glob('*'):
         if file.is_file(): shutil.copy2(file,licenses/file.name)
-    staging=output/'staging'; staging.mkdir(exist_ok=True); shutil.copy2(PROJECT/'ubuntu/runtime.py',staging/'shared_runtime.py')
+    staging=output/'staging'; staging.mkdir(exist_ok=True); shutil.copy2(PROJECT/'ubuntu/runtime.py',staging/'shared_runtime.py'); shutil.copy2(PROJECT/'ubuntu/server_config.py',staging/'server_config.py')
     subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--windowed','--onedir','--name','Qinglian','--icon',str(icon_file),'--paths',str(HERE),'--paths',str(staging),'--distpath',str(output/'dist'),'--workpath',str(output/'pyinstaller'),'--specpath',str(staging),'--add-data',str(resources)+os.pathsep+'resources',str(HERE/'app.py')],check=True)
     # Isolated updater is one-file and runs from private state, so it can replace
     # the GUI's executable/DLLs after shutdown without keeping them locked.
@@ -102,7 +103,7 @@ def main():
     shutil.copy2(output/'helper/updater.exe',resources/'updater.exe')
     shutil.copy2(resources/'updater.exe',output/'dist/Qinglian/_internal/resources/updater.exe')
     app=output/'dist/Qinglian'
-    (resources/'build-info.json').write_text(json.dumps({'version':VERSION,'architecture':'x64','sha256':{name:digest(resources/name) for name in ('v2ray.exe','hysteria.exe','tun2socks.exe','wintun.dll','node-config.jar','profile.json',ca)}}))
+    (resources/'build-info.json').write_text(json.dumps({'version':VERSION,'architecture':'x64','sha256':{name:digest(resources/name) for name in (['v2ray.exe','hysteria.exe','tun2socks.exe','wintun.dll','node-config.jar','profile.json']+([ca] if ca else []))}}))
     shutil.copy2(resources/'build-info.json',app/'_internal/resources/build-info.json')
     shutil.make_archive(str(output/('Qinglian-'+VERSION+'-windows-x64-portable')),'zip',output/'dist','Qinglian')
     iscc=Path(os.environ.get('ProgramFiles(x86)',r'C:\Program Files (x86)'))/'Inno Setup 6/ISCC.exe'

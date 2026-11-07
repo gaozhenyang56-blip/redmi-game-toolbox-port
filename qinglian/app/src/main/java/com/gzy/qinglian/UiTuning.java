@@ -19,24 +19,24 @@ final class UiTuning {
  }
  JSONObject json()throws JSONException{return new JSONObject().put("navHeight",navHeight).put("navIcon",navIcon).put("navText",navText).put("navGap",navGap).put("glassMargin",glassMargin).put("glassEnabled",glassEnabled);}
  static UiTuning get(Context context){try{
-  JSONObject cached=new JSONObject(context.getSharedPreferences(PREFS,0).getString("active","{}"));return parse(ApiEndpoint.nonnegativeLong(cached,"revision"),cached.getJSONObject("ui"));
+  JSONObject cached=new JSONObject(context.getSharedPreferences(ServerSettings.prefName(context,PREFS),0).getString("active","{}"));return parse(ApiEndpoint.nonnegativeLong(cached,"revision"),cached.getJSONObject("ui"));
  }catch(Exception invalid){return defaults();}}
- static boolean rejected(Context context,long revision){return revision<=context.getSharedPreferences(PREFS,0).getLong("rejected",-1);}
+ static boolean rejected(Context context,long revision){return revision<=context.getSharedPreferences(ServerSettings.prefName(context,PREFS),0).getLong("rejected",-1);}
  static boolean save(Context context,UiTuning next)throws Exception{
   parse(next.revision,next.json());
   if(next.revision<=get(context).revision||rejected(context,next.revision))return false;
-  String data=new JSONObject().put("revision",next.revision).put("ui",next.json()).toString();return context.getSharedPreferences(PREFS,0).edit().putString("previous",context.getSharedPreferences(PREFS,0).getString("active","{}" )).putString("active",data).commit();
+  String data=new JSONObject().put("revision",next.revision).put("ui",next.json()).toString();return context.getSharedPreferences(ServerSettings.prefName(context,PREFS),0).edit().putString("previous",context.getSharedPreferences(ServerSettings.prefName(context,PREFS),0).getString("active","{}" )).putString("active",data).commit();
  }
  static void beginRender(Context context){
-  android.content.SharedPreferences prefs=context.getSharedPreferences(PREFS,0);UiTuning current=get(context);
+  android.content.SharedPreferences prefs=context.getSharedPreferences(ServerSettings.prefName(context,PREFS),0);UiTuning current=get(context);
   if(current.revision>0&&prefs.getLong("rendering",-1)==current.revision){
    prefs.edit().putString("active",prefs.getString("previous","{}")).putLong("rejected",current.revision).remove("rendering").commit();
   }
   prefs.edit().putLong("rendering",get(context).revision).commit();
  }
- static void stable(Context context){context.getSharedPreferences(PREFS,0).edit().remove("rendering").apply();}
+ static void stable(Context context){context.getSharedPreferences(ServerSettings.prefName(context,PREFS),0).edit().remove("rendering").apply();}
  static void reset(Context context){
-  android.content.SharedPreferences prefs=context.getSharedPreferences(PREFS,0);long revision=get(context).revision;
+  android.content.SharedPreferences prefs=context.getSharedPreferences(ServerSettings.prefName(context,PREFS),0);long revision=get(context).revision;
   prefs.edit().remove("active").remove("rendering").putLong("rejected",Math.max(revision,prefs.getLong("rejected",-1))).commit();
  }
 

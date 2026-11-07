@@ -36,7 +36,7 @@ class RuntimeTests(unittest.TestCase):
         self.assertIsNone(runtime.NoRedirect().redirect_request(None,None,302,'',{},'https://elsewhere.invalid'))
     def test_expired_account_can_logout_locally(self):
         with tempfile.TemporaryDirectory() as d,patch.object(runtime,'STATE',Path(d)):
-            api=runtime.Api.__new__(runtime.Api); api.account={'token':'expired'}
+            api=runtime.Api.__new__(runtime.Api); api.account_path=Path(d)/'account.json'; api.account={'token':'expired'}
             runtime.save(Path(d)/'account.json',api.account)
             api.request=MagicMock(side_effect=RuntimeError('expired'))
             self.assertIn('撤销未确认',api.logout()); self.assertFalse(api.account)

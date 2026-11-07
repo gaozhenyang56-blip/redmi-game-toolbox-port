@@ -26,7 +26,7 @@ import fluent
 import updater
 QCheckBox=fluent.CheckBox
 
-VERSION='1.0.0-preview6'
+VERSION='1.0.0-preview7'
 class Bridge(QObject):
     event=Signal(str,object)
     finished=Signal(object,object)
@@ -140,7 +140,8 @@ class Window(QMainWindow):
         self.update_status=label('尚未检查更新'); self.remote_enabled=QCheckBox('接收面板界面配置'); self.remote_enabled.setChecked(self.settings.get('remoteEnabled',True)); self.remote_enabled.toggled.connect(self.style)
         self.update_apply=button('下载并重启更新',self.install_update); self.update_apply.setEnabled(False)
         card(self.pages[5],label('更新','section'),self.update_status,self.remote_enabled,button('检查更新',lambda:self.check_updates(True)),self.update_apply,label('界面配置无需重启；程序更新需先断开VPN并确认重启。安装版和免安装版均保留账号与设置。'))
-        card(self.pages[5],label('轻连 Windows '+VERSION,'section'),label('Windows 10/11 x64 · Qt / V2Ray / Hysteria2\n与现有面板共用账号、统计和节点；无需手动导入订阅。'),label('移动网络优先使用兼容通道。控制 API 使用固定 gaozy.tech HTTPS/CDN 和原 IP 备用入口，严格验证证书；代理数据能否通过仍取决于实际网络。'),label('访客每次手动连接 64 GiB，不记录域名。账号连接须同意服务器永久域名记录。Windows 用户会话使用 DPAPI 加密，原始 MachineGuid/SID 不上传。'),label('可选 TUN 全局接管需要管理员授权，不是断网保护。退出会恢复原代理，崩溃由独立守护进程恢复；其他程序已更改的代理配置保留。'),button('查看随包许可证',lambda:os.startfile(str(client.ROOT/'licenses'))),button('查看源码与说明',lambda:webbrowser.open('https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/tree/codex/qinglian-routing-and-presence/qinglian/windows')))
+        card(self.pages[5],label('面板服务器','section'),label(getattr(self.api,'server_name','内置服务器')),button('导入轻连服务器配置',self.import_server),button('恢复内置服务器',lambda:self.choose_server(None)))
+        card(self.pages[5],label('轻连 Windows '+VERSION,'section'),label('Windows 10/11 x64 · Qt / V2Ray / Hysteria2\n与现有面板共用账号、统计和节点；无需手动导入订阅。'),label('移动网络优先使用兼容通道。控制 API 使用所选轻连面板的 HTTPS/CDN 和备用入口，严格验证证书；代理数据能否通过仍取决于实际网络。'),label('访客每次手动连接 64 GiB，不记录域名。账号连接须同意服务器永久域名记录。Windows 用户会话使用 DPAPI 加密，原始 MachineGuid/SID 不上传。'),label('可选 TUN 全局接管需要管理员授权，不是断网保护。退出会恢复原代理，崩溃由独立守护进程恢复；其他程序已更改的代理配置保留。'),button('查看随包许可证',lambda:os.startfile(str(client.ROOT/'licenses'))),button('查看源码与说明',lambda:webbrowser.open('https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/tree/codex/qinglian-routing-and-presence/qinglian/windows')))
     def style(self,*_):
         self.dark=self.theme.currentIndex()==1 or (self.theme.currentIndex()==2 and QApplication.styleHints().colorScheme()==Qt.ColorScheme.Dark)
         self.mica=fluent.native_frame(self,self.dark,self.material.isChecked() and (not self.remote_enabled.isChecked() or self.remote_ui['material']))
@@ -292,6 +293,20 @@ class Window(QMainWindow):
     def open_chat_web(self):
         if not self.conn.connected: self.message.setText('请先连接轻连'); return
         webbrowser.open('https://chatgpt.com/')
+    def import_server(self):
+        path,_=QFileDialog.getOpenFileName(self,'导入轻连面板服务器配置','','JSON (*.json)')
+        if not path:return
+        try:
+            with open(path,'rb') as f:value=client.server_config.loads(f.read(client.server_config.MAX_BYTES+1))
+            self.choose_server(value)
+        except Exception:self.message.setText('配置无效，请导入轻连面板导出的服务器配置')
+    def choose_server(self,value):
+        if self.busy or self.working or self.test_running:self.message.setText('请先断开连接并等待当前任务完成');return
+        target=value['name']+' · '+value['profile']['url'] if value else '安装包内置服务器'
+        if QMessageBox.question(self,'切换面板服务器',target+'\n账号和额度由所选面板管理。保存后退出，请重新打开轻连。')!=QMessageBox.Yes:return
+        try:self.api.select_server(value)
+        except Exception:self.message.setText('服务器设置保存失败');return
+        self.request_exit()
     def choose_chat(self):
         path,_=QFileDialog.getOpenFileName(self,'选择 ChatGPT.exe','','Windows 程序 (*.exe)')
         if path: self.chat_path.setText(path); self.store()

@@ -13,6 +13,11 @@ import zipfile
 import win_platform as platform
 import probe
 
+try: import server_config
+except ModuleNotFoundError:
+    _spec=importlib.util.spec_from_file_location('server_config',Path(__file__).resolve().parents[1]/'ubuntu/server_config.py')
+    server_config=importlib.util.module_from_spec(_spec);sys.modules['server_config']=server_config;_spec.loader.exec_module(server_config)
+
 try: import shared_runtime as common
 except ModuleNotFoundError:
     spec=importlib.util.spec_from_file_location('shared_runtime',Path(__file__).resolve().parents[1]/'ubuntu/runtime.py')
@@ -99,7 +104,7 @@ class Connection(common.Connection):
                             if getattr(self,'tun_requested',False):
                                 from tun_ipc import TunSession
                                 self.connected=False; notify('state','正在请求管理员授权并建立 TUN…')
-                                helper=TunSession().start(self.cancel); self.procs.append(helper)
+                                helper=TunSession(server=urllib.parse.urlsplit(self.api.config['url']).hostname).start(self.cancel); self.procs.append(helper)
                                 self.api.verify_proxy(self.cancel,cold_hy2=choice)
                                 if self.cancel.is_set(): raise common.ProbeCancelled('已取消连接')
                                 self.connected=True; value=value.split(' · ')[0]+' · TUN 全局'
@@ -144,9 +149,9 @@ class Connection(common.Connection):
         subprocess.Popen([str(path),'--proxy-server=http://127.0.0.1:10809','--proxy-bypass-list=localhost;127.0.0.1;[::1]','--disable-quic'],env=env,creationflags=platform.NO_WINDOW,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 
 def export_node(api,details,path):
-    pending=read(STATE/'pending-export.json',{})
+    pending=read(STATE/('pending-export-'+api.server_id+'.json'),{})
     if any(pending.get(k)!=v for k,v in details.items()):
-        pending=dict(details,requestId=str(uuid.uuid4())); save(STATE/'pending-export.json',pending)
+        pending=dict(details,requestId=str(uuid.uuid4())); save(STATE/('pending-export-'+api.server_id+'.json'),pending)
     result=api.request('exports/nodes',pending)
     for _ in range(20):
         match=next((n for n in api.request('exports/nodes').get('nodes',[]) if n.get('id')==result['id']),{})
@@ -158,5 +163,5 @@ def export_node(api,details,path):
     with zipfile.ZipFile(path,'w',zipfile.ZIP_DEFLATED) as output:
         for name,value in [('node.json',profile['node']),('share-uri.txt',profile['uri']),('qinglian-ca.pem',profile['caPem']),('client-config.json',profile['clientConfig'])]:
             output.writestr(name,json.dumps(value,ensure_ascii=False,indent=2) if isinstance(value,dict) else value)
-    (STATE/'pending-export.json').unlink(missing_ok=True)
+    (STATE/('pending-export-'+api.server_id+'.json')).unlink(missing_ok=True)
     return '节点已保存；导出文件含节点凭据，请妥善保存。'

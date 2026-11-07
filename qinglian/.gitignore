@@ -36,3 +36,10 @@ windows/dist/
 windows/*.exe
 windows/*.zip
 windows/resources/
+
+# Private panel selection / server embedding inputs
+selfhost/private/
+selfhost/build/
+selfhost/*.json
+*server.json
+*server-selection.json

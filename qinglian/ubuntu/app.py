@@ -14,7 +14,7 @@ from gi.repository import Gtk, Gdk, GLib, Gio, Pango
 from runtime import Api, Connection, STATE, ROOT, CONSENT, read, save, restore_proxy
 from ui import CSS, Icon, Clamp, Columns, Segments, FrostedPanel, Sparkline
 
-VERSION='1.0.0-preview6'
+VERSION='1.0.0-preview7'
 
 def label(text='',style=None):
     w=Gtk.Label(label=text,xalign=0); w.set_line_wrap(True); w.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR); w.set_max_width_chars(64)
@@ -320,7 +320,28 @@ class Window(Gtk.Window):
         self.card(left,label('轻连','hero-title'),label(VERSION+' · Ubuntu 24.04 amd64\nV2Ray / v2fly 与 Hysteria2 核心。'),label('与手机版统一的卡片、导航与玻璃滑块。桌面宽屏双栏，窄窗口自动单栏。','subtitle'),button('账号 / 节点导出',lambda:self.navigate('account')),button('ChatGPT 优化',lambda:self.navigate('chatgpt')))
         self.theme=self.segment(['亮色','暗色','系统']); self.theme.set_active(self.settings.get('theme',0))
         self.card(right,label('界面与外观','card-title'),self.theme,label('顶部“简约”切换第一版的传统桌面标签页与表单，保留全部功能，设置自动保存。Ctrl+Shift+M 切换简约，Ctrl+1..4 切换主页面。','subtitle'),label('顶部和底部导航实时模糊本应用内容；后台隐藏或最小化时停止取样。','subtitle'))
+        self.card(p,label('面板服务器','card-title'),label(self.api.server_name+' · '+self.api.base),button('导入轻连服务器配置',self.import_server),button('恢复内置服务器',lambda:self.choose_server(None)))
         self.card(p,label('连接与隐私','card-title'),label('账号永久域名记录需明确同意，访客不记录域名。高性能模式仅请求本设备独立 HY2 worker，仍受原配额和共享带宽限制。关闭窗口会断开并恢复网络设置。','subtitle'),button('查看开源许可',lambda:self.task(lambda:(ROOT/'THIRD_PARTY.txt').read_text(),self.show_text)))
+    def import_server(self):
+        d=Gtk.FileChooserDialog(title='导入轻连面板服务器配置',transient_for=self,action=Gtk.FileChooserAction.OPEN)
+        d.add_buttons('取消',Gtk.ResponseType.CANCEL,'打开',Gtk.ResponseType.OK)
+        response=d.run();path=d.get_filename();d.destroy()
+        if response!=Gtk.ResponseType.OK:return
+        try:
+            import server_config
+            with open(path,'rb') as f:value=server_config.loads(f.read(server_config.MAX_BYTES+1))
+            self.choose_server(value)
+        except Exception:self.set_status('服务器配置无效，请使用轻连面板导出的配置文件')
+    def choose_server(self,value):
+        if self.busy or self.test_running or self.account_busy:self.set_status('请先断开连接并等待当前任务完成');return
+        d=Gtk.MessageDialog(transient_for=self,modal=True,message_type=Gtk.MessageType.QUESTION,buttons=Gtk.ButtonsType.OK_CANCEL,text='切换面板服务器？')
+        target=value['name']+' · '+value['profile']['url'] if value else '安装包内置服务器'
+        d.format_secondary_text(target+'\n账号和额度由所选服务器管理。保存后退出，请重新打开轻连。')
+        response=d.run();d.destroy()
+        if response!=Gtk.ResponseType.OK:return
+        try:self.api.select_server(value)
+        except Exception:self.set_status('保存失败，原服务器仍有效');return
+        Gtk.main_quit()
     def show_text(self,text):
         dialog=Gtk.MessageDialog(transient_for=self,modal=True,message_type=Gtk.MessageType.INFO,buttons=Gtk.ButtonsType.OK,text='轻连')
         dialog.format_secondary_text(text[:10000]); dialog.run(); dialog.destroy()
@@ -412,9 +433,9 @@ class Window(Gtk.Window):
         if response!=Gtk.ResponseType.OK: return
         details=dict(protocol=self.protocol.get_active_text(),sizeMiB=self.export_size.get_value_as_int(),remark=self.remark.get_text())
         def work():
-            pending=read(STATE/'pending-export.json',{})
+            pending=read(STATE/('pending-export-'+self.api.server_id+'.json'),{})
             if any(pending.get(k)!=v for k,v in details.items()):
-                pending=dict(details,requestId=str(uuid.uuid4())); save(STATE/'pending-export.json',pending)
+                pending=dict(details,requestId=str(uuid.uuid4())); save(STATE/('pending-export-'+self.api.server_id+'.json'),pending)
             result=self.api.request('exports/nodes',pending)
             import time
             profile={}
@@ -430,7 +451,7 @@ class Window(Gtk.Window):
             os.fchmod(fd,0o600)
             with os.fdopen(fd,'wb') as out,zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED) as z:
                 for name,value in [('node.json',profile['node']),('share-uri.txt',profile['uri']),('qinglian-ca.pem',profile['caPem']),('client-config.json',profile['clientConfig'])]: z.writestr(name,json.dumps(value,ensure_ascii=False,indent=2) if isinstance(value,dict) else value)
-            (STATE/'pending-export.json').unlink(missing_ok=True)
+            (STATE/('pending-export-'+self.api.server_id+'.json')).unlink(missing_ok=True)
             return '节点已保存：'+path
         self.account_task(work,self.set_status)
     def start_speed(self):

@@ -46,6 +46,7 @@ type qTLSConfig struct {
 	PrivateKey        string   `json:"privateKey"`
 }
 type qConfig struct {
+	ReleaseRepository string     `json:"releaseRepository,omitempty"`
 	OwnerID           int        `json:"ownerId"`
 	ServerAddress     string     `json:"serverAddress"`
 	TLS               qTLSConfig `json:"tls"`
@@ -304,6 +305,7 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	api.POST("/heartbeat", a.heartbeat)
 	panel := g.Group("/xui")
 	panel.GET("/qinglian", a.checkLogin, func(c *gin.Context) { html(c, "qinglian.html", "在线设备", nil) })
+	panel.GET("/qinglian/server-bootstrap", a.serverBootstrap)
 	panel.GET("/qinglian/diagnostics", a.diagnosticView)
 	panel.POST("/qinglian/diagnostics", a.startDiagnostic)
 	panel.POST("/qinglian/diagnostics/cancel", a.cancelDiagnostic)

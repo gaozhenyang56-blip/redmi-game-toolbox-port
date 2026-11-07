@@ -40,16 +40,18 @@ final class ApiEndpoint {
  ApiEndpoint(URL url,String token){this(url,token,null);}
  ApiEndpoint(URL url,String token,SSLSocketFactory tlsFactory){this(url,token,tlsFactory,null);}
  ApiEndpoint(URL url,String token,SSLSocketFactory tlsFactory,URL cdnUrl){this.url=url;this.token=token;this.tlsFactory=tlsFactory;this.cdnUrl=cdnUrl;}
- static ApiEndpoint load(Context context,String asset)throws Exception{
+ static ApiEndpoint load(Context context,String asset)throws Exception{synchronized(ServerSettings.class){
   JSONObject config;
-  try(InputStream in=context.getAssets().open(asset)){config=new JSONObject(Io.readUtf8(in));}
+  config=ServerSettings.configuration(context,asset);
+  if(config==null)try(InputStream in=context.getAssets().open(asset)){config=new JSONObject(Io.readUtf8(in));}
   ApiEndpoint endpoint=parse(config);
+  if(config.has("caPem"))return new ApiEndpoint(endpoint.url,endpoint.token,trustCa(new ByteArrayInputStream(config.getString("caPem").getBytes(StandardCharsets.US_ASCII))),endpoint.cdnUrl);
   if(config.has("caAsset")){
    String name=config.getString("caAsset");if(!name.matches("[A-Za-z0-9_-]+\\.pem"))throw new IOException("无效的接口证书资产");
    try(InputStream in=context.getAssets().open(name)){return new ApiEndpoint(endpoint.url,endpoint.token,trustCa(in),endpoint.cdnUrl);}
   }
   return endpoint;
- }
+ }}
  static SSLSocketFactory trustCa(InputStream in)throws Exception{
   java.util.Collection<? extends java.security.cert.Certificate> certificates=CertificateFactory.getInstance("X.509").generateCertificates(in);
   if(certificates.isEmpty())throw new CertificateException("接口证书为空");

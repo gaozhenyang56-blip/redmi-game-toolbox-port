@@ -19,6 +19,7 @@ final class ProfileMonitor {
  static final Object fetchLock=new Object();
  private static boolean busy;private static long attempted;
  static boolean configured(Context context)throws IOException{
+  if(ServerSettings.selected(context))return true;
   try(InputStream in=context.getAssets().open("profile.json")){return true;}catch(FileNotFoundException missing){return false;}
  }
  static boolean accelerated(Context context){return context.getSharedPreferences("transport",0).getBoolean("accelerated",false);}

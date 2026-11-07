@@ -39,7 +39,7 @@ def peer_image(pid):
     return handle
 
 class Network:
-    def __init__(self,isolated=False): self.isolated=isolated; self.process=None; self.index=None; self.exemption=None; self.stage='S-TUN-CONFLICT'
+    def __init__(self,isolated=False): self.server=None; self.isolated=isolated; self.process=None; self.index=None; self.exemption=None; self.stage='S-TUN-CONFLICT'
     def start(self):
         if powershell("if(Get-NetAdapter|Where-Object Name -eq 'Qinglian'){'exists'}")=='exists': raise RuntimeError('TUN adapter already exists')
         if not self.isolated:
@@ -47,7 +47,7 @@ class Network:
             existing=powershell("@(Get-NetRoute -ErrorAction SilentlyContinue|Where-Object {$_.DestinationPrefix -in @('0.0.0.0/1','128.0.0.0/1','::/1','8000::/1')}).Count")
             if existing!='0': raise RuntimeError('Another VPN owns global routes')
             result=powershell("$r=Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0'|Sort-Object @{Expression={$_.RouteMetric+(Get-NetIPInterface -InterfaceIndex $_.InterfaceIndex -AddressFamily IPv4).InterfaceMetric}}|Select-Object -First 1;if(!$r){throw 'No upstream'};@{index=$r.InterfaceIndex;gateway=$r.NextHop}|ConvertTo-Json -Compress")
-            upstream=json.loads(result); index=int(upstream['index']); gateway=str(ipaddress.IPv4Address(upstream['gateway'])); address=server_ip()
+            upstream=json.loads(result); index=int(upstream['index']); gateway=str(ipaddress.IPv4Address(upstream['gateway'])); address=self.server or server_ip()
             created=powershell(f"if(!(Get-NetRoute -DestinationPrefix '{address}/32' -InterfaceIndex {index} -ErrorAction SilentlyContinue|Where-Object NextHop -eq '{gateway}')){{New-NetRoute -DestinationPrefix '{address}/32' -InterfaceIndex {index} -NextHop '{gateway}' -RouteMetric 1 -PolicyStore ActiveStore|Out-Null;'created'}}")
             if created=='created': self.exemption=(address,index,gateway)
         # Verify every executable/DLL before elevated launch; DLL is adjacent.
@@ -109,6 +109,15 @@ def helper(pipe_name,parent_pid,mode):
         api.CreateMutexW.argtypes=[ctypes.c_void_p,wintypes.BOOL,wintypes.LPCWSTR]; api.CreateMutexW.restype=wintypes.HANDLE
         mutex=api.CreateMutexW(None,False,'Global\\Qinglian.Tun')
         if not mutex or ctypes.get_last_error()==183: raise RuntimeError('Another Qinglian TUN is running')
+        deadline=time.monotonic()+5; selection=None
+        while selection is None and time.monotonic()<deadline:
+            selection=pipe.read();time.sleep(.01)
+        if not selection or set(selection)!={'type','server'} or selection['type']!='configure':raise ValueError('TUN configuration required')
+        address=str(ipaddress.IPv4Address(selection['server']))
+        try:embedded=server_ip()
+        except ValueError:embedded=None
+        if address!=embedded and not ipaddress.IPv4Address(address).is_global:raise ValueError('TUN requires public server IPv4')
+        network.server=address
         network.start(); pipe.send({'status':'ready'})
         api.WaitForSingleObject.argtypes=[wintypes.HANDLE,wintypes.DWORD]
         last_ping=time.monotonic()

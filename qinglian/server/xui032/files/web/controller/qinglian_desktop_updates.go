@@ -297,7 +297,15 @@ func (a *QinglianController) importWindows(c *gin.Context) {
 	}
 	defer qWinImport.Unlock()
 	filename := "Qinglian-" + input.Version + "-windows-x64-portable.zip"
-	base := "https://github.com/gaozhenyang56-blip/redmi-game-toolbox-port/releases/download/qinglian-windows-v" + input.Version + "/"
+	repo := a.cfg.ReleaseRepository
+	if repo == "" {
+		repo = "gaozhenyang56-blip/redmi-game-toolbox-port"
+	}
+	if !regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`).MatchString(repo) {
+		c.Status(503)
+		return
+	}
+	base := "https://github.com/" + repo + "/releases/download/qinglian-windows-v" + input.Version + "/"
 	var sums strings.Builder
 	if qWinFetch(base+"SHA256SUMS.txt", &sums, 8192) != nil {
 		c.Status(502)

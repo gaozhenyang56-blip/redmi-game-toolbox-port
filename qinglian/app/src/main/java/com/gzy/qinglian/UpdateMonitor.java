@@ -60,7 +60,9 @@ final class UpdateMonitor {
   long code=Build.VERSION.SDK_INT>=28?info.getLongVersionCode():info.versionCode;
   if(code!=apk.versionCode||code<=BuildConfig.VERSION_CODE)throw new IOException("安装包版本不符");
   android.content.pm.Signature[] signatures=Build.VERSION.SDK_INT>=28?(info.signingInfo==null?null:info.signingInfo.getApkContentsSigners()):info.signatures;
-  if(signatures==null||signatures.length!=1||!ApiEndpoint.hex(MessageDigest.getInstance("SHA-256").digest(signatures[0].toByteArray())).equals(CERT))throw new IOException("安装包不是原发布签名");
+  PackageInfo installed=context.getPackageManager().getPackageInfo(context.getPackageName(),Build.VERSION.SDK_INT>=28?PackageManager.GET_SIGNING_CERTIFICATES:PackageManager.GET_SIGNATURES);
+  android.content.pm.Signature[] own=Build.VERSION.SDK_INT>=28?(installed.signingInfo==null?null:installed.signingInfo.getApkContentsSigners()):installed.signatures;
+  if(signatures==null||signatures.length!=1||own==null||own.length!=1||!java.util.Arrays.equals(signatures[0].toByteArray(),own[0].toByteArray()))throw new IOException("安装包不是当前应用的发布签名");
  }
  interface Result {void done(File apk);void failed();}
  static synchronized void download(Context context,APK apk,Result result){
@@ -69,8 +71,8 @@ final class UpdateMonitor {
    if(!output.isFile())ApiEndpoint.load(app,"updates.json").downloadAPK(apk.sha,apk.size,output);verify(app,output,apk);status="安装包已校验，等待系统确认安装";result.done(output);
   }catch(Exception rejected){output.delete();status="更新下载或原签名校验失败，请重试";result.failed();}finally{synchronized(UpdateMonitor.class){downloading=false;}}});
  }
- static boolean needsPrompt(Context context){APK apk=available;return apk!=null&&context.getSharedPreferences("app_updates",0).getInt("prompted",0)!=apk.versionCode;}
- static void prompted(Context context,APK apk){context.getSharedPreferences("app_updates",0).edit().putInt("prompted",apk.versionCode).apply();}
+ static boolean needsPrompt(Context context){APK apk=available;return apk!=null&&context.getSharedPreferences(ServerSettings.prefName(context,"app_updates"),0).getInt("prompted",0)!=apk.versionCode;}
+ static void prompted(Context context,APK apk){context.getSharedPreferences(ServerSettings.prefName(context,"app_updates"),0).edit().putInt("prompted",apk.versionCode).apply();}
  static void install(Activity activity,File file)throws Exception{
   if(Build.VERSION.SDK_INT>=26&&!activity.getPackageManager().canRequestPackageInstalls()){
    activity.startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,Uri.parse("package:"+activity.getPackageName())));return;

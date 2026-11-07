@@ -18,6 +18,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+import server_config
 
 ROOT = Path(__file__).resolve().parent
 STATE = Path(os.environ.get('XDG_CONFIG_HOME', Path.home()/'.config'))/'qinglian'
@@ -213,21 +214,30 @@ def api_routes(base):
 
 class Api:
     def __init__(self):
-        config = read(ROOT/'profile.json')
-        if not config: raise RuntimeError('安装包缺少面板配置，请重新安装正式构建。')
+        selected=read(STATE/'server-selection.json')
+        bundle=server_config.validate(selected) if selected else None
+        config = bundle['profile'] if bundle else read(ROOT/'profile.json')
+        if not config: config={'url':'https://unconfigured.invalid/api/v1/profile','clientToken':'0'*64}
+        self.server_name=bundle['name'] if bundle else '内置服务器'
+        self.server_id=server_config.identity(bundle) if bundle else 'embedded'
+        self.account_path=STATE/'account.json' if not bundle else STATE/'servers'/self.server_id/'account.json'
         self.config = config
         parsed = urllib.parse.urlsplit(config['url'])
         if parsed.scheme != 'https' or parsed.username or parsed.fragment: raise ValueError('无效接口配置')
         self.base = urllib.parse.urljoin(config['url'], './')
         self.origin_base = api_routes(self.base)[0]
         self.cdn_base = cdn_base(config)
-        self.context = ssl.create_default_context(cafile=str(ROOT/config['caAsset']))
+        self.context = ssl.create_default_context(cadata=config['caPem']) if config.get('caPem') else ssl.create_default_context(cafile=str(ROOT/config['caAsset'])) if config.get('caAsset') else ssl.create_default_context()
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), ApiHandler(context=self.context), NoRedirect())
         self.cdn_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}),ApiHandler(context=ssl.create_default_context()),NoRedirect()) if self.cdn_base else None
         STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.device = device_identity()
-        self.account = read(STATE/'account.json', {})
+        self.account = read(self.account_path, {})
         self.guest = None
+    @staticmethod
+    def select_server(value):
+        if value is None: (STATE/'server-selection.json').unlink(missing_ok=True)
+        else: save(STATE/'server-selection.json',server_config.validate(value))
     def request(self, path, body=None, token=None, bootstrap=False):
         headers = {'User-Agent':getattr(self,'user_agent','Qinglian/Ubuntu-preview6'),'Content-Type':'application/json','Accept':'application/json','X-Qinglian-Device':self.device}
         token = self.config['clientToken'] if bootstrap else (token or self.account.get('token'))
@@ -267,7 +277,7 @@ class Api:
         result = self.request('exports/'+action, {'username':username,'password':password,'historyConsent':'domains-permanent-v1'})
         if not isinstance(result.get('token'),str) or len(result['token'])!=64: raise RuntimeError('面板未返回有效会话')
         self.account = {'token':result['token'],'username':username}
-        save(STATE/'account.json', self.account)
+        save(self.account_path, self.account)
     def begin(self):
         if not self.account:
             self.guest = dict(requestId=str(uuid.uuid4()), sessionKey=secrets.token_hex(32))
@@ -286,7 +296,7 @@ class Api:
         warning=''
         try: self.request('exports/logout',{})
         except Exception: warning='已退出本机账号；服务端会话撤销未确认，旧会话将按服务端期限失效。'
-        self.account = {}; (STATE/'account.json').unlink(missing_ok=True)
+        self.account = {}; self.account_path.unlink(missing_ok=True)
         return warning
     def verify_proxy(self, cancel=None, cold_hy2=False):
         token=self.account.get('token') or self.guest['sessionKey']
@@ -402,7 +412,7 @@ class Connection:
                 phase='tun'
                 self.notify('state','请在系统授权窗口允许 TUN 接管…')
                 # Helper only knows the compiled server IP and accepts no executable config.
-                helper=subprocess.Popen(['pkexec','/usr/lib/qinglian/qinglian-tun'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
+                helper=subprocess.Popen(['pkexec','/usr/lib/qinglian/qinglian-tun',urllib.parse.urlsplit(self.api.config['url']).hostname],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
                 self.procs.append(helper)
                 import select
                 for _ in range(120):

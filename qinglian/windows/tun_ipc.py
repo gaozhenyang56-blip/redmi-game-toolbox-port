@@ -111,12 +111,18 @@ class ElevatedProcess:
 
 class TunSession:
     stdin=None
-    def __init__(self,isolated=False): self.pipe=None; self.process=None; self.isolated=isolated; self.stop=threading.Event(); self.heartbeat=None
+    def __init__(self,isolated=False,server=None): self.server=server; self.pipe=None; self.process=None; self.isolated=isolated; self.stop=threading.Event(); self.heartbeat=None
     def start(self,cancel):
         self.pipe=Pipe(server=True)
         try:
             self.process=ElevatedProcess(['--tun-helper',self.pipe.name,str(os.getpid()),'isolated' if self.isolated else 'global'])
-            self.pipe.accept(self.process,cancel); deadline=time.monotonic()+45
+            self.pipe.accept(self.process,cancel)
+            if self.server is None:
+                from tun import server_ip
+                self.server=server_ip()
+            import ipaddress
+            address=str(ipaddress.IPv4Address(self.server))
+            self.pipe.send({'type':'configure','server':address}); deadline=time.monotonic()+45
             while True:
                 if cancel.is_set() or self.process.poll() is not None or time.monotonic()>deadline: raise RuntimeError('TUN 启动取消、失败或超时 [S-TUN]')
                 value=self.pipe.read()
