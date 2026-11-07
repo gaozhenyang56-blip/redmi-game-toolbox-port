@@ -433,9 +433,9 @@ class Window(Gtk.Window):
         if response!=Gtk.ResponseType.OK: return
         details=dict(protocol=self.protocol.get_active_text(),sizeMiB=self.export_size.get_value_as_int(),remark=self.remark.get_text())
         def work():
-            pending=read(STATE/('pending-export-'+self.api.server_id+'.json'),{})
+            pending=read(self.api.pending_path,{})
             if any(pending.get(k)!=v for k,v in details.items()):
-                pending=dict(details,requestId=str(uuid.uuid4())); save(STATE/('pending-export-'+self.api.server_id+'.json'),pending)
+                pending=dict(details,requestId=str(uuid.uuid4())); save(self.api.pending_path,pending)
             result=self.api.request('exports/nodes',pending)
             import time
             profile={}
@@ -451,7 +451,7 @@ class Window(Gtk.Window):
             os.fchmod(fd,0o600)
             with os.fdopen(fd,'wb') as out,zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED) as z:
                 for name,value in [('node.json',profile['node']),('share-uri.txt',profile['uri']),('qinglian-ca.pem',profile['caPem']),('client-config.json',profile['clientConfig'])]: z.writestr(name,json.dumps(value,ensure_ascii=False,indent=2) if isinstance(value,dict) else value)
-            (STATE/('pending-export-'+self.api.server_id+'.json')).unlink(missing_ok=True)
+            (self.api.pending_path).unlink(missing_ok=True)
             return '节点已保存：'+path
         self.account_task(work,self.set_status)
     def start_speed(self):

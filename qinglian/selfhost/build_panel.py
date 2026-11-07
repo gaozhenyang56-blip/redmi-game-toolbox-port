@@ -26,6 +26,8 @@ def main():
   subprocess.run(['go','test','-race','./web/controller','./web'],cwd=src,check=True)
   subprocess.run(['go','build','-trimpath','-o',str(a.output.resolve()/'x-ui'),'.'],cwd=src,check=True)
   with zipfile.ZipFile(fetch('xray.zip',a.cache)) as z:
+   (a.output/'XRAY-LICENSE.txt').write_bytes(z.read('LICENSE'))
+   (a.output/'XRAY-README.md').write_bytes(z.read('README.md'))
    for name in ['xray','geoip.dat','geosite.dat']:
     if name in z.namelist():(a.output/('xray-linux-amd64' if name=='xray' else name)).write_bytes(z.read(name))
   shutil.copy2(fetch('hysteria',a.cache),a.output/'hysteria')
@@ -36,6 +38,7 @@ def main():
   shutil.copy2(project/'ubuntu/server_config.py',a.output/'server_config.py')
   shutil.copy2(Path(__file__).with_name('README.md'),a.output/'README.md')
   shutil.copy2(project/'LICENSE',a.output/'QINGLIAN-LICENSE')
+  for license_file in (project/'app/src/main/assets/licenses').glob('HYSTERIA-*.txt'):shutil.copy2(license_file,a.output/license_file.name)
   for path in src.glob('LICENSE*'):shutil.copy2(path,a.output/('XUI-'+path.name))
   (a.output/'SHA256SUMS').write_text(''.join(hashlib.sha256(f.read_bytes()).hexdigest()+'  '+f.name+'\n' for f in sorted(a.output.iterdir()) if f.is_file() and f.name!='SHA256SUMS'))
  print('面板安装包已构建。请在目标服务器运行 install.py；未连接或修改任何服务器。')

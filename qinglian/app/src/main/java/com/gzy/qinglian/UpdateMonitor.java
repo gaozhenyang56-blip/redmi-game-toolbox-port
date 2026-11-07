@@ -12,7 +12,6 @@ import org.json.*;
 
 /** Panel-published data hotfixes and explicit, original-signature package upgrades. */
 final class UpdateMonitor {
- static final String CERT="2e90d97183fbe26c05a8bd67454b0a5d0f5c01633609a335fdff693a4774a870";
  static final class APK {
   final int versionCode;final long size;final String name,sha,notes;
   APK(int code,long size,String name,String sha,String notes){versionCode=code;this.size=size;this.name=name;this.sha=sha;this.notes=notes;}

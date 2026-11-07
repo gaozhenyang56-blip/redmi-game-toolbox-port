@@ -227,6 +227,7 @@ class Api:
         self.server_name=bundle['name'] if bundle else '内置服务器'
         self.server_id=server_config.identity(bundle) if bundle else 'embedded'
         self.account_path=STATE/'account.json' if not bundle else STATE/'servers'/self.server_id/'account.json'
+        self.pending_path=STATE/'pending-export.json' if not bundle else STATE/'servers'/self.server_id/'pending-export.json'
         self.config = config
         parsed = urllib.parse.urlsplit(config['url'])
         if parsed.scheme != 'https' or parsed.username or parsed.fragment: raise ValueError('无效接口配置')

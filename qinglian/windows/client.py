@@ -149,9 +149,9 @@ class Connection(common.Connection):
         subprocess.Popen([str(path),'--proxy-server=http://127.0.0.1:10809','--proxy-bypass-list=localhost;127.0.0.1;[::1]','--disable-quic'],env=env,creationflags=platform.NO_WINDOW,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 
 def export_node(api,details,path):
-    pending=read(STATE/('pending-export-'+api.server_id+'.json'),{})
+    pending=read(api.pending_path,{})
     if any(pending.get(k)!=v for k,v in details.items()):
-        pending=dict(details,requestId=str(uuid.uuid4())); save(STATE/('pending-export-'+api.server_id+'.json'),pending)
+        pending=dict(details,requestId=str(uuid.uuid4())); save(api.pending_path,pending)
     result=api.request('exports/nodes',pending)
     for _ in range(20):
         match=next((n for n in api.request('exports/nodes').get('nodes',[]) if n.get('id')==result['id']),{})
@@ -163,5 +163,5 @@ def export_node(api,details,path):
     with zipfile.ZipFile(path,'w',zipfile.ZIP_DEFLATED) as output:
         for name,value in [('node.json',profile['node']),('share-uri.txt',profile['uri']),('qinglian-ca.pem',profile['caPem']),('client-config.json',profile['clientConfig'])]:
             output.writestr(name,json.dumps(value,ensure_ascii=False,indent=2) if isinstance(value,dict) else value)
-    (STATE/('pending-export-'+api.server_id+'.json')).unlink(missing_ok=True)
+    (api.pending_path).unlink(missing_ok=True)
     return '节点已保存；导出文件含节点凭据，请妥善保存。'

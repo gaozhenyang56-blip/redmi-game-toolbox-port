@@ -19,8 +19,8 @@ class ServerBootstrap(unittest.TestCase):
    for name,part in [('profile','profile'),('telemetry','heartbeat'),('updates','updates')]:self.assertTrue(json.loads((assets/(name+'.json')).read_text())['url'].endswith('/custom/api/v1/'+part))
    with patch.object(runtime,'ROOT',assets),patch.object(runtime,'STATE',state),patch.object(runtime,'device_identity',return_value='fixture'):
     runtime.save(state/'account.json',{'token':'embedded-only'})
-    original=runtime.Api();self.assertEqual(original.account['token'],'embedded-only')
-    runtime.Api.select_server(value);first=runtime.Api();self.assertFalse(first.account);self.assertNotEqual(original.account_path,first.account_path)
+    original=runtime.Api();self.assertEqual(original.account['token'],'embedded-only');self.assertEqual(original.pending_path,state/'pending-export.json')
+    runtime.Api.select_server(value);first=runtime.Api();self.assertFalse(first.account);self.assertNotEqual(original.account_path,first.account_path);self.assertNotEqual(original.pending_path,first.pending_path)
     runtime.save(first.account_path,{'token':'first-server'})
     other=self.fixture(token='b'*64);runtime.Api.select_server(other);second=runtime.Api();self.assertFalse(second.account)
     # Existing API instances keep their original authority/token, including requests completing during a switch.
