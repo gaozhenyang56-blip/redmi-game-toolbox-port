@@ -1,3 +1,9 @@
+# 可自定义面板服务器与独立开源工程（2026-11-07 UTC）
+
+三端源码已支持导入/恢复轻连面板服务器配置（非第三方节点），账号和导出重试隔离，内置默认保留。Android23/1.1.14-preview和桌面preview7构建及多平台检查通过；新包尚未发布Release或更新面板。现有服务器面板导出已部署并验证，独立源码构建/临时全新systemd部署检查通过。详见 [verification/SELFHOST_20261107.md](verification/SELFHOST_20261107.md)、[selfhost/README.md](selfhost/README.md)。
+
+GitHub创建新仓库权限403，已请用户创建并授权空仓库qinglian-vpn；独立本地仓库/workspace/qinglian-vpn已准备，不能误称GitHub仓库已创建。用户授权公开源代码，勿再次询问是否公开；上传时只用白名单独立源码，不含原Git历史或生产资产。
+
 # P-NODE 服务恢复与面板分通道测试（2026-11-05 UTC，已部署，手机现场待复测）
 
 用户反馈 Wi-Fi/移动均 P-NODE，但原 v2rayNG 节点可用。42003955171 检查显示独立节点服务 active/running 却没有 worker，临时访客 profile 始终未就绪。42005603298 只重启 qinglian-exports 后恢复节点分配，原账号、配置、凭据和累计计数检查通过；42006186814 随后验证原生 CDN WSS 和独立 HY2 的真实传输、计量、额度及访客停止全部成功。不能据此断言原始异常就是磁盘或 SQLite；旧实现吞掉的触发错误已无法重建。

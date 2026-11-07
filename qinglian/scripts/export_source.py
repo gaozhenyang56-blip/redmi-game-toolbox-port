@@ -37,6 +37,7 @@ def main():
  for platform in ['ubuntu','windows']:
   (target/'qinglian'/platform/'README.md').write_text('# 轻连 '+platform.title()+'\n\n支持关于页导入轻连面板服务器，或使用构建时内置默认。部署、构建和账号/隐私边界见 [自托管文档](../selfhost/README.md)。\n')
  (target/'qinglian/README.md').write_text('# 轻连 VPN\n\n三端源码与面板：[部署和构建文档](selfhost/README.md)。\n')
+ (target/'.gitattributes').write_text('* text=auto\n*.bat text eol=crlf\n')
  (target/'.gitignore').write_text('dist/\n.cache/\nprivate/\n*.jks\n*.keystore\n*server.json\n*server-selection.json\n')
  print('已导出 '+str(count)+' 个源码文件；不含原Git历史、生产资产或管理凭据。')
 if __name__=='__main__':main()
