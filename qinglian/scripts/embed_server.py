@@ -22,5 +22,5 @@ def generate(value,output):
 def main():
  p=argparse.ArgumentParser();p.add_argument('--server',required=True,type=Path);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
  with a.server.open('rb') as source:value=loads(source.read(65537))
- generate(value,a.output);print('三端私有构建资产已生成，请勿提交Git。')
+ generate(value,a.output);print('Generated private client assets for all platforms; do not commit them to Git.')
 if __name__=='__main__':main()

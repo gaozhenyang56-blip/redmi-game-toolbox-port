@@ -14,7 +14,7 @@ jobs:
       - name: Install GUI and build prerequisites
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y openjdk-17-jdk-headless python3-gi python3-gi-cairo python3-cairo python3-pil gir1.2-gtk-3.0 xvfb dbus-x11
+          sudo apt-get install -y openjdk-17-jdk-headless python3-gi python3-gi-cairo python3-cairo python3-pil gir1.2-gtk-3.0 gsettings-desktop-schemas dconf-gsettings-backend xvfb dbus-x11
       - name: Build an unconfigured package
         run: |
           python3 qinglian/scripts/embed_server.py --server qinglian/selfhost/bootstrap.example.json --output "$RUNNER_TEMP/assets"
@@ -34,6 +34,8 @@ jobs:
           path: dist/*.deb
   windows:
     runs-on: windows-2022
+    env:
+      PYTHONUTF8: '1'
     timeout-minutes: 30
     defaults:
       run:

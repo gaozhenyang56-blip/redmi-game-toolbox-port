@@ -1,3 +1,11 @@
+# 独立公开仓库已上传并标明 AI 开发（2026-11-07 UTC）
+
+用户创建并授权新仓库后，已上传独立白名单源码至 https://github.com/gaozhenyang56-blip/qinglian-vpn ，main，当前42d5909。新仓库不含原Git历史、生产资产、签名私钥或旧服务器维护绑定；后续公共客户端/面板开发优先使用 /workspace/qinglian-vpn。用户追加要求“注明AI开发”，已在公开首页和导出模板注明主要由OpenAI Codex（AI）依维护者需求开发，第三方保留原作者和许可证；仓库About元信息修改403，但README已成功上传，此事不构成发布阻塞，勿再次请求创建仓库。
+
+新仓库独立CI已全部成功：42376522076的Android（未配置服务器的公开开发构建/测试/lint）与面板（原生构建/临时全新安装/API/兼容及HY2 worker/清理）；42376522035的Windows安装包/免安装包/原生及GUI、Ubuntu DEB/原生/GUI均成功。修复的是干净CI所缺的SDK命令工具（显式安装platform-tools/platform35/build-tools35，避免已退休tools包）、GNOME设置schema和Windows cp1252控制台中的CLI中文输出，未改动核心协议或账号策略。最新公开产物是未配置服务器的构建；此前原签名23/桌面7含原内置服务器的交付包仍在/workspace/artifacts/qinglian-vpn，尚未发布GitHub Releases或更新原面板的客户端版本发布。
+
+部署/内置脚本文档：https://github.com/gaozhenyang56-blip/qinglian-vpn/blob/main/qinglian/selfhost/README.md 。代码公开及AI署名已完成，用户不需要再确认开源权限。源码ZIP及校验文件也已更新AI说明。
+
 # 可自定义面板服务器与独立开源工程（2026-11-07 UTC）
 
 三端源码已支持导入/恢复轻连面板服务器配置（非第三方节点），账号和导出重试隔离，内置默认保留。Android23/1.1.14-preview和桌面preview7构建及多平台检查通过；新包尚未发布Release或更新面板。现有服务器面板导出已部署并验证，独立源码构建/临时全新systemd部署检查通过。详见 [verification/SELFHOST_20261107.md](verification/SELFHOST_20261107.md)、[selfhost/README.md](selfhost/README.md)。
