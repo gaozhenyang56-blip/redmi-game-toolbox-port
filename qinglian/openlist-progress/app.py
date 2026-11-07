@@ -1,5 +1,5 @@
 """Read-only sidecar for existing AstrBot local downloads. No task controls."""
-import collections,hashlib,http.cookies,json,os,secrets,sqlite3,threading,time,urllib.error,urllib.parse,urllib.request
+import collections,hashlib,http.cookies,json,os,secrets,shutil,sqlite3,threading,time,urllib.error,urllib.parse,urllib.request
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
 
@@ -19,15 +19,17 @@ class Store:
             c.execute('CREATE TABLE IF NOT EXISTS files(id TEXT PRIMARY KEY,rel TEXT,name TEXT,status TEXT,size INTEGER,total INTEGER,started REAL,updated REAL,seen REAL,speed REAL,eta REAL)')
             c.execute('CREATE TABLE IF NOT EXISTS points(id TEXT,t REAL,speed REAL)')
             c.execute('CREATE INDEX IF NOT EXISTS points_id_time ON points(id,t)')
-        self.db.chmod(0o600);self.error='';self.last_scan=0
+        self.db.chmod(0o600);self.error='';self.last_scan=0;self.capacity={}
     def connect(self):return sqlite3.connect(self.db,timeout=10)
     def scan(self,root,totals=None,now=None):
         now=time.time() if now is None else now;totals=totals or {};root=Path(root);found=[]
         try:
             if not root.is_dir():raise OSError('download directory unavailable')
-            for directory in list(root.iterdir())[:2000]:
+            directories=list(root.iterdir());complete=len(directories)<=2000
+            for directory in directories[:2000]:
                 if directory.is_symlink() or not directory.is_dir():continue
-                for file in list(directory.iterdir())[:10]:
+                entries=list(directory.iterdir());complete=complete and len(entries)<=10
+                for file in entries[:10]:
                     if file.is_symlink() or not file.is_file():continue
                     partial=file.name.endswith('.part');name=file.name[:-5] if partial else file.name
                     # A real source file ending .part is distinguishable if metadata is known.
@@ -36,6 +38,7 @@ class Store:
                     found.append((ident,rel,name,partial,stat.st_size,directory.stat().st_mtime))
         except OSError:
             self.error='暂时无法读取下载目录，保留上次状态。';return
+        disk=shutil.disk_usage(root);self.capacity={'disk_total':disk.total,'disk_free':disk.free,'disk_used':disk.used,'cache_used':sum(row[4] for row in found),'cache_measurement_complete':complete}
         self.error='';seen=set();overall=0
         with self.connect() as c:
             for ident,rel,name,partial,size,started in found:
@@ -71,7 +74,7 @@ class Store:
                 files.append(item)
             history=[[r['t'],r['speed']] for r in c.execute("SELECT t,speed FROM points WHERE id='_all' AND t>=? ORDER BY t",(now-900,))]
         active=[f for f in files if f['status'] in ('downloading','waiting')]
-        return {'files':files,'history':history,'speed':sum(f['speed'] for f in active),'active':len(active),'completed':sum(f['status']=='completed' for f in files),'sampled_at':self.last_scan,'monitor_error':self.error,'read_only':True}
+        return {'files':files,'history':history,'speed':sum(f['speed'] for f in active),'active':len(active),'completed':sum(f['status']=='completed' for f in files),'sampled_at':self.last_scan,'monitor_error':self.error,'read_only':True,'capacity':dict(self.capacity)}
     def completed_path(self,ident):
         with self.connect() as c:row=c.execute("SELECT rel FROM files WHERE id=? AND status='completed'",(ident,)).fetchone()
         return row[0] if row else None
@@ -122,6 +125,10 @@ class Service:
                 return None
             result['checked']=time.time()
         return result
+    def snapshot(self):
+        data=self.store.snapshot();capacity=data['capacity'];limit=self.config.get('cache_limit_bytes',4*1024**3);reserve=self.config.get('reserve_bytes',2*1024**3)
+        capacity.update({'cache_limit':limit,'system_reserve':reserve,'available_for_download':max(0,min(limit-capacity.get('cache_used',0),capacity.get('disk_free',0)-reserve)) if capacity.get('cache_measurement_complete') else None})
+        return data
     def update_metadata(self):
         now=time.time()
         if now-self.metadata_at<60:return
@@ -164,7 +171,7 @@ class Handler(BaseHTTPRequestHandler):
         session=self.service.session(self.headers.get('Cookie'))
         if not session:return self.respond(401,{'error':'请先登录。'})
         if path=='/api/session':return self.respond(200,{'username':session['name']})
-        if path=='/api/progress':return self.respond(200,self.service.store.snapshot())
+        if path=='/api/progress':return self.respond(200,self.service.snapshot())
         if path=='/api/link':
             ident=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get('id',[''])[0];rel=self.service.store.completed_path(ident)
             if not rel:return self.respond(404,{'error':'文件未完成或不存在。'})

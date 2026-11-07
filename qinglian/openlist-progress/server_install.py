@@ -28,7 +28,7 @@ try:
  BASE.mkdir(mode=0o755,exist_ok=True);(BASE/'static').mkdir(mode=0o755,exist_ok=True)
  for name in ['app.py','static/index.html','static/style.css','static/app.js']:
   destination=BASE/name;temp=destination.with_suffix(destination.suffix+'.new');shutil.copyfile(STAGE/name,temp);temp.chmod(0o644);os.replace(temp,destination)
- config={'bind':'0.0.0.0','port':port,'database':str(DATA/'state.sqlite3'),'download_root':str(root),'openlist_api':cfg['openlist_url'],'mount':cfg['openlist_local_mount'],'public_openlist':cfg['openlist_public_url'],'source_path':cfg['openlist_pan_path'].rstrip('/')+'/'+cfg['save_dir'].lstrip('/')}
+ config={'bind':'0.0.0.0','port':port,'database':str(DATA/'state.sqlite3'),'download_root':str(root),'openlist_api':cfg['openlist_url'],'mount':cfg['openlist_local_mount'],'public_openlist':cfg['openlist_public_url'],'source_path':cfg['openlist_pan_path'].rstrip('/')+'/'+cfg['save_dir'].lstrip('/'),'cache_limit_bytes':int(cfg.get('openlist_local_max_total_mb',4096))*1024**2,'reserve_bytes':int(cfg.get('openlist_local_reserve_mb',2048))*1024**2}
  config_path.write_text(json.dumps(config,ensure_ascii=False));config_path.chmod(0o600);os.chown(config_path,user.pw_uid,user.pw_gid)
  unit='''[Unit]
 Description=Read-only OpenList download progress dashboard
