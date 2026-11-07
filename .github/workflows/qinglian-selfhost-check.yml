@@ -1,0 +1,39 @@
+name: Qinglian portable panel and fresh-server verification
+on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['.github/workflows/qinglian-selfhost-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian
+      - name: Install pinned Go
+        run: |
+          curl -fsSL https://go.dev/dl/go1.23.12.linux-amd64.tar.gz -o "$RUNNER_TEMP/go.tar.gz"
+          printf '%s  %s\n' "$(cat qinglian/selfhost/go-sdk.sha256)" "$RUNNER_TEMP/go.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/go.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/go/bin" >> "$GITHUB_PATH"
+      - name: Bootstrap, PKI, refusal and source-export checks
+        run: |
+          python3 -m unittest discover -s qinglian/ubuntu -p test_server_config.py -v
+          python3 -m unittest discover -s qinglian/selfhost -p test_installer.py -v
+          python3 qinglian/scripts/export_source.py --output "$RUNNER_TEMP/portable-source"
+      - name: Build from the standalone public source only
+        working-directory: ${{ runner.temp }}/portable-source
+        run: python3 qinglian/selfhost/build_panel.py --output "$RUNNER_TEMP/panel-bundle"
+      - name: Fresh systemd install, API, TCP/HY2 workers and cleanup on ephemeral runner only
+        run: sudo env GITHUB_ACTIONS=true QINGLIAN_CI_FRESH_INSTALL=1 python3 qinglian/selfhost/test_fresh_server.py --bundle "$RUNNER_TEMP/panel-bundle"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qinglian-selfhost-panel-amd64
+          path: ${{ runner.temp }}/panel-bundle/
+          if-no-files-found: error

@@ -42,6 +42,8 @@ jobs:
           python3 -m unittest discover -s qinglian/ubuntu -p test_server_config.py -v
           python3 -m unittest discover -s qinglian/selfhost -p test_installer.py -v
           python3 qinglian/selfhost/build_panel.py --output dist/panel
+      - name: Fresh systemd installation and both account workers (loopback only)
+        run: sudo env GITHUB_ACTIONS=true QINGLIAN_CI_FRESH_INSTALL=1 python3 qinglian/selfhost/test_fresh_server.py --bundle dist/panel
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: panel-amd64-installation-bundle
