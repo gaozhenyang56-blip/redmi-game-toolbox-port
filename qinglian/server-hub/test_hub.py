@@ -31,4 +31,20 @@ class HubTests(unittest.TestCase):
   rows=collector.listeners('tcp LISTEN 0 128 0.0.0.0:6185 0.0.0.0:* users:(("python",pid=123,fd=5))',Path(self.temp.name));self.assertEqual(rows[0]['port'],6185);self.assertEqual(rows[0]['process'],'python')
  def test_bom_config(self):
   p=app.DATA/'bom.json';p.write_text('\ufeff{"ok":true}');self.assertTrue(collector.read_json(p,{})['ok'])
+ def test_panel_prefix_login_assets_and_logout(self):
+  with self.request('/panel') as r:self.assertTrue(r.url.endswith('/panel/'))
+  with self.request('/panel/') as r:
+   html=r.read().decode();self.assertIn('href="style.css"',html);self.assertIn('src="app.js"',html)
+  for path in ('/panel/app.js','/panel/style.css','/panel/health'):
+   with self.request(path) as r:self.assertEqual(r.status,200)
+  with self.request('/panel/api/login',{'username':'tester','password':'test-only'}) as r:
+   cookie=r.headers['Set-Cookie'].split(';')[0];self.assertIn('Path=/panel/',r.headers['Set-Cookie'])
+  with self.request('/panel/api/status',cookie=cookie) as r:self.assertTrue(json.load(r)['read_only'])
+  with self.request('/panel/api/logout',{},cookie=cookie) as r:
+   self.assertIn('Path=/panel/',r.headers['Set-Cookie']);self.assertIn('Max-Age=0',r.headers['Set-Cookie'])
+ def test_proxy_cookie_and_client_rate_identity(self):
+  h=object.__new__(app.Handler);h.path='/panel/api/login';h.client_address=('127.0.0.1',1234);h.headers={'X-Forwarded-For':'198.51.100.8','X-Forwarded-Proto':'https'}
+  self.assertEqual(h.peer(),'198.51.100.8');self.assertIn('; Secure',h.cookie_options())
+  h.client_address=('198.51.100.9',1234)
+  self.assertEqual(h.peer(),'198.51.100.9');self.assertNotIn('; Secure',h.cookie_options())
 if __name__=='__main__':unittest.main()

@@ -5,6 +5,8 @@ import (
 	"crypto/x509"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -57,6 +59,7 @@ func (a *QinglianController) domainTLS() (*tls.Certificate, []*net.IPNet, error)
 // CDN source ranges may supply the real user address; speed restrictions still
 // see the original user instead of a loopback reverse proxy.
 func (a *QinglianController) domainHandler(api, panel http.Handler, cdn []*net.IPNet) http.Handler {
+	hub := qServiceHubProxy()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host := r.Host
 		if strings.Contains(host, ":") {
@@ -89,10 +92,35 @@ func (a *QinglianController) domainHandler(api, panel http.Handler, cdn []*net.I
 			request.Header.Del(name)
 		}
 		w.Header().Set("Cache-Control", "private, no-store")
+		if request.URL.Path == "/panel" || strings.HasPrefix(request.URL.Path, "/panel/") {
+			hub.ServeHTTP(w, request)
+			return
+		}
 		if strings.HasPrefix(request.URL.Path, a.streamPrefix()) {
 			a.serveStream(w, request)
 			return
 		}
 		panel.ServeHTTP(w, request)
 	})
+}
+
+// Keep the hub behind the existing verified domain/SNI boundary. The target is
+// fixed to loopback; callers cannot select an upstream or forward trusted IPs.
+func qServiceHubProxy() http.Handler {
+	proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme: "http", Host: "127.0.0.1:9178"})
+	director := proxy.Director
+	proxy.Director = func(r *http.Request) {
+		director(r)
+		r.Header.Set("X-Forwarded-Proto", "https")
+	}
+	proxy.Transport = &http.Transport{
+		DialContext:           (&net.Dialer{Timeout: 3 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+		ResponseHeaderTimeout: 10 * time.Second,
+		IdleConnTimeout:       60 * time.Second,
+		MaxIdleConnsPerHost:   4,
+	}
+	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		http.Error(w, "Service hub temporarily unavailable", http.StatusBadGateway)
+	}
+	return proxy
 }

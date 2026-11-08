@@ -1,4 +1,4 @@
-name: Qinglian service hub deploy
+name: Qinglian service hub HTTPS routing
 on:
   push:
     branches: [codex/qinglian-routing-and-presence]
@@ -12,19 +12,35 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
           sparse-checkout: |
             qinglian/server-hub
-            qinglian/server/github
+            qinglian/server
       - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
-      - name: Deploy isolated read-only service hub
+      - name: Test hub login, prefix paths and proxy session handling
+        run: python3 -m unittest discover -s qinglian/server-hub -p test_hub.py -v
+      - name: Install pinned Go
+        run: |
+          curl -fsSL https://go.dev/dl/go1.23.12.linux-amd64.tar.gz -o "$RUNNER_TEMP/go.tar.gz"
+          printf '%s  %s\n' "$(cat qinglian/server/github/go-sdk.sha256)" "$RUNNER_TEMP/go.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/go.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/go/bin" >> "$GITHUB_PATH"
+      - name: Build and test domain routing against exact upstream
+        run: |
+          git clone --branch 0.3.2 --depth 1 https://github.com/vaxilu/x-ui.git "$RUNNER_TEMP/x-ui"
+          python3 qinglian/server/xui032/apply.py "$RUNNER_TEMP/x-ui"
+          cd "$RUNNER_TEMP/x-ui"
+          go test -race ./web/controller ./web
+          go build -trimpath -o "$RUNNER_TEMP/qinglian-x-ui" .
+      - name: Back up, migrate hub to 9178 and verify HTTPS login and APIs
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
           QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
           QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
-        run: python3 qinglian/server-hub/deploy.py
+          QINGLIAN_SERVER_BINARY: ${{ runner.temp }}/qinglian-x-ui
+        run: python3 qinglian/server-hub/deploy_routing.py

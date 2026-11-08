@@ -16,15 +16,10 @@ try:
  try:user=pwd.getpwnam('server-hub')
  except KeyError:run(['useradd','--system','--home-dir',str(DATA),'--shell','/usr/sbin/nologin','server-hub']);user=pwd.getpwnam('server-hub')
  DATA.mkdir(mode=0o750,exist_ok=True);os.chown(DATA,0,user.pw_gid);DATA.chmod(0o750)
- port=None
- if (DATA/'config.json').exists():port=json.loads((DATA/'config.json').read_text())['port']
- else:
-  for candidate in [5246,5247,5248]:
-   try:
-    with socket.socket() as probe:probe.bind(('0.0.0.0',candidate))
-    port=candidate;break
-   except OSError:continue
- assert port,'No free dashboard port'
+ port=9178
+ previous_port=json.loads((DATA/'config.json').read_text())['port'] if (DATA/'config.json').exists() else None
+ if previous_port!=port:
+  with socket.socket() as probe:probe.bind(('0.0.0.0',port))
  for filename,mode in [('collector-key',0o600),('session-key',0o640)]:
   p=DATA/filename
   if not p.exists():p.write_bytes(secrets.token_bytes(32))

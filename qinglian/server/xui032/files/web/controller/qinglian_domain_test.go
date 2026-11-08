@@ -130,3 +130,40 @@ func TestQDomainCertificateAndProxyConfigurationValidation(t *testing.T) {
 		t.Fatal("partial domain configuration accepted")
 	}
 }
+
+func TestQDomainServiceHubRoutingAndBoundary(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:9178")
+	if err != nil {
+		t.Fatal(err)
+	}
+	backend := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Host != "gaozy.tech" || r.Header.Get("X-Forwarded-Proto") != "https" || r.Header.Get("X-Forwarded-For") != "198.51.100.8" || r.Header.Get("CF-Connecting-IP") != "" {
+			t.Errorf("proxy did not preserve origin and normalized peer")
+		}
+		if r.URL.Path != "/panel/api/status" || r.Header.Get("Cookie") != "server_hub_session=fixture" {
+			t.Errorf("hub request changed")
+		}
+		w.WriteHeader(http.StatusUnauthorized)
+	})}
+	go backend.Serve(listener)
+	defer backend.Close()
+	a := &QinglianController{cfg: qConfig{TLS: qTLSConfig{DomainName: "gaozy.tech"}}}
+	handler := a.domainHandler(http.NotFoundHandler(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) }), nil)
+	for _, c := range []struct {
+		path, sni string
+		status    int
+	}{{"/panel/api/status", "gaozy.tech", 401}, {"/panel/api/status", "", 404}, {"/panels", "gaozy.tech", 204}, {"/api/v1/profile", "gaozy.tech", 204}} {
+		request := httptest.NewRequest("GET", "https://gaozy.tech"+c.path, nil)
+		request.TLS = &tls.ConnectionState{ServerName: c.sni}
+		request.RemoteAddr = "198.51.100.8:1234"
+		request.Header.Set("Cookie", "server_hub_session=fixture")
+		request.Header.Set("X-Forwarded-For", "127.0.0.1")
+		request.Header.Set("X-Forwarded-Proto", "http")
+		request.Header.Set("CF-Connecting-IP", "127.0.0.1")
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != c.status {
+			t.Fatalf("%s SNI %s: got %d", c.path, c.sni, response.Code)
+		}
+	}
+}

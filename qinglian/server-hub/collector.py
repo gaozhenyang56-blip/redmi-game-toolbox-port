@@ -11,7 +11,7 @@ KNOWN={
  'qinglian-exports.service':('轻连转发服务','兼容节点与导出服务',11456,None),
  'qinglian-hy2.service':('轻连加速服务','Hysteria 2 加速通道',11453,None),
  'qinglian-remote.service':('轻连远程服务','远程控制与连接桥接',18443,None),
- 'server-hub.service':('服务聚合面板','服务器状态与后台导航',5246,'/'),
+ 'server-hub.service':('服务聚合面板','服务器状态与后台导航',9178,'/'),
 }
 SKIP_HTTP=('ssh','xray','v2ray','hysteria','mysql','mariadb','postgres','redis','systemd','containerd','docker')
 def command(args,timeout=8):
