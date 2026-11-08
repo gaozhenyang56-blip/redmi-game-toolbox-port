@@ -45,6 +45,14 @@ try:
     paths += ['/etc/systemd/system/'+name for name in ('server-hub.service','server-hub-collector.service','server-hub-collector.timer')]
     for name in paths:
         source=Path(name);target=backup/source.relative_to('/');target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
+    # Preserve private configuration, certificates and service overrides too;
+    # these are backup-only and are never uploaded or printed to Actions logs.
+    for name in ('/etc/x-ui/qinglian.json','/etc/x-ui/qinglian','/etc/letsencrypt/live/qinglian-gaozy-tech','/etc/systemd/system/x-ui.service','/etc/systemd/system/x-ui.service.d','/var/lib/server-hub/auth.json','/var/lib/server-hub/session-key','/var/lib/server-hub/collector-key'):
+        source=Path(name)
+        if not source.exists():continue
+        target=backup/source.relative_to('/');target.parent.mkdir(parents=True,exist_ok=True)
+        if source.is_dir():shutil.copytree(source,target,dirs_exist_ok=True)
+        else:shutil.copy2(source,target)
     # SQLite online snapshots stay in the root-only rollback directory.
     for source in (Path('/etc/x-ui/x-ui.db'),Path(cfg['statePath'])):
         target=backup/source.relative_to('/');target.parent.mkdir(parents=True,exist_ok=True)
