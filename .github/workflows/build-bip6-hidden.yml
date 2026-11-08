@@ -1,0 +1,31 @@
+name: Build Bip 6 Hidden App Test
+on:
+  push:
+    branches: [bip6-hidden-test-build]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Zeus CLI
+        run: npm install -g @zeppos/zeus-cli
+      - name: Build target
+        working-directory: bip6-zab/HiddenTarget
+        run: CI=true zeus build
+      - name: Build manager
+        working-directory: bip6-zab/HiddenManager
+        run: CI=true zeus build
+      - name: Show packages
+        run: find bip6-zab -name '*.zab' -print
+      - name: Upload ZABs
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bip6-Hidden-App-ZAB
+          path: bip6-zab/**/dist/*.zab
+          if-no-files-found: error

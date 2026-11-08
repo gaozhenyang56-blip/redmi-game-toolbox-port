@@ -1,0 +1,58 @@
+{
+  "configVersion": "v3",
+  "app": {
+    "appId": 20096101,
+    "appName": "Hidden Manager",
+    "appType": "app",
+    "version": {
+      "code": 1,
+      "name": "0.1.0"
+    },
+    "vender": "Bip6 Test",
+    "description": "Bip 6 hidden app launch validation"
+  },
+  "permissions": [],
+  "runtime": {
+    "apiVersion": {
+      "compatible": "4.0",
+      "target": "4.2",
+      "minVersion": "4.0"
+    }
+  },
+  "debug": true,
+  "targets": {
+    "bip6": {
+      "module": {
+        "page": {
+          "pages": [
+            "page/bip6/index.page"
+          ]
+        }
+      },
+      "platforms": [
+        {
+          "name": "bip6v1",
+          "deviceSource": 9765120
+        },
+        {
+          "name": "bip6v2",
+          "deviceSource": 9765121
+        },
+        {
+          "name": "bip6v3",
+          "deviceSource": 10158337
+        }
+      ],
+      "designWidth": 390
+    }
+  },
+  "i18n": {
+    "zh-CN": {
+      "appName": "应用管理测试"
+    },
+    "en-US": {
+      "appName": "Hidden Manager"
+    }
+  },
+  "defaultLanguage": "zh-CN"
+}
