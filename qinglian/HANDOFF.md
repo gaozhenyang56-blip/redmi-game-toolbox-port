@@ -1,3 +1,15 @@
+# 服务聚合面板 9178 与 /panel 已上线（2026-11-08 UTC）
+
+用户确认沿用原仓库 `redmi-game-toolbox-port` 的 `codex/qinglian-routing-and-presence` 分支维护聚合面板；独立公开 `qinglian-vpn` 仓库没有原服务器 Actions Secrets，未将生产凭据迁入该仓库。
+
+鲸屿服务聚合面板从5246迁移至9178，域名入口为 https://gaozy.tech/panel （308到/panel/）。沿用现有OpenList账号和会话密钥；静态资源、登录、状态API、退出均支持/panel/前缀。域名现有x-ui HTTPS处理器只对已验证Host/SNI的/panel路径反代至固定127.0.0.1:9178；IP入口的App API白名单、原VPN管理路径不变。HTTPS会话Cookie为Secure/HttpOnly、Path=/panel/；反代使用已规范化的客户端地址进行登录限流。
+
+部署42453857698的服务器端检查通过：9178监听、旧5246关闭、真实HTTPS账号登录/状态/退出、两原IP端口App API、原配置/入站/累计计数、其他项目服务进程均保持。部署前在服务器/root/server-hub-routing-*保留root私有备份，包含原程序、聚合面板代码与配置、SQLite一致性快照、PKI、私有配置及服务设置；安装检查失败自动恢复原程序和面板文件。原x-ui与聚合面板已按需重启，其他项目服务未重启。
+
+该次工作流的最后公网探测因默认Python User-Agent被Cloudflare返回403而标红，服务器安装成功且没有回滚；已修复为项目既有Qinglian-Deploy/1.0标识，没有降低Cloudflare策略。只读公网验证42454177993成功；独立公网9178/health和/panel/均200，真实Chromium手机/桌面页面、静态资产、重定向、未登录API401通过。7项Python测试、完整Go race与程序构建、本地浏览器登录/导航/退出均通过。没有宣称用户设备现场VPN验收。
+
+维护工作流 `.github/workflows/qinglian-server-hub.yml` 提供deploy和verify两种手动模式；verify只检查公网入口，不会重新部署或重启服务器。源码部署d2a2c50，探测修正f12cdff。
+
 # 独立公开仓库已上传并标明 AI 开发（2026-11-07 UTC）
 
 用户创建并授权新仓库后，已上传独立白名单源码至 https://github.com/gaozhenyang56-blip/qinglian-vpn ，main，当前42d5909。新仓库不含原Git历史、生产资产、签名私钥或旧服务器维护绑定；后续公共客户端/面板开发优先使用 /workspace/qinglian-vpn。用户追加要求“注明AI开发”，已在公开首页和导出模板注明主要由OpenAI Codex（AI）依维护者需求开发，第三方保留原作者和许可证；仓库About元信息修改403，但README已成功上传，此事不构成发布阻塞，勿再次请求创建仓库。
