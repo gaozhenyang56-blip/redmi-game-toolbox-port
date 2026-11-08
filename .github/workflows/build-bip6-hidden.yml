@@ -15,6 +15,21 @@ jobs:
           node-version: '20'
       - name: Install Zeus CLI
         run: npm install -g @zeppos/zeus-cli
+      - name: Create app icons
+        run: |
+          python3 - <<'PY'
+          import os,struct,zlib
+          def chunk(tag,data):
+              return struct.pack('!I',len(data))+tag+data+struct.pack('!I',zlib.crc32(tag+data)&0xffffffff)
+          for name,color in [('HiddenManager',(35,105,180)),('HiddenTarget',(35,160,110))]:
+              n=128
+              line=b'\0'+bytes((*color,255))*n
+              pixels=line*n
+              png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('!2I5B',n,n,8,6,0,0,0))+chunk(b'IDAT',zlib.compress(pixels))+chunk(b'IEND',b'')
+              p=f'bip6-zab/{name}/assets/bip6/icon.png'
+              os.makedirs(os.path.dirname(p),exist_ok=True)
+              with open(p,'wb') as f: f.write(png)
+          PY
       - name: Build target
         working-directory: bip6-zab/HiddenTarget
         run: CI=true zeus build
