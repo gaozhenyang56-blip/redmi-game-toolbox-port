@@ -4,6 +4,12 @@ on:
     branches: [codex/qinglian-routing-and-presence]
     paths: ['.github/workflows/qinglian-server-hub.yml','qinglian/server-hub/**']
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Deploy routing or only verify the public HTTPS entry
+        type: choice
+        options: [deploy, verify]
+        default: deploy
 permissions:
   contents: read
 concurrency:
@@ -11,6 +17,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
+    if: github.event_name != 'workflow_dispatch' || inputs.mode != 'verify'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -44,3 +51,14 @@ jobs:
           QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
           QINGLIAN_SERVER_BINARY: ${{ runner.temp }}/qinglian-x-ui
         run: python3 qinglian/server-hub/deploy_routing.py
+  verify:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'verify'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian/server/github
+      - name: Verify live HTTPS panel without changing the server
+        run: python3 qinglian/server/github/hub_public_check.py

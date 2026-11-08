@@ -14,8 +14,5 @@ with connection() as client:
     print('SERVER_HUB_ROUTING='+json.dumps(result),flush=True)
     if not result.get('ok'):raise SystemExit(1)
 # Verify the external CDN/HTTPS route as well as the origin checks above.
-for path,ctype in (('/panel/','text/html'),('/panel/app.js','text/javascript'),('/panel/style.css','text/css')):
-    with urllib.request.urlopen('https://gaozy.tech'+path,timeout=20) as response:
-        assert response.status==200 and ctype in response.headers['Content-Type']
-        assert len(response.read())>100
-print('Public HTTPS page and assets verified with certificate validation.')
+from hub_public_check import verify
+verify()
