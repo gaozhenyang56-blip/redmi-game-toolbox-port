@@ -5,6 +5,18 @@
 /* Free experiment workbench (mobile-first). */
 .fo-main{padding:0 clamp(17px,4vw,36px) 35px;max-width:1120px;margin:auto}.fo-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px}.fo-heading h1{font-size:clamp(25px,4.5vw,34px);margin:7px 0}.fo-heading p,.fo-small,.fo-infonote{color:#9aaecd;line-height:1.5;font-size:12px}.fo-eyebrow{color:#5feacb;letter-spacing:2px;font-size:10px;font-weight:800}.fo-outline{white-space:nowrap;border:1px solid #3b5679;color:#aefbe9;padding:11px 12px;background:#1a2940;border-radius:12px;font-weight:700}.fo-mode{display:flex;gap:7px;background:#111d33;border:1px solid #293956;padding:6px;border-radius:15px}.fo-mode button{min-width:0;flex:1;border:0;border-radius:11px;padding:12px 4px;color:#a8bbd6;font-weight:800;background:transparent}.fo-mode .on{color:#083c3a;background:#60e8c9}.fo-tophint{color:#acc0dd;font-size:12px;line-height:1.7;margin:10px 3px}.fo-workgrid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(230px,.75fr);gap:13px;align-items:start}.fo-center,.fo-inspector{border-radius:20px;border:1px solid #2d405f;background:#101a2d;overflow:hidden}.fo-board-head,.fo-pane-header{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:13px 13px;border-bottom:1px solid #253850;min-height:52px}.fo-board-head>span,.fo-pane-header>span{font-weight:800;color:#e6f5ff}.fo-board-head>div{display:flex;gap:3px}.fo-board-head button,.fo-pane-header button{border:1px solid #354a6c;border-radius:8px;background:#1a2944;color:#a9c8e0;font-size:11px;padding:7px}.fo-board{position:relative;isolation:isolate;width:100%;height:360px;overflow:hidden;touch-action:none;background-color:#0c1a2b;background-image:linear-gradient(#18283b88 1px,transparent 1px),linear-gradient(90deg,#18283b88 1px,transparent 1px),radial-gradient(ellipse at 55% 50%,#162f44 0%,#0c182a 65%);background-size:24px 24px,24px 24px,100% 100%;border-bottom:1px solid #304562}.fo-stage-watermark{position:absolute;top:13px;left:13px;font-size:10px;color:#4a7395;letter-spacing:2px;font-weight:800;pointer-events:none}.fo-empty{position:absolute;top:47%;left:50%;transform:translate(-50%,-50%);text-align:center;display:flex;flex-direction:column;gap:10px;color:#a7bfd6;max-width:220px;width:85%;pointer-events:none}.fo-empty strong{font-size:22px;color:#dceff8}.fo-empty span{font-size:12px;line-height:1.6}.fo-object{position:absolute;z-index:3;width:116px;transform:translate(-50%,-50%);text-align:center;touch-action:none;user-select:none}.fo-objectface{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80px;cursor:grab;touch-action:none;transition:background .15s;border:1px solid transparent;border-radius:16px}.fo-object.chosen .fo-objectface{border:1px solid #65e9ce66;background:#63eed018;box-shadow:0 0 0 3px #2ce3ac10}.fo-objectname{font-size:11px;line-height:1.25;color:#c4ddf1;white-space:nowrap;margin-top:7px;text-shadow:0 1px 2px #111}.fo-vessel{position:relative;width:55px;height:72px;border:3px solid #a7e7f5aa;border-top:0;border-radius:3px 3px 11px 11px;overflow:hidden;box-shadow:inset 6px 1px 13px #e1fdff1f,0 6px 15px #0003}.fo-vessel::before{content:'';position:absolute;top:0;left:-7px;right:-7px;height:4px;border:2px solid #bedff1;border-radius:50%;z-index:2}.fo-vessel.tube{width:30px;height:91px;border-radius:3px 3px 17px 17px}.fo-vessel.flask{width:69px;height:75px;border-radius:28px 28px 12px 12px;clip-path:polygon(38% 0,62% 0,62% 26%,99% 90%,99% 100%,1% 100%,1% 90%,38% 26%)}.fo-liquid{position:absolute;bottom:0;left:0;right:0;background:var(--water-color);opacity:.88;box-shadow:inset 7px 6px 12px #fff5,0 0 8px #81aafd33;transition:height .25s,background .25s}.fo-liquid::before{content:'';height:5px;position:absolute;top:-2px;left:0;right:0;background:#d3fcff55;border-radius:50%}.fo-glass{position:absolute;top:0;bottom:0;left:7px;width:5px;background:linear-gradient(#fff5,#ffffff0a);pointer-events:none}.fo-therm{font-size:44px}.fo-circuit-icon{width:75px;height:48px;border:1px solid #457197;border-radius:12px;background:linear-gradient(145deg,#1b3954,#15314a);color:#d4eafa;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:inset 0 1px #ffffff1d,0 5px 15px #0004}.fo-circuit-icon.fo-bulb{font-size:33px}.fo-circuit-icon.fo-lit{background:#ebd77e;color:#1a2933;box-shadow:0 0 20px 5px #f2d57566}.fo-terminal{position:absolute;top:22px;width:20px;height:20px;border:3px solid #9fc2e9;background:#263e61;border-radius:50%;z-index:8;cursor:crosshair;padding:0;box-shadow:0 0 0 3px #162e4b}.fo-terminal.a{left:-8px}.fo-terminal.b{right:-8px}.fo-terminal.armed{border-color:#55eabf;background:#4bceab;box-shadow:0 0 13px #46ebb9}.fo-wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible;z-index:2;pointer-events:none}.fo-wire-path{fill:none;stroke:#f0be68;stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}.fo-wire-hit{fill:none;stroke:transparent;stroke-width:21;pointer-events:stroke;cursor:pointer}.fo-bottom-stats{display:flex;justify-content:space-around;gap:9px;align-items:center;padding:12px 10px;color:#a5bdd6;font-size:11px;flex-wrap:wrap}.fo-bottom-stats b{color:#79eed0;font-size:13px;margin-left:4px}.fo-solver{font-size:11px;color:#cce6f6;max-width:100%;line-height:1.45}.fo-palette-title{padding:11px 13px 7px;font-weight:800;color:#deecff}.fo-palette-title small{font-weight:400;color:#8ba4bd;font-size:10px;float:right}.fo-palette{display:flex;gap:8px;overflow-x:auto;padding:8px 12px 16px;scrollbar-width:thin}.fo-tool{flex:0 0 91px;height:88px;display:flex;align-items:center;flex-direction:column;justify-content:center;border-radius:13px;background:#1c2e4a;color:#d6eafd;border:1px solid #345071;gap:5px}.fo-tool span{font-size:25px}.fo-tool b{font-size:11px}.fo-tool small{font-size:10px;color:#76dfc9}.fo-inspector{min-height:325px;padding-bottom:17px}.fo-inspector>h3{font-size:21px;margin:14px}.fo-inspector>.fo-small{margin:-7px 14px 15px}.fo-inspector-empty{padding:65px 23px;text-align:center;color:#adc3db}.fo-inspector-mark{font-size:40px;color:#61e5c9}.fo-inspector-empty h3{color:#f2ffff}.fo-inspector-empty p{line-height:1.65;font-size:12px}.fo-info{margin:13px;border:1px solid #304765;background:#14263c;padding:13px;border-radius:12px;color:#bdd7ec;font-size:12px;line-height:1.7}.fo-numrow{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #30405b}.fo-numrow:last-child{border:0}.fo-numrow strong{color:#72ecd4}.fo-inspector h4{font-size:12px;margin:15px 13px 10px}.fo-reagents{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 13px}.fo-reagents button{font-size:11px;border:1px solid #354b6a;border-radius:9px;background:#1a3049;color:#dceef5;padding:10px 5px}.fo-primary-full{border:0;background:#6ce9ca;color:#063b3c;font-weight:800;border-radius:10px;padding:13px;display:block;width:calc(100% - 26px);margin:15px 13px 8px}.fo-infonote{margin:12px 13px}.fo-range-label{display:flex;justify-content:space-between;margin:20px 13px 12px;color:#bed5ed}.fo-range-label b{color:#71ebd0}.fo-inspector input[type=range]{display:block;width:calc(100% - 28px);margin:0 14px 22px;accent-color:#66e6cb}.fo-safe{color:#849bb4;text-align:center;font-size:11px;line-height:1.7;margin:18px 0}.fo-quick{width:100%;text-align:left;margin-top:14px;border:1px solid #3a617d;border-radius:14px;background:linear-gradient(120deg,#1e3d59,#152941);color:#e4fff8;padding:18px;display:flex;justify-content:space-between;align-items:center}.fo-quick strong{font-size:17px}.fo-quick small{font-size:11px;color:#a9d8d7;display:block;margin-top:6px}@media(max-width:690px){.fo-workgrid{grid-template-columns:minmax(0,1fr)}.fo-board{height:340px}.fo-inspector{min-height:190px}.fo-inspector-empty{padding:25px 30px}.fo-heading{margin-top:10px}.fo-heading h1{font-size:27px}.fo-board-head button{padding:6px}.fo-tool{flex-basis:82px}}
 
+/* NOVA LAB v0.3 addition: compatible with existing dark UI */
+.nova-heading-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.nova-heading-actions .fo-outline{padding:10px 9px;font-size:11px}
+.nova-lib-head{display:flex;justify-content:space-between;align-items:center;padding:16px 14px 11px;border-top:1px solid #263a52;gap:8px}.nova-lib-head>div{display:flex;gap:7px;align-items:baseline;flex-wrap:wrap}.nova-lib-head strong{font-size:14px}.nova-lib-head small,.nova-catalog-tip{font-size:10px;color:#8ea9c4}.nova-live-mark{color:#6edbc6;font-size:10px;white-space:nowrap}
+.nova-lib-tabs{display:flex;padding:0 12px;gap:7px}.nova-lib-tabs button{border:1px solid #334663;border-radius:10px;background:#182941;color:#b9cde4;font-size:12px;font-weight:800;padding:10px;flex:1}.nova-lib-tabs button.on{background:#6ae6c9;border-color:#6ae6c9;color:#063f41}.nova-lib-filters{display:flex;gap:5px;overflow-x:auto;padding:11px 12px 7px}.nova-lib-filters button{font-size:11px;flex:0 0 auto;padding:6px 12px;border:1px solid #304563;color:#abc8dc;background:#182b42;border-radius:50px}.nova-lib-filters button.on{color:#68e9c7;border-color:#5fe4c5;background:#163f46}
+.nova-lib-search{display:flex;align-items:center;margin:4px 12px 8px;gap:7px;border-radius:12px;background:#091729;border:1px solid #30496a;padding:0 11px}.nova-lib-search span{font-size:22px;color:#70cbbd}.nova-lib-search input{background:transparent;border:0;outline:none;width:100%;color:#e2efff;padding:12px 0;font-size:12px;min-width:0}.nova-lib-search input::placeholder{color:#7894ad}.nova-lib-grid{padding:4px 12px 12px;display:grid;gap:8px;max-height:420px;overflow-y:auto;scrollbar-width:thin}.nova-gear-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.nova-gear-item{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;background:#192d48;border:1px solid #314e6d;color:#d9ebf7;border-radius:13px;min-height:93px;padding:9px 2px;min-width:0}.nova-gear-item>span{font-size:26px;color:#8fdcd8}.nova-gear-item b{font-size:11px}.nova-gear-item small{font-size:9px;opacity:.8}.nova-reagent-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nova-catalog-item{display:flex;align-items:center;gap:6px;background:#1a2b43;border:1px solid #314b68;border-radius:13px;min-width:0;min-height:81px;padding:7px}.nova-reagent-dot{width:31px;height:38px;display:flex;justify-content:center;align-items:center;font-size:20px;background:linear-gradient(180deg,#fff2 5%,var(--rc) 90%);border:1px solid #ffffff59;border-radius:7px 7px 11px 11px;color:#eafcff;flex:0 0 auto}.nova-catalog-info{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px}.nova-catalog-info strong{font-size:10px;color:#e5efff;line-height:1.3}.nova-catalog-info small{font-size:9px;color:#91b0c9;line-height:1.3}.nova-reagent-acts{display:flex;flex-direction:column;gap:4px}.nova-reagent-acts button{font-size:10px;white-space:nowrap;padding:4px 6px;border:1px solid #3f607a;border-radius:7px;background:#20364e;color:#bde3e7}.nova-reagent-acts button.nova-reagent-active{color:#063c3f;background:#75e4c6;border-color:#75e4c6}.nova-catalog-tip{margin:1px 12px 13px;line-height:1.6}.nova-nothing{padding:22px;text-align:center;color:#8da4bc;grid-column:1/-1}
+.nova-portion{padding:2px 12px 12px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;color:#b2c4d7;font-size:11px}.nova-portion button{font-size:10px;border-radius:6px;border:1px solid #334962;color:#aecbda;background:#162b45;padding:5px 6px}.nova-portion button.on{border-color:#62dbbd;color:#66dfbd}.nova-portion small{font-size:9px;color:#87a4bd}
+.nova-specs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:13px}.nova-specs>div{border:1px solid #2f475d;border-radius:12px;padding:9px;background:#162940;display:flex;flex-direction:column;gap:5px}.nova-specs small{font-size:10px;color:#a0bbd4}.nova-specs strong{font-size:19px;color:#77e7cd}.nova-specs strong span{font-size:11px;color:#b8d1df}.nova-effect{margin:12px 13px;padding:12px;background:#19364c;border:1px solid #285a64;border-radius:12px;display:flex;flex-direction:column;gap:7px}.nova-effect strong{color:#7ae3cf;font-size:11px}.nova-effect span{font-size:12px;color:#d3ecf6;line-height:1.5}.nova-effect i{font-size:10px;color:#e1ba79}.nova-mix-label{font-size:11px;margin:0 13px;color:#c6d5e9;line-height:1.7}.nova-ins-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 13px}.nova-ins-actions button{background:#1d344d;color:#cfe4f2;border:1px solid #345475;border-radius:10px;padding:10px 4px;font-size:11px}
+.fo-vessel.cylinder{height:92px;width:35px;border-radius:4px 4px 7px 7px;background:repeating-linear-gradient(to bottom,transparent 0 12px,#c2edff44 13px 14px)}.fo-vessel.roundflask{width:75px;height:73px;border-radius:47% 47% 42% 42%}.fo-vessel.dish{width:73px;height:26px;margin-top:42px;border-radius:5px 5px 15px 15px}.fo-vessel.crucible{width:54px;height:43px;margin-top:27px;border-color:#d0d8dc;border-radius:4px 4px 20px 20px}.fo-vessel.watchglass{width:73px;height:19px;margin-top:45px;border-radius:2px 2px 50% 50%}.fo-vessel.dish::before,.fo-vessel.watchglass::before{border-radius:50%}.nova-precip{position:absolute;height:10%;bottom:0;left:2px;right:2px;opacity:.88;filter:blur(.4px);border-radius:0 0 9px 9px}.nova-bubble-area{color:#f6f7ff;position:absolute;left:7px;right:7px;bottom:24%;font-size:18px;z-index:2;animation:novaBubble 1.5s linear infinite}@keyframes novaBubble{from{transform:translateY(0);opacity:1}to{transform:translateY(-18px);opacity:.3}}.nova-instrument{display:flex;flex-direction:column;align-items:center;justify-content:center;width:72px;min-height:68px;border-radius:13px;border:1px solid #46768c;background:linear-gradient(120deg,#1d4560,#173048);box-shadow:0 5px 12px #0003;color:#9fe6db}.nova-instrument>span{font-size:30px;min-height:40px}.nova-instrument small{font-size:9px;color:#bbdce4}.nova-instrument.nova-on{border-color:#f1c07d;background:linear-gradient(120deg,#64503c,#273a43);box-shadow:0 0 18px #e5a84f44}.nova-bottle{height:69px;width:51px;border:2px solid #a7d6e5;border-radius:8px 8px 11px 11px;position:relative;margin-top:9px;overflow:visible;background:#ffffff0c}.nova-bottle:before{content:'';position:absolute;top:-10px;left:11px;right:11px;height:9px;border-radius:3px;background:#5b88a0;border:1px solid #9fbccc}.nova-bottle i{position:absolute;bottom:0;left:0;right:0;height:55%;opacity:.8;border-radius:0 0 9px 9px}.nova-bottle em{font-style:normal;position:absolute;left:1px;right:1px;bottom:16px;color:#ffffff;background:#0b2136d9;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nova-modal-backdrop{position:fixed;inset:0;background:#0009;z-index:1000;display:flex;align-items:center;justify-content:center;padding:15px}.nova-modal{background:#101f33;border:1px solid #376079;box-shadow:0 20px 65px #0008;border-radius:20px;width:min(100%,500px);max-height:85vh;overflow:auto;padding:16px}.nova-modal-header{display:flex;justify-content:space-between;align-items:center}.nova-modal-header h3{font-size:20px;margin:0}.nova-modal-header button{border:1px solid #35516b;border-radius:9px;padding:8px 12px;background:#1b3450;color:#d4e6ef}.nova-modal-hint{color:#9cb6ce;font-size:11px;line-height:1.6}.nova-slot-list{display:flex;flex-direction:column;gap:9px;max-height:50vh;overflow:auto}.nova-slot{display:flex;align-items:center;gap:8px;background:#183049;border:1px solid #2d5066;border-radius:11px;padding:10px}.nova-slot>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.nova-slot b{font-size:12px}.nova-slot small{color:#8cb4c3;font-size:10px}.nova-slot button{border:1px solid #42756f;background:#286254;color:#ddfcf3;border-radius:8px;padding:8px;font-size:11px}.nova-slot .nova-del{border-color:#634c5d;background:#392d42;color:#e8b7c9}
+@media(max-width:700px){.nova-reagent-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nova-gear-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.nova-catalog-item{flex-wrap:wrap}.nova-catalog-info strong{font-size:11px}.nova-gear-item{min-height:92px}.nova-heading-actions{max-width:155px}.nova-lib-grid{max-height:350px}}
+@media(max-width:365px){.nova-reagent-grid{grid-template-columns:1fr}.nova-catalog-item{flex-wrap:nowrap}.nova-heading-actions{max-width:132px}.nova-heading-actions .fo-outline{padding:7px;font-size:10px}}
+
 </style></head><body><main id="app" class="app"></main><div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 'use strict';
@@ -193,4 +205,266 @@ function freeBind(){freeUpdateStats();freeRenderInspector();requestAnimationFram
 }
 
 draw();
-</script></body></html>
+</script><script>
+/* NOVA LAB — original chemistry sandbox v0.3; digital simulations only. */
+(() => {
+'use strict';
+const reagents = {
+ water:      {name:'蒸馏水',formula:'H₂O',group:'常用',color:'#83c8ec',ph:7},
+ saline:     {name:'生理盐水样本',formula:'NaCl(aq)',group:'常用',color:'#acd9ee',ph:7},
+ vinegar:    {name:'食醋模拟液',formula:'CH₃COOH',group:'酸',color:'#f4d6c1',ph:3.3,acid:0.45},
+ citric:     {name:'柠檬酸溶液（虚拟）',formula:'C₆H₈O₇',group:'酸',color:'#f7dc96',ph:3,acid:0.5},
+ hcl:        {name:'柠檬汁模拟液',formula:'有机酸样本',group:'酸',color:'#e6d8a0',ph:3.2,acid:0.4},
+ h2so4:      {name:'维生素C模拟液',formula:'C₆H₈O₆',group:'酸',color:'#f2dcb8',ph:3.8,acid:0.35},
+ naoh:       {name:'小苏打水',formula:'NaHCO₃(aq)',group:'碱',color:'#b8dbf2',ph:8.5,base:0.23,carbonate:true},
+ koh:        {name:'苏打水（虚拟）',formula:'碳酸盐样本',group:'碱',color:'#a9dcf4',ph:9,base:0.28,carbonate:true},
+ limewater:  {name:'弱碱模拟液',formula:'OH⁻（虚拟）',group:'碱',color:'#a9d5ea',ph:9.5,base:0.36},
+ ammonia:    {name:'蛋清模拟液',formula:'蛋白质样本',group:'碱',color:'#f1e7db',ph:8.1,base:0.14},
+ nahco3:     {name:'碳酸氢钠溶液',formula:'NaHCO₃',group:'盐',color:'#dbe9e5',ph:8.5,base:0.20,carbonate:true},
+ na2co3:     {name:'碳酸钠样本（虚拟）',formula:'Na₂CO₃',group:'盐',color:'#dde8f0',ph:10,base:0.45,carbonate:true},
+ nacl:       {name:'氯化钠溶液',formula:'NaCl',group:'盐',color:'#cce2ea',ph:7},
+ cuso4:      {name:'蓝色食用色素',formula:'蓝色素（虚拟）',group:'常用',color:'#4993ee',ph:7},
+ fecl3:      {name:'黄色食用色素',formula:'黄色素（虚拟）',group:'常用',color:'#f2c36e',ph:7},
+ feso4:      {name:'绿色食用色素',formula:'绿色素（虚拟）',group:'常用',color:'#98d9b9',ph:7},
+ agno3:      {name:'红色食用色素',formula:'红色素（虚拟）',group:'常用',color:'#ef9fa6',ph:7},
+ cacl2:      {name:'氯化钙溶液（虚拟）',formula:'CaCl₂',group:'盐',color:'#d1e0ec',ph:7},
+ bacl2:      {name:'柠檬酸钠溶液',formula:'Na₃C₆H₅O₇',group:'盐',color:'#d5e1f1',ph:7},
+ na2so4:     {name:'硫酸钠模拟液',formula:'Na₂SO₄',group:'盐',color:'#cee0ed',ph:7},
+ mgcl2:      {name:'硫酸镁模拟液',formula:'MgSO₄',group:'盐',color:'#b8daef',ph:7},
+ starch:     {name:'淀粉溶液',formula:'(C₆H₁₀O₅)ₙ',group:'有机',color:'#e1e1e7',ph:7},
+ iodine:     {name:'紫甘蓝色素液',formula:'植物色素',group:'有机',color:'#975d91',ph:7,indicator:'cabbage'},
+ glucose:    {name:'葡萄糖溶液',formula:'C₆H₁₂O₆',group:'有机',color:'#f4dbb5',ph:7},
+ sugar:      {name:'蔗糖溶液',formula:'C₁₂H₂₂O₁₁',group:'有机',color:'#e8d0a9',ph:7},
+ salt:       {name:'食盐晶体',formula:'NaCl(s)',group:'固体',color:'#ecf4ff',solid:true},
+ chalk:      {name:'碳酸钙粉末',formula:'CaCO₃(s)',group:'固体',color:'#e5e6e7',solid:true,carbonate:true},
+ sugarpowder:{name:'蔗糖晶体',formula:'C₁₂H₂₂O₁₁(s)',group:'固体',color:'#ffefdd',solid:true},
+ soda:       {name:'小苏打粉末',formula:'NaHCO₃(s)',group:'固体',color:'#f5f1e5',solid:true,carbonate:true},
+ litmus:     {name:'石蕊色卡模拟液',formula:'酸碱指示模型',group:'指示剂',color:'#9d7ad7',indicator:'litmus'},
+ phenol:     {name:'姜黄色素指示液',formula:'植物色素',group:'指示剂',color:'#d2b365',indicator:'turmeric'},
+ universal:  {name:'通用指示剂（虚拟）',formula:'pH 指示模型',group:'指示剂',color:'#b8dfe2',indicator:'universal'},
+ orange:     {name:'浆果色素指示液',formula:'植物色素',group:'指示剂',color:'#edbd6c',indicator:'berry'}
+};
+const gear = {
+ beaker: ['烧杯','⚗','容器',220],
+ tube: ['试管','🧪','容器',65],
+ flask: ['锥形瓶','♧','容器',200],
+ cylinder: ['量筒','▯','容器',100],
+ roundflask: ['圆底烧瓶','⚗','容器',250],
+ dish: ['培养皿','◉','容器',45],
+ crucible: ['坩埚','◡','容器',55],
+ watchglass: ['表面皿','◠','容器',35],
+ thermo: ['温度计','🌡','测量'],
+ phmeter: ['pH 计','Ⓟ','测量'],
+ scale: ['电子天平','⚖','测量'],
+ dropper: ['胶头滴管','⌁','操作'],
+ funnel: ['漏斗','▽','操作'],
+ rod: ['玻璃棒','╱','操作'],
+ spatula: ['药匙','⋈','操作'],
+ rack: ['试管架','▤','支撑'],
+ stand: ['铁架台','⚑','支撑'],
+ tripod: ['三脚架','♧','支撑'],
+ hotplate: ['加热台','♨','加热'],
+ waterbath: ['水浴装置','♨','加热'],
+ clamp: ['烧瓶夹','⌁','支撑'],
+ bottle: ['试剂瓶','▣','操作']
+};
+const chemSet = Object.fromEntries(Object.entries(gear).map(([id,parts])=>[id,[parts[0],parts[1]]]));
+Object.assign(freeKinds.chem,chemSet);
+for (const [k,g] of Object.entries(gear)) if(g[2]==='容器') validContainer.add(k);
+const cap=o=>gear[o.kind]?.[3]||200;
+const reagentCount=Object.keys(reagents).length;
+const gearCount=Object.keys(gear).length;
+const novaUI={tab:'gear',group:'全部',search:'',portion:10,source:null,slotsOpen:false};
+const old={page:freePage,bind:freeBind,new:freeNewObject,obj:freeObjectHtml,inspect:freeRenderInspector,add:freeAddSample,transfer:freeTransfer,demo:freeDemo,choose:freeChoose,stats:freeUpdateStats,save:freeSave,change:freeChangeProp};
+function fix(o){
+ if(!o)return o;
+ if(!o.mix||typeof o.mix!=='object'){o.mix={};if(o.volume>0){if(o.acid>0)o.mix.vinegar=(o.acid||0)*20;if(o.base>0)o.mix.nahco3=(o.base||0)*20;const leftover=Math.max(0,(o.volume||0)-(o.mix.vinegar||0)-(o.mix.nahco3||0));if(leftover>0)o.mix.water=leftover;}}
+ if(!o.solids||typeof o.solids!=='object')o.solids={};
+ if(typeof o.temp!=='number')o.temp=25;
+ if(o.dye&&!o.mix.universal&&!o.mix.litmus&&!o.mix.phenol&&!o.mix.orange)o.mix.universal=1;
+ if(typeof o.volume!=='number')o.volume=0;
+ return o;
+}
+function chemData(o){
+ fix(o);const m=o.mix,solid=o.solids||{},total=Math.max(1,o.volume);let acid=0,base=0;
+ for(const [id,vol] of Object.entries(m)){const r=reagents[id];if(!r)continue;acid+=(r.acid||0)*vol;base+=(r.base||0)*vol;}
+ for(const [id,grams] of Object.entries(solid)){const r=reagents[id];if(r?.base)base+=grams*r.base*8;}
+ const pH=Math.min(13,Math.max(1,7+5.5*Math.tanh((base-acid)/(total*.32))));
+ const has=id=>(m[id]||0)>.05 || (solid[id]||0)>.02;
+ const hasAlk=base>1;
+ let effect='', sediment='', bubbly=false;
+ const phenomena = [
+  [has('cacl2')&&has('na2co3'),'出现白色沉淀（CaCO₃，理论简化）','#f0f2e7'],
+ ];
+ const reacted=phenomena.find(v=>v[0]);if(reacted){effect=reacted[1];sediment=reacted[2];}
+ if(has('cuso4')&&has('fecl3'))effect=(effect?effect+'；':'')+'蓝黄两种色素混合，颜色偏绿';
+ if(has('cuso4')&&has('agno3'))effect=(effect?effect+'；':'')+'蓝红两种色素混合，颜色偏紫';
+ const carbonates=['na2co3','nahco3','soda','chalk'];if(acid>1&&carbonates.some(has)){bubbly=true;effect=(effect?effect+'；':'')+'出现气泡（碳酸盐与酸的模拟）';}
+ if(!effect&&acid>1&&base>1)effect='酸碱中和，溶液酸碱性发生变化';
+ let c='#86c7ed';
+ if(has('cuso4')&&has('fecl3'))c='#72bc94';
+ else if(has('cuso4')&&has('agno3'))c='#9878c8';
+ else if(has('universal'))c=pH<3?'#ed6279':pH<5?'#ed9b62':pH<6.4?'#e5d669':pH<7.7?'#61c99d':pH<10?'#6e9feb':'#9e72d9';
+ else if(has('phenol'))c=pH>8.3?'#c57d5c':'#dfc36b';
+ else if(has('litmus'))c=pH<5?'#f78f94':pH>9?'#6797eb':'#9e8ad8';
+ else if(has('orange'))c=pH<5?'#d66c8a':pH<8?'#a883ca':'#7c9ccb';
+ else if(has('iodine'))c=pH<5?'#d07a9c':pH<8?'#a778c9':'#6fbda5';
+ else if(has('cuso4'))c='#528ff0';
+ else if(has('fecl3'))c='#e9bd64';
+ else if(has('feso4'))c='#9fc9a1';
+ else if(has('agno3'))c='#ef9fa6';
+ else if(has('vinegar')||has('citric'))c='#cbdcef';
+ return {pH:Number(pH.toFixed(1)),color:c,effect:effect||'暂无明显化学现象',sediment,bubbly,acid,base};
+}
+function chemicalName(id){return reagents[id]?.name||'未知试剂';}
+function addReagent(id, selectedId, silent=false){
+ const r=reagents[id],o=freeObject(selectedId??freeData().selected);
+ if(!r){notify('试剂不存在');return false}
+ if(!o||!validContainer.has(o.kind)){if(!silent)notify('请先在实验台上选中一个容器');return false}
+ fix(o);freeSnapshot();
+ if(r.solid){o.solids[id]=Number(((o.solids[id]||0)+.5).toFixed(2));}
+ else if(r.indicator){const amount=Math.min(.5,cap(o)-o.volume);if(amount<=0){freeState.undo.pop();notify('容器已满');return false}o.mix[id]=(o.mix[id]||0)+amount;o.volume+=amount;}
+ else {const amount=Math.min(novaUI.portion,cap(o)-o.volume);if(amount<=0){freeState.undo.pop();notify('容器已满');return false}o.mix[id]=(o.mix[id]||0)+amount;o.volume+=amount;}
+ if(o.kind==='watchglass'&&r.solid)o.effect='';
+ freePersist();draw();if(!silent){notify('已加入'+(r.solid?' 0.5 g ':' ')+r.name);}
+ return true;
+}
+freeChemColor=o=>chemData(o).color;
+freeChemPh=o=>o.volume>0?chemData(o).pH.toFixed(1):'—';
+freeNewObject=kind=>{
+ if(freeState.mode!=='chem'){old.new(kind);return}
+ if(!gear[kind])return;
+ freeSnapshot();const d=freeData(),n=d.objects.length,id=d.nextId++;
+ d.objects.push({id,kind,x:28+(n*13)%49,y:27+(n*23)%47,volume:0,mix:{},solids:{},temp:25,on:false,heat:45,reagentId:kind==='bottle'?'water':undefined});
+ d.selected=id;freePersist();if(validContainer.has(kind)){novaUI.tab='reagent';novaUI.group='全部';}
+ draw();notify('已添加 '+gear[kind][0]);
+};
+freeAddSample=id=>{const map={acid:'vinegar',base:'nahco3',indicator:'universal',water:'water'};return addReagent(map[id]||id)};
+freeTransfer=()=>{
+ if(freeState.mode!=='chem'){old.transfer();return}
+ const d=freeData(),o=freeObject(d.selected);
+ if(!o||!validContainer.has(o.kind)){notify('请选择一个容器');return;}
+ if(freeState.transferFrom==null){if(o.volume<=0){notify('该容器中还没有液体');return}freeState.transferFrom=o.id;notify('已选来源，请点选目标容器并点击转移');freeRenderInspector();return;}
+ const source=freeObject(freeState.transferFrom);freeState.transferFrom=null;
+ if(!source||source.id===o.id){notify('请选择另一个目标容器');freeRenderInspector();return;}
+ fix(source);fix(o);
+ const amount=Math.min(novaUI.portion,source.volume,cap(o)-o.volume);
+ if(amount<=0){notify('液量不足或目标容器已满');return;}
+ freeSnapshot();const ratio=amount/source.volume;
+ for(const [id,qty] of Object.entries(source.mix)){const part=qty*ratio;source.mix[id]=Math.max(0,qty-part);o.mix[id]=(o.mix[id]||0)+part;}
+ o.temp=Number(((o.temp*o.volume+source.temp*amount)/(o.volume+amount)).toFixed(1));
+ source.volume=Math.max(0,source.volume-amount);o.volume+=amount;
+ freePersist();draw();notify('已转移 '+amount+' mL 虚拟液体');
+};
+freeObjectHtml=o=>{
+ if(freeState.mode!=='chem')return old.obj(o);
+ fix(o);let selected=freeData().selected===o.id;
+ let name=gear[o.kind]?.[0]||'器材',inner='';
+ if(validContainer.has(o.kind)){
+  const h=Math.min(85,88*o.volume/cap(o));const z=chemData(o);
+  inner=`<div class="fo-vessel ${o.kind}"><div class="fo-liquid" style="height:${h}%;--water-color:${z.color}"></div>${z.sediment?`<div class="nova-precip" style="background:${z.sediment}"></div>`:''}${z.bubbly?'<div class="nova-bubble-area">·　°　·　°</div>':''}<div class="fo-glass"></div></div><span class="fo-objectname">${name} · ${Math.round(o.volume)} mL${o.temp>=38?' ♨':''}</span>`;
+ }else if(o.kind==='bottle'){
+  const r=reagents[o.reagentId]||reagents.water;
+  inner=`<div class="nova-bottle"><i style="background:${r.color}"></i><em>${esc(r.formula)}</em></div><span class="fo-objectname">${esc(r.name)}</span>`;
+ }else{
+  const ico=gear[o.kind]?.[1]||'⊞';let txt=o.kind==='thermo'?`${Math.round(o.reading||25)}°C`:o.kind==='phmeter'?`pH ${o.reading??'—'}`:(o.kind==='hotplate'||o.kind==='waterbath')?(o.on?'加热中':'未启动'):'';
+  inner=`<div class="nova-instrument ${o.on?'nova-on':''}"><span>${ico}</span>${txt?`<small>${esc(txt)}</small>`:''}</div><span class="fo-objectname">${name}</span>`;
+ }
+ return `<div class="fo-object ${selected?'chosen':''} fo-chem-object" data-fid="${o.id}" style="left:${o.x}%;top:${o.y}%"><div class="fo-objectface" data-grab="${o.id}">${inner}</div></div>`;
+};
+function reagentCard(id){const r=reagents[id],cat=r.group,enabled=!!freeObject(freeData().selected)&&validContainer.has(freeObject(freeData().selected).kind);
+ return `<div class="nova-catalog-item"><span class="nova-reagent-dot" style="--rc:${r.color}">${r.solid?'✧':r.indicator?'◈':'◌'}</span><div class="nova-catalog-info"><strong>${esc(r.name)}</strong><small>${esc(r.formula)} · ${cat}</small></div><div class="nova-reagent-acts"><button data-nadd="${id}" class="${enabled?'nova-reagent-active':''}" title="向选中容器加入">${r.solid?'＋固体':'＋加入'}</button><button data-nbottle="${id}" title="试剂瓶摆到台面">▣</button></div></div>`;
+}
+function gearCard(id){let g=gear[id];return `<button class="nova-gear-item" data-tool="${id}"><span>${g[1]}</span><b>${esc(g[0])}</b><small>${g[2]}${g[3]?' · '+g[3]+' mL':''}</small></button>`;}
+function libraryView(){const isGear=novaUI.tab==='gear';const terms=isGear?['全部','容器','测量','操作','支撑','加热']:['全部','常用','酸','碱','盐','有机','固体','指示剂'];return `<div class="nova-lib-head"><div><strong>自由实验器材库</strong><small> ${gearCount} 种器材 · ${reagentCount} 种试剂</small></div><span class="nova-live-mark">● 可交互</span></div><div class="nova-lib-tabs"><button class="${isGear?'on':''}" data-ntab="gear">⚗ 实验器材 (${gearCount})</button><button class="${!isGear?'on':''}" data-ntab="reagent">◈ 化学试剂 (${reagentCount})</button></div><div class="nova-lib-filters" id="novaFilters">${terms.map(g=>`<button class="${novaUI.group===g?'on':''}" data-ncat="${g}">${g}</button>`).join('')}</div><div class="nova-lib-search"><span>⌕</span><input id="novaSearch" type="search" autocomplete="off" placeholder="搜索名称、化学式或器材…" value="${esc(novaUI.search)}" /></div>${!isGear?`<div class="nova-portion">添加液量：${[5,10,20,50].map(a=>`<button data-nportion="${a}" class="${novaUI.portion===a?'on':''}">${a}mL</button>`).join('')}<small>固体每次 0.5 g</small></div>`:''}<div class="nova-lib-grid ${isGear?'nova-gear-grid':'nova-reagent-grid'}" id="novaCatalog"></div><p class="nova-catalog-tip">${isGear?'点击器材加入实验台，然后拖动摆放。':'选中容器后点击「加入」，或点 ▣ 将试剂瓶摆上实验台。所有物品均为虚拟模拟。'}</p>`;}
+freePage=()=>{
+ let html=old.page();if(freeState.mode!=='chem')return html;
+ const start=html.indexOf('<div class="fo-palette-title">'),end=html.indexOf('</section><aside class="fo-inspector"',start);
+ if(start<0||end<0)throw new Error('Free page markup changed');
+ html=html.slice(0,start)+libraryView()+html.slice(end);
+ html=html.replace('选择器材、拖拽摆放、连接或转移，实时观察模拟现象。','自由摆放器材 · 可搜索试剂 · 模拟反应与现象。');
+ html=html.replace('选中容器后添加虚拟试剂，支持容器间转移液体。','先放入容器，再从下方试剂库添加模拟试剂。仪器、液量、颜色和 pH 会随操作变化。');
+ html=html.replace('<button class="fo-outline" id="foSave">保存实验</button>','<div class="nova-heading-actions"><button class="fo-outline" id="novaOpenSlots">我的方案</button><button class="fo-outline" id="foSave">保存实验</button></div>');
+ html=html.replace('所有试剂均为抽象虚拟样本，电路为理想化模型。此应用仅用于学习模拟，不代表真实实验条件。',`本实验台仅为数字化教育模拟；结果为简化模型，不能用于指导真实化学操作。`);
+ return html;
+};
+function slots(){return readJSON('novaSavedSchemes',[])}
+function setSlots(v){try{localStorage.setItem('novaSavedSchemes',JSON.stringify(v))}catch{}}
+freeSave=()=>{
+ if(freeState.mode!=='chem'){old.save();return}
+ const d=freeData();let ss=slots();ss.unshift({id:Date.now(),name:`自由化学实验 · ${d.objects.length}件器材`,date:new Date().toLocaleString('zh-CN'),bench:JSON.parse(JSON.stringify(d))});ss=ss.slice(0,15);setSlots(ss);
+ old.save();notify('已保存到「我的方案」，可随时恢复');
+};
+function showSlots(){let all=slots();const oldModal=$('#novaSlots');if(oldModal)oldModal.remove();const wrap=document.createElement('div');wrap.className='nova-modal-backdrop';wrap.id='novaSlots';wrap.innerHTML=`<div class="nova-modal" role="dialog" aria-modal="true" aria-label="我的实验方案"><div class="nova-modal-header"><h3>我的实验方案</h3><button data-nclose>✕</button></div><p class="nova-modal-hint">恢复方案会覆盖当前台面的摆放，建议先保存。</p><div class="nova-slot-list">${all.length?all.map((a,i)=>`<div class="nova-slot"><div><b>${esc(a.name)}</b><small>${esc(a.date)}</small></div><button data-nload="${i}">恢复</button><button class="nova-del" data-ndel="${i}">删除</button></div>`).join(''):'<p class="nova-modal-hint">还没有保存的方案</p>'}</div></div>`;$('#app').append(wrap);wrap.addEventListener('click',e=>{const b=e.target.closest('button');if(!b){if(e.target===wrap)wrap.remove();return;}if(b.hasAttribute('data-nclose')){wrap.remove();return;}if(b.hasAttribute('data-nload')){const found=slots()[Number(b.dataset.nload)];if(!found)return;freeSnapshot();freeState.data.chem=JSON.parse(JSON.stringify(found.bench));freeState.transferFrom=null;freePersist();draw();notify('实验方案已恢复')}if(b.hasAttribute('data-ndel')){let s=slots();s.splice(Number(b.dataset.ndel),1);setSlots(s);showSlots();}})}
+function chooseInstrumentReadout(o){if(!o)return null;const others=freeData().objects.filter(x=>validContainer.has(x.kind));let nearest=null,dist=999;for(const t of others){const z=Math.hypot(t.x-o.x,t.y-o.y);if(z<dist){dist=z;nearest=t}}return dist<=38?nearest:null;}
+function updateHeat(){if(freeState.mode!=='chem')return;const d=freeState.data.chem;let changed=false;
+ for(let o of d.objects){if(!validContainer.has(o.kind))continue;fix(o);const heaters=d.objects.filter(q=>['hotplate','waterbath'].includes(q.kind)&&q.on&&Math.hypot(q.x-o.x,q.y-o.y)<27);const target=heaters.length?Math.min(90,heaters.reduce((m,q)=>Math.max(m,Math.min(90,q.heat||55)),25)):25;let t=o.temp;if(Math.abs(target-t)>.18){o.temp=Number((t+(target>t?1.8:-.75)).toFixed(1));changed=true;}}
+ for(const x of d.objects){if(x.kind!=='thermo'&&x.kind!=='phmeter')continue;const other=chooseInstrumentReadout(x);const reading=x.kind==='thermo'?Math.round(other?.temp??25):other&&other.volume>0?chemData(other).pH.toFixed(1):'—';if(x.reading!==reading){x.reading=reading;changed=true;}}
+ if(changed){freePersist();if(store.page==='free'&&freeState.mode==='chem'){for(let o of d.objects){const node=document.querySelector(`.fo-object[data-fid="${o.id}"] .nova-instrument small`);if(node&&(o.kind==='thermo'||o.kind==='phmeter'))node.textContent=o.kind==='thermo'?o.reading+'°C':'pH '+o.reading;const l=document.querySelector(`.fo-object[data-fid="${o.id}"] .fo-objectname`);if(l&&validContainer.has(o.kind))l.textContent=gear[o.kind][0]+' · '+Math.round(o.volume)+' mL'+(o.temp>=38?' ♨':'');}if(freeData().selected&&validContainer.has(freeObject(freeData().selected)?.kind)){const el=$('#novaTempOut');if(el)el.textContent=Math.round(freeObject(freeData().selected).temp)+' °C';}}}
+}
+setInterval(updateHeat,850);
+freeRenderInspector=()=>{
+ if(freeState.mode!=='chem'){old.inspect();return}
+ const el=$('#foInspector');if(!el)return;const o=freeObject(freeData().selected);if(!o){el.innerHTML='<div class="fo-pane-header"><span>属性与操作</span></div><div class="fo-inspector-empty"><div class="fo-inspector-mark">✧</div><h3>请选择器材</h3><p>添加试剂瓶或容器，触摸工作台上的器材即可查看参数。</p></div>';return}
+ fix(o);let body='',title=gear[o.kind]?.[0]||'器材';
+ if(validContainer.has(o.kind)){
+ const c=chemData(o),entries=Object.entries(o.mix).filter(([_,v])=>v>=.05).map(([id,v])=>chemicalName(id));
+ const solids=Object.entries(o.solids||{}).filter(([_,v])=>v>=.05).map(([id,v])=>`${chemicalName(id)} ${v.toFixed(1)}g`);
+ body=`<div class="nova-specs"><div><small>当前液量</small><strong>${o.volume.toFixed(1)} <span>mL</span></strong></div><div><small>pH（模拟）</small><strong>${o.volume>0?c.pH.toFixed(1):'—'}</strong></div><div><small>温度</small><strong id="novaTempOut">${Math.round(o.temp)} °C</strong></div><div><small>容量</small><strong>${cap(o)} <span>mL</span></strong></div></div><div class="nova-effect"><strong>观察记录</strong><span>${esc(o.volume>0||solids.length?c.effect:'空容器，尚未添加物质')}</span>${c.sediment?'<i>● 沉淀演示</i>':''}</div><h4>已添加的物质</h4><p class="nova-mix-label">${esc([...entries,...solids].slice(0,8).join('、')||'无')}</p><h4>快捷操作</h4><div class="nova-ins-actions"><button data-nquick="water">＋蒸馏水</button><button data-nquick="universal">＋通用指示剂</button><button data-nstir>↻ 搅拌</button><button data-nempty>清空容器</button></div><button class="fo-primary-full" data-ntransfer>${novaUI.source!=null?'↘ 从选中试剂瓶加入':freeState.transferFrom==null?'↗ 选择来源 · 转移液体':'↘ 转移 '+novaUI.portion+' mL 到当前容器'}</button><p class="fo-infonote">转移量与试剂库的液量设置同步。演示是简化模型。</p>`;
+ }else if(o.kind==='bottle'){
+ const id=o.reagentId||'water',r=reagents[id];title=r?.name||'试剂瓶';body=`<div class="fo-info"><strong>${esc(r?.formula||'')}</strong><p>这是实验台上的虚拟试剂瓶，可拖动位置。</p></div><button class="fo-primary-full" id="novaBottlePour">${novaUI.source===o.id?'已选择来源 · 点选目标容器':'选择来源并倒取'}</button>`;
+ }else if(['hotplate','waterbath'].includes(o.kind)){
+ body=`<div class="fo-info">附近的容器会随虚拟加热台变化温度。最高模拟 90°C，不模拟真实热源。</div><label class="fo-range-label">目标温度 <b>${o.heat||55}°C</b></label><input id="novaHeatRange" type="range" min="35" max="90" step="5" value="${o.heat||55}"/><button class="fo-primary-full" id="novaHeatBtn">${o.on?'停止加热':'启动模拟加热'}</button>`;
+ }else if(['thermo','phmeter'].includes(o.kind)){
+ let v=chooseInstrumentReadout(o);body=`<div class="fo-info"><div class="fo-numrow"><span>测量对象</span><strong>${v?gear[v.kind][0]:'范围内无容器'}</strong></div><div class="fo-numrow"><span>实时测量</span><strong>${o.kind==='thermo'?Math.round(v?.temp||25)+' °C':v&&v.volume>0?chemData(v).pH.toFixed(1):'—'}</strong></div></div><p class="fo-infonote">将仪器拖到容器附近，显示模拟读数。</p>`;
+ }else if(o.kind==='scale'){
+ const containers=freeData().objects.filter(v=>validContainer.has(v.kind));let total=containers.reduce((a,v)=>a+(v.volume||0),0);body=`<div class="fo-info">实验台虚拟液量：约 ${total.toFixed(1)} g（以密度约 1 g/mL 简化估算，不计容器质量）</div>`;
+ }else body=`<div class="fo-info">可拖动此器材自由摆放。辅助器材已添加；复杂装置耦合将逐步扩展。</div>`;
+ el.innerHTML=`<div class="fo-pane-header"><span>属性与操作</span><button id="foRemove">删除器材</button></div><h3>${esc(title)}</h3><p class="fo-small">器材 ID ${o.id} · 拖动改变位置</p>${body}`;
+ $('#foRemove')?.addEventListener('click',freeRemove);
+ el.querySelectorAll('[data-nquick]').forEach(b=>b.addEventListener('click',()=>addReagent(b.dataset.nquick)));
+ el.querySelector('[data-ntransfer]')?.addEventListener('click',()=>{if(novaUI.source!=null){let source=freeObject(novaUI.source);if(source){const reagent=source.reagentId;addReagent(reagent);novaUI.source=null;return;}}freeTransfer()});
+ el.querySelector('[data-nstir]')?.addEventListener('click',()=>{notify('已搅拌，观察记录已更新');freeRenderInspector()});
+ el.querySelector('[data-nempty]')?.addEventListener('click',()=>{freeSnapshot();o.mix={};o.solids={};o.volume=0;o.temp=25;freeState.transferFrom=null;freePersist();draw();notify('当前容器已清空')});
+ $('#novaBottlePour')?.addEventListener('click',()=>{novaUI.source=o.id;notify('已选择试剂瓶，请选择目标容器');freeRenderInspector()});
+ $('#novaHeatBtn')?.addEventListener('click',()=>{freeSnapshot();o.on=!o.on;freePersist();draw()});
+ $('#novaHeatRange')?.addEventListener('input',e=>{o.heat=Number(e.target.value);const b=e.target.previousElementSibling?.querySelector('b');if(b)b.textContent=o.heat+'°C';freePersist()});
+};
+function bottle(id){const r=reagents[id];if(!r)return;freeSnapshot();const d=freeData(),n=d.objects.length;let o={id:d.nextId++,kind:'bottle',reagentId:id,x:28+(n*15)%46,y:29+(n*19)%48,mix:{},solids:{},volume:0,temp:25};d.objects.push(o);d.selected=o.id;freePersist();draw();notify('虚拟试剂瓶已放入实验台');}
+function renderCatalog(){const el=$('#novaCatalog');if(!el)return;
+ const q=novaUI.search.trim().toLowerCase();const all=novaUI.tab==='gear'?Object.keys(gear):Object.keys(reagents);
+ const arr=all.filter(id=>{const item=novaUI.tab==='gear'?gear[id]:reagents[id];const group=novaUI.tab==='gear'?item[2]:item.group;return (novaUI.group==='全部'||novaUI.group===group)&&(!q||(novaUI.tab==='gear'?item[0]+id:item.name+item.formula+id).toLowerCase().includes(q));});
+ el.innerHTML=arr.length?arr.map(id=>novaUI.tab==='gear'?gearCard(id):reagentCard(id)).join(''):'<div class="nova-nothing">没有匹配的器材或试剂</div>';
+ el.querySelectorAll('[data-tool]').forEach(b=>b.addEventListener('click',()=>freeNewObject(b.dataset.tool)));
+ el.querySelectorAll('[data-nadd]').forEach(b=>b.addEventListener('click',()=>addReagent(b.dataset.nadd)));
+ el.querySelectorAll('[data-nbottle]').forEach(b=>b.addEventListener('click',()=>bottle(b.dataset.nbottle)));
+}
+freeBind=()=>{
+ old.bind();if(freeState.mode!=='chem')return;
+ renderCatalog();
+ $$('#app [data-ntab]').forEach(b=>b.addEventListener('click',()=>{novaUI.tab=b.dataset.ntab;novaUI.group='全部';novaUI.search='';draw()}));
+ $$('#app [data-ncat]').forEach(b=>b.addEventListener('click',()=>{novaUI.group=b.dataset.ncat;$('#novaFilters')?.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderCatalog()}));
+ $$('#app [data-nportion]').forEach(b=>b.addEventListener('click',()=>{novaUI.portion=Number(b.dataset.nportion);$('#app')?.querySelectorAll('[data-nportion]').forEach(x=>x.classList.toggle('on',x===b));freeRenderInspector()}));
+ $('#novaSearch')?.addEventListener('input',e=>{novaUI.search=e.target.value;renderCatalog()});
+ $('#novaOpenSlots')?.addEventListener('click',showSlots);
+};
+freeUpdateStats=()=>{
+ old.stats();if(freeState.mode!=='chem')return;
+ const el=$('#foStatus');if(!el)return;let d=freeData(),amount=d.objects.filter(o=>validContainer.has(o.kind)).reduce((a,o)=>a+(o.volume||0),0);
+ el.innerHTML=`<span>器材 <b>${d.objects.length}</b></span><span>试剂库 <b>${reagentCount}</b> 种</span><span>溶液总量 <b>${amount.toFixed(0)}</b> mL</span>`;
+};
+freeDemo=()=>{
+ if(freeState.mode!=='chem'){old.demo();return}
+ freeSnapshot();const d=freeData();d.objects=[
+ {id:1,kind:'beaker',x:27,y:61,volume:55,mix:{water:40,cuso4:15},solids:{},temp:25},
+ {id:2,kind:'flask',x:69,y:59,volume:40,mix:{water:25,nacl:15},solids:{},temp:25},
+ {id:3,kind:'thermo',x:43,y:35,volume:0,mix:{},solids:{},temp:25},
+ {id:4,kind:'hotplate',x:78,y:30,volume:0,mix:{},solids:{},temp:25,on:false,heat:55}
+ ];d.wires=[];d.nextId=5;d.selected=1;d.pending=null;freeState.transferFrom=null;novaUI.tab='reagent';novaUI.group='全部';freePersist();draw();notify('已创建自由化学示例，可自行更换器材和试剂');
+};
+// Keeping all of the existing UI and physics simulator intact.
+if(store.page==='free')draw();
+})();
+
+</script>
+</body></html>
