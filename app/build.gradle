@@ -1,0 +1,14 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.novalab.native3d'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.novalab.native3d'
+        minSdk 23
+        targetSdk 32
+        versionCode 41
+        versionName '0.4.1-native3d'
+    }
+    buildTypes { release { minifyEnabled false } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
