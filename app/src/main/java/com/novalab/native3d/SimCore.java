@@ -258,4 +258,3 @@ public final class SimCore {
       wires.clear();JSONArray ws=root.getJSONArray("wires");for(int i=0;i<ws.length();i++){JSONObject w=ws.getJSONObject(i);wires.add(new Wire(w.getInt("a"),w.getInt("ap"),w.getInt("b"),w.getInt("bp")));}nextId=root.optInt("next",1);mode=root.optInt("mode",0);selected=-1;solveCircuit();status="已恢复上次实验";
     }catch(Exception ex){status="本地记录不可用，已使用空白实验台";}}
   }
-}
