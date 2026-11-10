@@ -19,7 +19,7 @@ public final class LabGLView extends GLSurfaceView implements GLSurfaceView.Rend
   private boolean dragging=false,zooming=false,panMode=false;
   private float downX,downY,lastX,lastY,lastPinch,lastCenterX,lastCenterY;
   private final float[] projection=new float[16],view=new float[16],vp=new float[16],identity=new float[16];
-  private final float[] tempMvp=new float[16],tempModel=new float[16];
+  private final float[] tempMvp=new float[16],tempModel=new float[16],itemTransform=new float[16],composedModel=new float[16]; private boolean applyItemTransform=false;
   private long lastTick=0;
   private static final int BLUE=0x729DFF,CYAN=0x67E0D0,YELLOW=0xF6C772,GLASS=0xA2E2FF,SOFT=0xA1B5D2;
   public LabGLView(MainActivity a,SimCore s){super(a);activity=a;sim=s;setEGLContextClientVersion(2);setRenderer(this);setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);setPreserveEGLContextOnPause(true);setFocusable(true);}
@@ -47,7 +47,7 @@ public final class LabGLView extends GLSurfaceView implements GLSurfaceView.Rend
   private FloatBuffer buffer(float[] arr){FloatBuffer b=ByteBuffer.allocateDirect(arr.length*4).order(ByteOrder.nativeOrder()).asFloatBuffer();b.put(arr);b.position(0);return b;}
   private void mesh(float[] vertices,int mode,int rgb,float alpha,float[] model){
     if(vertices.length<6)return;
-    Matrix.multiplyMM(tempMvp,0,vp,0,model,0);
+    if(applyItemTransform){Matrix.multiplyMM(composedModel,0,itemTransform,0,model,0);Matrix.multiplyMM(tempMvp,0,vp,0,composedModel,0);}else Matrix.multiplyMM(tempMvp,0,vp,0,model,0);
     GLES20.glUseProgram(program);GLES20.glUniformMatrix4fv(uMvp,1,false,tempMvp,0);
     GLES20.glUniform4f(uColor,((rgb>>16)&255)/255f,((rgb>>8)&255)/255f,(rgb&255)/255f,alpha);
     FloatBuffer data=buffer(vertices);GLES20.glEnableVertexAttribArray(aPos);GLES20.glVertexAttribPointer(aPos,3,GLES20.GL_FLOAT,false,0,data);
@@ -102,11 +102,83 @@ public final class LabGLView extends GLSurfaceView implements GLSurfaceView.Rend
   private void ring(float x,float y,float z,float radius,int rgb,float alpha){ArrayList<Float> a=new ArrayList<>();for(int i=0;i<=42;i++){double p=i*Math.PI*2/42;append(a,x+(float)Math.cos(p)*radius,y,z+(float)Math.sin(p)*radius);}poly(raw(a),rgb,alpha,identity);}
   private void rod(float ax,float ay,float az,float bx,float by,float bz,int rgb,float alpha){lines(new float[]{ax,ay,az,bx,by,bz},rgb,alpha,identity);}
   private void drawScene(ArrayList<SimCore.Item> arr){
-    for(SimCore.Item t:arr){if(sim.mode==SimCore.CHEM)chemObject(t);else if(sim.mode==SimCore.CIRCUIT)electricObject(t);else if(sim.mode==SimCore.MOTION)motionObject(t);else opticObject(t);
+    for(SimCore.Item t:arr){
+      Matrix.setIdentityM(itemTransform,0);Matrix.translateM(itemTransform,0,t.x,0,t.z);Matrix.rotateM(itemTransform,0,t.angle,0,1,0);Matrix.translateM(itemTransform,0,-t.x,0,-t.z);applyItemTransform=Math.abs(t.angle)>.01f;
+      if(sim.mode==SimCore.CHEM)chemObject(t);else if(sim.mode==SimCore.CIRCUIT)electricObject(t);else if(sim.mode==SimCore.MOTION)motionObject(t);else opticObject(t);
+      applyItemTransform=false;
       if(sim.selected==t.id){ring(t.x,.04f,t.z,.66f,CYAN,1);ring(t.x,.02f,t.z,.72f,CYAN,.3f);}
     }
   }
   private void chemObject(SimCore.Item t){float x=t.x,z=t.z;
+    if(t.type.equals("容量瓶")){
+      box(x,.04f,z,.82f,.08f,.82f,0x293A51,.75f);sphere(x,.62f,z,.48f,.56f,.48f,GLASS,.25f);cylinder(x,1.12f,z,.15f,.66f,GLASS,.35f);ring(x,1.8f,z,.16f,GLASS,1);cylinder(x,1.88f,z,.13f,.17f,0x78A7C9,.95f);rod(x-.16f,1.18f,z,x+.16f,1.18f,z,0xE7D9B4,1);
+      if(t.volume>0)frustum(x,.18f,z,.36f,.10f,.55f,t.color,.72f);return;
+    }
+    if(t.type.equals("分液漏斗")){
+      sphere(x,.84f,z,.42f,.62f,.42f,GLASS,.28f);frustum(x,1.24f,z,.13f,.035f,.42f,GLASS,.35f);cylinder(x,1.66f,z,.12f,.28f,0x7BA6C8,.9f);sphere(x,1.83f,z,.15f,.12f,.15f,0x6F8BA8,1);cylinder(x,.17f,z,.06f,.5f,GLASS,.7f);
+      if(t.volume>0)sphere(x,.75f,z,.34f,.38f,.34f,t.color,.62f);return;
+    }
+    if(t.type.equals("滴定管")){
+      cylinder(x,.12f,z,.10f,1.95f,GLASS,.35f);ring(x,2.07f,z,.105f,GLASS,1);for(int i=0;i<18;i++)rod(x+.10f,.24f+i*.095f,z,x+.17f,.24f+i*.095f,z,0xDCECF4,.9f);
+      sphere(x,.13f,z,.14f,.12f,.14f,0x7898B4,1);cylinder(x,.02f,z,.035f,.28f,GLASS,.75f);if(t.volume>0)frustum(x,.14f,z,.075f,.075f,1.45f,t.color,.65f);return;
+    }
+    if(t.type.equals("蒸馏烧瓶")){
+      sphere(x,.62f,z,.48f,.58f,.48f,GLASS,.27f);cylinder(x,1.12f,z,.15f,.66f,GLASS,.35f);rod(x+.08f,1.0f,z,x+.72f,1.32f,z,GLASS,.75f);ring(x,1.78f,z,.15f,GLASS,1);if(t.volume>0)sphere(x,.5f,z,.37f,.38f,.37f,t.color,.68f);return;
+    }
+    if(t.type.equals("滴瓶")){
+      cylinder(x,.18f,z,.34f,.75f,GLASS,.3f);frustum(x,.82f,z,.34f,.20f,.24f,GLASS,.3f);cylinder(x,1.05f,z,.16f,.2f,0x648BB4,.95f);sphere(x,1.32f,z,.18f,.26f,.18f,0xD38DB6,1);return;
+    }
+    if(t.type.equals("集气瓶")){
+      cylinder(x,.12f,z,.43f,1.32f,GLASS,.3f);ring(x,1.46f,z,.43f,GLASS,1);if(t.volume>0)frustum(x,.13f,z,.38f,.38f,Math.min(1.15f,t.volume/400f),t.color,.58f);return;
+    }
+    if(t.type.equals("洗气瓶")){
+      cylinder(x,.12f,z,.42f,.92f,GLASS,.28f);ring(x,1.05f,z,.42f,GLASS,1);cylinder(x,.98f,z,.08f,.82f,GLASS,.55f);rod(x,.55f,z,x,1.58f,z,GLASS,.75f);if(t.volume>0)cylinder(x,.14f,z,.36f,.38f,t.color,.65f);return;
+    }
+    if(t.type.equals("冷凝管")){
+      rod(x-.95f,.82f,z,x+.95f,.82f,z,GLASS,.7f);rod(x-.75f,.82f,z,x+.75f,.82f,z,0xB6DCEB,1);
+      rod(x-.68f,1.08f,z,x-.42f,.82f,z,GLASS,.8f);rod(x+.68f,.56f,z,x+.42f,.82f,z,GLASS,.8f);
+      sphere(x-.98f,.82f,z,.12f,.12f,.12f,0xA7C9DA,.9f);sphere(x+.98f,.82f,z,.12f,.12f,.12f,0xA7C9DA,.9f);return;
+    }
+    if(t.type.equals("移液管")){
+      cylinder(x,.18f,z,.055f,1.45f,GLASS,.8f);sphere(x,.95f,z,.12f,.26f,.12f,GLASS,.55f);cylinder(x,1.65f,z,.04f,.42f,GLASS,.85f);return;
+    }
+    if(t.type.equals("试管架")){
+      box(x,.18f,z,1.55f,.18f,.72f,0x526E8D,1);box(x,.62f,z,1.55f,.12f,.72f,0x7596B4,.95f);
+      for(int i=-2;i<=2;i++){float xx=x+i*.27f;cylinder(xx,.68f,z,.09f,.88f,GLASS,.5f);ring(xx,1.12f,z,.095f,GLASS,.9f);}return;
+    }
+    if(t.type.equals("坩埚")){
+      frustum(x,.12f,z,.28f,.42f,.48f,0xB8C5D1,.98f);ring(x,.60f,z,.42f,0xDCE6EA,1);frustum(x,.62f,z,.42f,.39f,.08f,0xAAB8C5,.95f);return;
+    }
+    if(t.type.equals("坩埚钳")){
+      rod(x-.62f,.28f,z-.18f,x+.52f,1.02f,z-.18f,0x9BAFC0,1);rod(x-.62f,.28f,z+.18f,x+.52f,1.02f,z+.18f,0x9BAFC0,1);sphere(x-.6f,.28f,z,.11f,.11f,.11f,0xD2DEE7,1);return;
+    }
+    if(t.type.equals("研钵")){
+      sphere(x,.28f,z,.58f,.32f,.58f,0x8A9EAF,1);sphere(x,.38f,z,.43f,.23f,.43f,0x26394D,1);ring(x,.48f,z,.48f,0xB7C8D5,1);rod(x+.1f,.48f,z,x+.48f,1.12f,z,0xC9D6DE,1);return;
+    }
+    if(t.type.equals("洗瓶")){
+      sphere(x,.45f,z,.37f,.48f,.37f,0x7DA7CB,.85f);cylinder(x,.88f,z,.14f,.35f,0x8CB9D9,.9f);rod(x+.1f,1.02f,z,x+.52f,1.22f,z,0x9BCBE5,.95f);rod(x+.52f,1.22f,z,x+.7f,1.04f,z,0x9BCBE5,.95f);return;
+    }
+    if(t.type.equals("药匙")){
+      rod(x-.48f,.24f,z,x+.38f,.92f,z,0xB7C6D2,1);sphere(x+.43f,.96f,z,.18f,.08f,.13f,0xD6E0E8,1);return;
+    }
+    if(t.type.equals("水槽")){
+      box(x,.08f,z,1.7f,.16f,1.2f,0x637D98,1);box(x-.78f,.34f,z,.12f,.55f,1.2f,0x9BC4D8,.45f);box(x+.78f,.34f,z,.12f,.55f,1.2f,0x9BC4D8,.45f);box(x,.34f,z-.54f,1.7f,.55f,.12f,0x9BC4D8,.45f);box(x,.34f,z+.54f,1.7f,.55f,.12f,0x9BC4D8,.45f);box(x,.19f,z,1.45f,.02f,.95f,0x5CBAE8,.28f);return;
+    }
+    if(t.type.equals("温度计夹")){
+      box(x,.12f,z,.7f,.18f,.55f,0x71869C,1);cylinder(x,.2f,z,.055f,1.55f,0xAFC5D7,1);rod(x-.5f,1.45f,z,x+.5f,1.45f,z,0xD6E3EA,1);sphere(x+.48f,1.45f,z,.1f,.1f,.1f,0x91ABC1,1);return;
+    }
+    if(t.type.equals("橡胶塞")){
+      frustum(x,.1f,z,.34f,.14f,.62f,0x5B6575,1);return;
+    }
+    if(t.type.equals("玻璃弯管")){
+      rod(x-.5f,.28f,z,x-.5f,1.05f,z,GLASS,.95f);rod(x-.5f,1.05f,z,x+.18f,1.05f,z,GLASS,.95f);rod(x+.18f,1.05f,z,x+.58f,.68f,z,GLASS,.95f);return;
+    }
+    if(t.type.equals("长颈漏斗")){
+      frustum(x,.95f,z,.06f,.48f,.48f,GLASS,.55f);cylinder(x,.12f,z,.065f,.82f,GLASS,.8f);ring(x,1.43f,z,.48f,GLASS,.95f);return;
+    }
+    if(t.type.equals("烧瓶夹")){
+      rod(x-.6f,.65f,z,x+.4f,.65f,z,0x91A6B8,1);ring(x+.38f,.65f,z,.28f,0xC5D5E0,1);rod(x-.58f,.45f,z,x-.2f,.82f,z,0xD0DCE5,1);return;
+    }
     if(SimCore.isVessel(t.type)){
       float radius=.44f,h=1.4f,top=.44f;
       switch(t.type){case "试管":radius=.20f;top=.20f;h=1.5f;break;case "锥形瓶":radius=.57f;top=.19f;h=1.5f;break;case "圆底烧瓶":radius=.49f;top=.16f;h=1.7f;break;case "量筒":radius=.25f;top=.25f;h=1.9f;break;case "试剂瓶":radius=.39f;top=.34f;h=1.45f;break;case "培养皿":case "表面皿":radius=.55f;top=.55f;h=.25f;break;case "蒸发皿":radius=.56f;top=.54f;h=.4f;break;case "广口瓶":radius=.51f;top=.48f;h=1.3f;break;}
@@ -117,6 +189,7 @@ public final class LabGLView extends GLSurfaceView implements GLSurfaceView.Rend
         if(t.precipitate)frustum(x,.1f,z,radius-.055f,radius-.055f,.12f,0xF6E3C4,.95f);
         if(t.bubble){for(int i=0;i<9;i++){float xx=(float)Math.sin(i*2.3+t.id)*radius*.58f,zz=(float)Math.cos(i*1.6+t.id)*radius*.58f;float yy=.15f+(i%4)*liquidHeight/5f;
           sphere(x+xx,yy,z+zz,.045f,.05f,.045f,0xC4F8FC,.82f);}}
+        if(t.boiling){for(int i=0;i<5;i++){float xx=(float)Math.sin(i*2.1+t.id)*radius*.42f,zz=(float)Math.cos(i*1.7+t.id)*radius*.42f;float yy=h+.12f+(i%3)*.18f;sphere(x+xx,yy,z+zz,.07f,.09f,.07f,0xD8F3FF,.22f);}}
       }
       frustum(x,.09f,z,radius,top,h,GLASS,.28f);ring(x,.09f+h,z,top,GLASS,.95f);
       if(t.type.equals("量筒"))for(int i=0;i<8;i++)rod(x+.23f,.24f+i*.19f,z,x+.35f,.24f+i*.19f,z,0xB5DDF0,.8f);
@@ -149,7 +222,7 @@ public final class LabGLView extends GLSurfaceView implements GLSurfaceView.Rend
       case "电容器":box(x-.11f,.66f,z,.09f,.48f,.45f,0x99BED6,1);box(x+.11f,.66f,z,.09f,.48f,.45f,0x99BED6,1);break;
     }
   }
-  private float[] terminal(SimCore.Item t,int port){return new float[]{t.x+(port==0?-.5f:.5f),.57f,t.z};}
+  private float[] terminal(SimCore.Item t,int port){float dx=port==0?-.5f:.5f,a=(float)Math.toRadians(t.angle),c=(float)Math.cos(a),s=(float)Math.sin(a);return new float[]{t.x+dx*c,.57f,t.z-dx*s};}
   private void drawWires(){for(SimCore.Wire w:sim.wires){SimCore.Item a=sim.find(w.idA),b=sim.find(w.idB);if(a==null||b==null)continue;
       float[] aa=terminal(a,w.portA),bb=terminal(b,w.portB);int rgb=a.electricI>.01f||b.electricI>.01f?0x6EECCB:0x5F94C4;
       float midY=.85f+Math.min(.6f,(float)Math.hypot(aa[0]-bb[0],aa[2]-bb[2])*.12f);

@@ -6,8 +6,8 @@ android {
         applicationId 'com.novalab.native3d'
         minSdk 23
         targetSdk 32
-        versionCode 41
-        versionName '0.4.1-native3d'
+        versionCode 42
+        versionName '0.5-native3d'
     }
     buildTypes { release { minifyEnabled false } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }

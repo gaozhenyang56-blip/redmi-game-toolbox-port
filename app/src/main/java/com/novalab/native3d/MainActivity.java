@@ -169,7 +169,7 @@ public final class MainActivity extends Activity {
     return "⬡";
   }
   private void showReagents(){sectionHeading.setText("虚拟试剂库");
-    addExplanation("34 种试剂 · 仅用于屏幕内模拟，不能作为真实实验操作指导。");
+    addExplanation(SimCore.REAGENTS.length+" 种虚拟试剂 · 仅用于屏幕内模拟，不能作为真实实验操作指导。");
     SimCore.Item target=sim.chosen();if(target==null||!SimCore.isVessel(target.type)){
       TextView warning=text("先在器材库添加烧杯、试管或其他容器，再进入试剂库。",13,0xFFFFCC8A,false);padding(warning,8,9,8,9);body.addView(warning);}
     else addExplanation("当前容器："+target.type+" · "+(int)target.volume+" mL");
@@ -198,6 +198,8 @@ public final class MainActivity extends Activity {
     SimCore.Item chosen=sim.chosen();if(chosen==null){addExplanation("点击场景中的器材选择模型，或从器材库添加新模型。");return;}
     addTitle("◈ "+chosen.type+"  ·  #"+chosen.id);
     addExplanation(chosen.summary());
+    propertySlider("模型水平旋转角度 °",360,((int)chosen.angle%360+360)%360,p->chosen.angle=p);
+    LinearLayout rotateRow=horizontal();TextView leftTurn=chip("↶ 旋转 -15°",false,()->{chosen.angle=(chosen.angle+345)%360;sim.save(this);refresh();});TextView rightTurn=chip("旋转 +15° ↷",false,()->{chosen.angle=(chosen.angle+15)%360;sim.save(this);refresh();});rotateRow.addView(leftTurn,new LinearLayout.LayoutParams(0,d(36),1));rowGap(rotateRow,6);rotateRow.addView(rightTurn,new LinearLayout.LayoutParams(0,d(36),1));body.addView(rotateRow,lp(-1,40));
     if(sim.mode==SimCore.CHEM){
       if(SimCore.isVessel(chosen.type)){
         propertyAction("＋ 打开试剂库",()->{panel=1;query="";refresh();});
@@ -205,7 +207,7 @@ public final class MainActivity extends Activity {
         propertyAction("⇢ 从已选来源倒入 20 mL",()->{synchronized(sim){sim.pour(chemSource,chosen.id,20);sim.save(this);}refresh();});
         propertyAction("🔥 模拟加热 10°C",()->{synchronized(sim){chosen.temperature=Math.min(120,chosen.temperature+10);sim.status="已调节虚拟容器温度";sim.save(this);}refresh();});
         propertyAction("❄ 模拟冷却 10°C",()->{synchronized(sim){chosen.temperature=Math.max(0,chosen.temperature-10);sim.status="已调节虚拟容器温度";sim.save(this);}refresh();});
-        propertyAction("清除当前液体",()->{chosen.volume=0;chosen.ph=7;chosen.color=0x6BB8FF;chosen.acidUnits=0;chosen.baseUnits=0;chosen.chemicals=0;chosen.flags=0;chosen.bubble=false;chosen.precipitate=false;chosen.indicator=false;sim.save(this);refresh();});
+        propertyAction("清除当前液体",()->{chosen.volume=0;chosen.ph=7;chosen.boiling=false;chosen.color=0x6BB8FF;chosen.acidUnits=0;chosen.baseUnits=0;chosen.chemicals=0;chosen.flags=0;chosen.bubble=false;chosen.precipitate=false;chosen.indicator=false;sim.save(this);refresh();});
       }else if(chosen.type.equals("酒精灯"))propertyAction(chosen.enabled?"关闭虚拟火焰":"点亮虚拟火焰",()->{chosen.enabled=!chosen.enabled;sim.save(this);refresh();});
       else addExplanation("该三维模型已支持自由摆放与旋转视角；更精细器材动作仍在开发。 ");
     }else if(sim.mode==SimCore.CIRCUIT){
