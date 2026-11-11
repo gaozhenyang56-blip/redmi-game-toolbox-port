@@ -210,7 +210,7 @@ public final class MainActivity extends Activity {
         propertyAction("⇢ 从已选来源倒入 20 mL",()->{synchronized(sim){sim.pour(chemSource,chosen.id,20);sim.save(this);}refresh();});
         propertyAction("🔥 模拟加热 10°C",()->{synchronized(sim){chosen.temperature=Math.min(120,chosen.temperature+10);sim.status="已调节虚拟容器温度";sim.save(this);}refresh();});
         propertyAction("❄ 模拟冷却 10°C",()->{synchronized(sim){chosen.temperature=Math.max(0,chosen.temperature-10);sim.status="已调节虚拟容器温度";sim.save(this);}refresh();});
-        propertyAction("清除当前液体",()->{chosen.volume=0;chosen.ph=7;chosen.boiling=false;chosen.color=0x6BB8FF;chosen.acidUnits=0;chosen.baseUnits=0;chosen.chemicals=0;chosen.flags=0;chosen.bubble=false;chosen.precipitate=false;chosen.indicator=false;sim.save(this);refresh();});
+        propertyAction("清除当前液体",()->{chosen.volume=0;chosen.ph=7;chosen.color=0x6BB8FF;chosen.acidUnits=0;chosen.baseUnits=0;chosen.chemicals=0;chosen.flags=0;chosen.bubble=false;chosen.precipitate=false;chosen.indicator=false;sim.save(this);refresh();});
       }else if(chosen.type.equals("酒精灯"))propertyAction(chosen.enabled?"关闭虚拟火焰":"点亮虚拟火焰",()->{chosen.enabled=!chosen.enabled;sim.save(this);refresh();});
       else addExplanation("该三维模型已支持自由摆放与旋转视角；更精细器材动作仍在开发。 ");
     }else if(sim.mode==SimCore.CIRCUIT){
