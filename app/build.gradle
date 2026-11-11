@@ -1,14 +1,22 @@
-plugins { id 'com.android.application' }
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
 android {
     namespace 'com.novalab.native3d'
     compileSdk 35
     defaultConfig {
         applicationId 'com.novalab.native3d'
-        minSdk 23
+        minSdk 24
         targetSdk 32
-        versionCode 42
-        versionName '0.5-native3d'
+        versionCode 43
+        versionName '0.6-pbr-models'
     }
     buildTypes { release { minifyEnabled false } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    kotlinOptions { jvmTarget = '17' }
+    androidResources { noCompress += ['glb'] }
+}
+dependencies {
+    implementation 'com.google.android.filament:filament-utils-android:1.77.3'
 }

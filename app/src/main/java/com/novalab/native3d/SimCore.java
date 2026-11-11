@@ -15,7 +15,7 @@ public final class SimCore {
   public static final int CHEM = 0, CIRCUIT = 1, MOTION = 2, OPTICS = 3;
   public static final String[] MODE_NAMES={"化学实验","电学实验","力学实验","光学实验"};
   public static final String[][] CATALOG={
-    {"烧杯","试管","锥形瓶","圆底烧瓶","量筒","试剂瓶","培养皿","滴管","漏斗","玻璃棒","温度计","酒精灯","铁架台","蒸发皿","电子天平","广口瓶","表面皿","烧瓶夹","三脚架","导管","容量瓶","分液漏斗","冷凝管","滴定管","移液管","试管架","坩埚","坩埚钳","研钵","洗瓶","药匙","集气瓶","水槽","蒸馏烧瓶","温度计夹","橡胶塞","玻璃弯管","长颈漏斗","滴瓶"},
+    {"烧杯","试管","锥形瓶","圆底烧瓶","量筒","试剂瓶","培养皿","滴管","漏斗","玻璃棒","温度计","酒精灯","铁架台","蒸发皿","电子天平","广口瓶","表面皿","烧瓶夹","三脚架","导管"},
     {"电池","灯泡","电阻","开关","电流表","电压表","可变电阻","电容器","LED","电动机"},
     {"小车","方块","斜面","弹簧","小球","砝码","挡板","测力计"},
     {"光源","凸透镜","凹透镜","平面镜","光屏","棱镜"}
@@ -60,21 +60,13 @@ public final class SimCore {
     new Reagent("氯化铵溶液","NH₄Cl","盐类",6,0xB8DFFF,OTHER),
     new Reagent("硫酸镁溶液","MgSO₄","盐类",7,0xBCD7E9,OTHER),
     new Reagent("硫酸亚铁溶液","FeSO₄","有色溶液",5,0x88C5B1,OTHER),
-    new Reagent("硫酸锌溶液","ZnSO₄","盐类",7,0xC2E5F5,OTHER),
-    new Reagent("白砂糖溶液","C₁₂H₂₂O₁₁","常用溶液",7,0xDDEAF5,OTHER),
-    new Reagent("小苏打模拟液","NaHCO₃","盐类",8.3f,0xB9E2F7,CARBONATE),
-    new Reagent("柠檬汁模拟液","Citric","酸性虚拟样本",3,0xD5E77C,ACID),
-    new Reagent("紫甘蓝指示液","Anthocyanin","指示剂",7,0xA17AC8,INDICATOR),
-    new Reagent("食用色素红","Dye-R","有色溶液",7,0xE96B88,OTHER),
-    new Reagent("食用色素蓝","Dye-B","有色溶液",7,0x4D91E8,OTHER),
-    new Reagent("碳酸饮料模拟液","CO₂(aq)","常用溶液",4,0xA9D8EA,ACID),
-    new Reagent("碳酸钙悬浊液","CaCO₃","悬浊液",7,0xD7DCE0,CALCIUM)
+    new Reagent("硫酸锌溶液","ZnSO₄","盐类",7,0xC2E5F5,OTHER)
   };
 
   public static final class Item {
     public int id; public String type; public float x,z; public float volume=0,temperature=25,ph=7;
     public float property=10,mass=1,velocity=0,force=6,friction=.15f;
-    public int color=0x6BB8FF; public boolean enabled=true,bubble=false,precipitate=false,indicator=false,boiling=false;
+    public int color=0x6BB8FF; public boolean enabled=true,bubble=false,precipitate=false,indicator=false;
     public int count=0; public float acidUnits=0,baseUnits=0; public int chemicals=0, flags=0;
     public float electricV=0,electricI=0; public float angle=0;
     Item(int index,String type,float x,float z) {this.id=index;this.type=type;this.x=x;this.z=z;
@@ -91,16 +83,15 @@ public final class SimCore {
       if(isVessel(type))s+=" · "+(int)volume+" mL · pH "+String.format(java.util.Locale.US,"%.1f",ph)+" · "+(int)temperature+"°C";
       if(precipitate)s+=" · 沉淀";
       if(bubble)s+=" · 气泡";
-      if(boiling)s+=" · 沸腾模拟";
       if(isElectric(type))s+=" · "+String.format(java.util.Locale.US,"%.2f V / %.3f A",electricV,electricI);
       if(type.equals("小车")||type.equals("小球"))s+=" · v="+String.format(java.util.Locale.US,"%.2f",velocity)+" m/s";
       return s;
     }
     JSONObject toJson(){JSONObject j=new JSONObject();try{
-      j.put("id",id);j.put("type",type);j.put("x",x);j.put("z",z);j.put("volume",volume);j.put("temperature",temperature);j.put("ph",ph);j.put("property",property);j.put("mass",mass);j.put("velocity",velocity);j.put("force",force);j.put("friction",friction);j.put("color",color);j.put("enabled",enabled);j.put("bubble",bubble);j.put("precipitate",precipitate);j.put("indicator",indicator);j.put("boiling",boiling);j.put("count",count);j.put("acidUnits",acidUnits);j.put("baseUnits",baseUnits);j.put("chemicals",chemicals);j.put("flags",flags);j.put("angle",angle);
+      j.put("id",id);j.put("type",type);j.put("x",x);j.put("z",z);j.put("volume",volume);j.put("temperature",temperature);j.put("ph",ph);j.put("property",property);j.put("mass",mass);j.put("velocity",velocity);j.put("force",force);j.put("friction",friction);j.put("color",color);j.put("enabled",enabled);j.put("bubble",bubble);j.put("precipitate",precipitate);j.put("indicator",indicator);j.put("count",count);j.put("acidUnits",acidUnits);j.put("baseUnits",baseUnits);j.put("chemicals",chemicals);j.put("flags",flags);j.put("angle",angle);
     }catch(Exception ignored){}return j;}
     static Item fromJson(JSONObject j){Item x=new Item(j.optInt("id"),j.optString("type"), (float)j.optDouble("x"), (float)j.optDouble("z"));
-      x.volume=(float)j.optDouble("volume");x.temperature=(float)j.optDouble("temperature",25);x.ph=(float)j.optDouble("ph",7);x.property=(float)j.optDouble("property",10);x.mass=(float)j.optDouble("mass",1);x.velocity=(float)j.optDouble("velocity");x.force=(float)j.optDouble("force",6);x.friction=(float)j.optDouble("friction",.15);x.color=j.optInt("color",0x6BB8FF);x.enabled=j.optBoolean("enabled",true);x.bubble=j.optBoolean("bubble");x.precipitate=j.optBoolean("precipitate");x.indicator=j.optBoolean("indicator");x.boiling=j.optBoolean("boiling");x.count=j.optInt("count");x.acidUnits=(float)j.optDouble("acidUnits");x.baseUnits=(float)j.optDouble("baseUnits");x.chemicals=j.optInt("chemicals");x.flags=j.optInt("flags");x.angle=(float)j.optDouble("angle");return x;
+      x.volume=(float)j.optDouble("volume");x.temperature=(float)j.optDouble("temperature",25);x.ph=(float)j.optDouble("ph",7);x.property=(float)j.optDouble("property",10);x.mass=(float)j.optDouble("mass",1);x.velocity=(float)j.optDouble("velocity");x.force=(float)j.optDouble("force",6);x.friction=(float)j.optDouble("friction",.15);x.color=j.optInt("color",0x6BB8FF);x.enabled=j.optBoolean("enabled",true);x.bubble=j.optBoolean("bubble");x.precipitate=j.optBoolean("precipitate");x.indicator=j.optBoolean("indicator");x.count=j.optInt("count");x.acidUnits=(float)j.optDouble("acidUnits");x.baseUnits=(float)j.optDouble("baseUnits");x.chemicals=j.optInt("chemicals");x.flags=j.optInt("flags");x.angle=(float)j.optDouble("angle");return x;
     }
   }
   public static final class Wire {
@@ -117,7 +108,7 @@ public final class SimCore {
   private int nextId=1;
   private float accum=0;
   public SimCore(){for(int i=0;i<4;i++)groups[i]=new ArrayList<>();}
-  public static boolean isVessel(String t){return Arrays.asList("烧杯","试管","锥形瓶","圆底烧瓶","量筒","试剂瓶","培养皿","蒸发皿","广口瓶","表面皿","容量瓶","分液漏斗","滴定管","集气瓶","蒸馏烧瓶","滴瓶","洗气瓶").contains(t);}
+  public static boolean isVessel(String t){return Arrays.asList("烧杯","试管","锥形瓶","圆底烧瓶","量筒","试剂瓶","培养皿","蒸发皿","广口瓶","表面皿").contains(t);}
   public static boolean isElectric(String t){return Arrays.asList(CATALOG[CIRCUIT]).contains(t);}
   public ArrayList<Item> active(){return groups[mode];}
   public Item find(int id){for(Item t:groups[mode])if(t.id==id)return t;return null;}
@@ -148,10 +139,9 @@ public final class SimCore {
     if(r.reaction==ALKALI)t.baseUnits+=(r.ph-7)*actual;
     t.chemicals|=1<<Math.min(r.reaction,16);
     if(r.reaction==INDICATOR)t.indicator=true;
-    if(r.name.contains("碳酸钙"))t.chemicals|=1<<CALCIUM;
     if(r.name.contains("酚酞"))t.flags|=1;
     if(r.name.contains("石蕊"))t.flags|=2;
-    if(r.name.contains("广泛")||r.name.contains("溴麝")||r.name.contains("紫甘蓝"))t.flags|=4;
+    if(r.name.contains("广泛")||r.name.contains("溴麝"))t.flags|=4;
     calculateChem(t);
     status="已加入 "+r.name+" · "+(int)actual+" mL（虚拟模拟）";
     return true;
@@ -247,35 +237,18 @@ public final class SimCore {
     status=String.format(java.util.Locale.US,"节点法求解完成 · 电源电流 %.3f A · %d 条连线",totalI,wires.size());
   }
   public void update(float dt){if(dt<=0||dt>.2f)return;accum+=dt;
-    if(mode==CHEM && running){
-      for(Item t:active())if(isVessel(t.type)&&t.volume>0){
-        boolean lamp=false;
-        for(Item source:active())if(source.type.equals("酒精灯")&&source.enabled&&Math.hypot(source.x-t.x,source.z-t.z)<1.75f){lamp=true;break;}
-        if(lamp)t.temperature=Math.min(100,t.temperature+dt*7.5f);
-        else t.temperature=Math.max(25,t.temperature-dt*.65f);
-        t.boiling=t.temperature>=98f;
-        boolean acid=(t.chemicals&(1<<ACID))!=0,carbonate=(t.chemicals&(1<<CARBONATE))!=0;
-        t.bubble=(acid&&carbonate)||t.boiling;
-      }
-    }
+    if(mode==CHEM && running){for(Item t:active())if(isVessel(t.type)&&t.volume>0){if(t.temperature>25)t.temperature=Math.max(25,t.temperature-.14f*dt);}}
     if(mode==MOTION&&running){for(Item t:active())if(t.type.equals("小车")||t.type.equals("小球")){
-      float previous=t.x;
       float a=t.force/Math.max(.1f,t.mass)-9.8f*t.friction*Math.signum(t.velocity==0?t.force:t.velocity);
-      for(Item fixture:active()){
-        if(fixture.type.equals("斜面")&&Math.abs(t.z-fixture.z)<.95f&&Math.abs(t.x-fixture.x)<1.35f)a+=4.4f;
-        if(fixture.type.equals("弹簧")){float dx=t.x-fixture.x;if(Math.abs(dx)<1.7f)a-=Math.max(1,fixture.property*.35f)*dx/Math.max(.1f,t.mass);}
-      }
       t.velocity+=a*dt;
-      if(Math.abs(t.velocity)<.03f&&Math.abs(t.force)<9.8f*t.mass*t.friction)t.velocity=0;
+      if(Math.abs(t.velocity)<.03f&&t.force<9.8f*t.mass*t.friction)t.velocity=0;
       t.x+=t.velocity*dt;
-      for(Item wall:active())if(wall.type.equals("挡板")&&Math.abs(t.z-wall.z)<.8f&&((previous<wall.x&&t.x>=wall.x)||(previous>wall.x&&t.x<=wall.x))){t.x=wall.x+(previous<wall.x?-.18f:.18f);t.velocity=-t.velocity*.35f;}
       if(t.x>4.7f){t.x=4.7f;t.velocity=-Math.abs(t.velocity)*.45f;}
       if(t.x< -4.7f){t.x=-4.7f;t.velocity=Math.abs(t.velocity)*.45f;}
     }}
   }
   public void example(){clear();if(mode==CHEM){Item a=add("烧杯");a.x=-1.9f;a.z=.1f;selected=a.id;addReagent(15,85);Item b=add("试管");b.x=.5f;b.z=.2f;selected=b.id;addReagent(0,30);add("酒精灯").x=2.3f;selected=a.id;status="已创建化学自由实验 · 点击器材修改试剂";}
-    if(mode==CIRCUIT){Item battery=add("电池");battery.x=-2.7f;battery.z=0;Item sw=add("开关");sw.x=-.8f;sw.z=0;Item lamp1=add("灯泡");lamp1.x=1.5f;lamp1.z=-.85f;Item lamp2=add("灯泡");lamp2.x=1.5f;lamp2.z=.85f;
-      wires.add(new Wire(battery.id,0,sw.id,0));wires.add(new Wire(sw.id,1,lamp1.id,0));wires.add(new Wire(sw.id,1,lamp2.id,0));wires.add(new Wire(lamp1.id,1,battery.id,1));wires.add(new Wire(lamp2.id,1,battery.id,1));selected=lamp1.id;solveCircuit();}
+    if(mode==CIRCUIT){Item battery=add("电池");battery.x=-2.3f;battery.z=0;Item lamp=add("灯泡");lamp.x=.2f;lamp.z=0;Item sw=add("开关");sw.x=2.1f;sw.z=0;wires.add(new Wire(battery.id,0,lamp.id,0));wires.add(new Wire(lamp.id,1,sw.id,0));wires.add(new Wire(sw.id,1,battery.id,1));selected=lamp.id;solveCircuit();}
     if(mode==MOTION){Item cart=add("小车");cart.x=-3.5f;cart.force=5;add("斜面").x=2;selected=cart.id;status="点击运行测试小车受力和摩擦";}
     if(mode==OPTICS){Item light=add("光源");light.x=-3.4f;light.z=0;Item lens=add("凸透镜");lens.x=0;lens.z=0;Item screen=add("光屏");screen.x=3.4f;screen.z=0;selected=lens.id;status="改变透镜焦距并观察光线折射";}
   }

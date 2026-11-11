@@ -1,6 +1,7 @@
 package com.novalab.native3d;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.os.Handler;
@@ -145,6 +146,8 @@ public final class MainActivity extends Activity {
   private EditText searchBox(String hint){EditText e=new EditText(this);e.setSingleLine(true);e.setTextSize(13);e.setTextColor(WHITE);e.setHintTextColor(MUTED);e.setHint(hint);e.setText(query);e.setBackground(rounded(CARD2,12,EDGE));padding(e,12,0,10,0);body.addView(e,lp(-1,39));return e;}
   private void showLibrary(){sectionHeading.setText("三维器材库");
     addExplanation("真正的立体模型；点击添加到实验台，在画布中拖动、旋转视角。");
+    TextView realModels=chip("✦  打开高精度 GLB 模型库",false,()->startActivity(new Intent(this,ModelGalleryActivity.class)));
+    body.addView(realModels,lp(-1,42));
     EditText find=searchBox("搜索器材名称（共 "+SimCore.CATALOG[sim.mode].length+" 种）");
     GridLayout grid=new GridLayout(this);grid.setColumnCount(3);LinearLayout.LayoutParams gg=lp(-1,-2);gg.topMargin=d(10);body.addView(grid,gg);
     fillLibrary(grid,query);
