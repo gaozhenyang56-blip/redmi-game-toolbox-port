@@ -184,7 +184,7 @@ class ModelGalleryActivity : Activity(), Choreographer.FrameCallback {
             val current = viewer ?: return
             current.destroyModel()
             current.loadModelGlb(ByteBuffer.wrap(bytes))
-            current.resetToDefaultState()
+            current.transformToUnitCube()
             selected = index
             nameLabel.text = model.name
             detailLabel.text = model.group + " · " + model.note + " · 单指旋转 / 双指平移 / 捏合缩放"
