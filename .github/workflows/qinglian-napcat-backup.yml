@@ -1,0 +1,49 @@
+name: Qinglian encrypted NapCat backup
+on:
+  push:
+    branches: [codex/napcat-backup-20261114]
+    paths: ['qinglian/server/github/backup_napcat.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: qinglian-napcat-backup
+  cancel-in-progress: false
+jobs:
+  backup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Verify access to the private backup repository
+        env:
+          GH_TOKEN: ${{ secrets.QINGLIAN_NAPCAT_BACKUP_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Configure QINGLIAN_NAPCAT_BACKUP_TOKEN for the private backup repository."
+            exit 1
+          fi
+          test "$(gh api repos/gaozhenyang56-blip/api_key --jq .private)" = true
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian/server/github
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1 cryptography==44.0.3
+      - name: Read NapCat files over pinned SSH and encrypt the backup
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/server/github/backup_napcat.py
+      - name: Save encrypted backup in the private repository
+        env:
+          GH_TOKEN: ${{ secrets.QINGLIAN_NAPCAT_BACKUP_TOKEN }}
+          BACKUP_REPO: gaozhenyang56-blip/api_key
+        run: |
+          test "$(gh api "repos/$BACKUP_REPO" --jq .private)" = true
+          tag="napcat-backup-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          gh release create "$tag" private-transfer/payload.enc private-transfer/envelope.json \
+            --repo "$BACKUP_REPO" --title "Encrypted NapCat backup $tag" \
+            --notes "NapCat data, configuration, plugins, and login portal. Decrypt with the Qinglian backup private key."
+          test "$(gh release view "$tag" --repo "$BACKUP_REPO" --json assets --jq '[.assets[].name] | sort | join(",")')" = envelope.json,payload.enc
+          gh release view "$tag" --repo "$BACKUP_REPO" --json url --jq '.url'
