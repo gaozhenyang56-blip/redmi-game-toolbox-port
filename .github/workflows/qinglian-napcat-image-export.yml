@@ -1,0 +1,37 @@
+name: Qinglian NapCat Docker image export
+on:
+  push:
+    branches: [codex/napcat-backup-20261114]
+    paths:
+      - .github/workflows/qinglian-napcat-image-export.yml
+      - qinglian/server/github/export_napcat_image.py
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: qinglian-napcat-backup
+  cancel-in-progress: false
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian/server/github
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1 cryptography==44.0.3
+      - name: Export and verify the installed image over SSH
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/server/github/export_napcat_image.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qinglian-encrypted-napcat-docker-image
+          path: napcat-image-transfer/
+          retention-days: 90
+          if-no-files-found: error
+          compression-level: 0
