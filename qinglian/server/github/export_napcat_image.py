@@ -6,6 +6,7 @@ import json
 import os
 import re
 import secrets
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -27,12 +28,19 @@ image = subprocess.check_output(
 info = json.loads(subprocess.check_output(
     ['docker', 'image', 'inspect', image], stderr=subprocess.DEVNULL, timeout=20
 ))[0]
-print(json.dumps(dict(id=image, os=info['Os'], architecture=info['Architecture'])))
+print(json.dumps(dict(id=image, os=info['Os'], architecture=info['Architecture'], layers=info['RootFS']['Layers'])))
 """
 
 
-def export_image(client, image, archive_path):
-    command = f"bash -o pipefail -c 'docker image save {image} 2>/dev/null | gzip -1 2>/dev/null'"
+def export_image(client, info, archive_path):
+    image = info['id']
+    tag = f'napcat-migration:export-{secrets.token_hex(8)}'
+    shell_script = (
+        f'docker image tag {image} {tag} || exit; '
+        f"trap 'docker image rm {tag} >/dev/null 2>&1' EXIT; "
+        f'docker image save {tag} 2>/dev/null | gzip -1 2>/dev/null'
+    )
+    command = 'bash -o pipefail -c ' + shlex.quote(shell_script)
     stdin, stdout, _ = client.exec_command(command, timeout=180)
     stdin.close()
     with archive_path.open('wb') as output, stdout:
@@ -43,13 +51,15 @@ def export_image(client, image, archive_path):
     print(f'Received Docker image archive ({archive_path.stat().st_size} bytes).', flush=True)
     subprocess.run(['docker', 'image', 'load', '--input', str(archive_path)],
                    stdout=subprocess.DEVNULL, check=True, timeout=600)
-    loaded = subprocess.check_output(
-        ['docker', 'image', 'inspect', '--format', '{{.Id}}', image],
-        text=True, timeout=30,
-    ).strip()
-    if loaded != image:
-        raise ValueError('Loaded image does not match the installed image')
-
+    loaded = json.loads(subprocess.check_output(
+        ['docker', 'image', 'inspect', tag], text=True, timeout=30,
+    ))[0]
+    if (loaded['Os'], loaded['Architecture'], loaded['RootFS']['Layers']) != (
+        info['os'], info['architecture'], info['layers'],
+    ):
+        raise ValueError('Loaded image platform or layer digests differ from the source')
+    info['tag'] = tag
+    print(f"Loaded and verified {tag} ({loaded['Os']}/{loaded['Architecture']}).", flush=True)
 
 
 def encrypt_image(source, destination, info):
@@ -97,7 +107,7 @@ def main():
             if not re.fullmatch(r'sha256:[a-f0-9]{64}', image):
                 raise ValueError('Unexpected Docker image ID')
             print(f"Exporting {image} ({info['os']}/{info['architecture']}).", flush=True)
-            export_image(client, image, archive_path)
+            export_image(client, info, archive_path)
         print(f'Verified Docker image archive ({archive_path.stat().st_size} bytes).', flush=True)
         encrypt_image(archive_path, Path('napcat-image-transfer'), info)
 
