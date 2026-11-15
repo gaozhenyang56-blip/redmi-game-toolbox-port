@@ -1,4 +1,5 @@
 """Import model credentials on-host. Publish counts only, never configuration values."""
+import http.cookiejar
 import base64,collections,hashlib,json,os,re,shutil,subprocess,tempfile,time,traceback,urllib.request
 from pathlib import Path
 import yaml
@@ -92,7 +93,8 @@ try:
    try:
     launch=entryurl.read_text().strip()
     request=urllib.request.Request('http://127.0.0.1:3080/?'+launch.split('?',1)[1],headers={'Host':'gaozy.tech'})
-    with urllib.request.urlopen(request,timeout=5) as response:assert response.status==200
+    opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    with opener.open(request,timeout=5) as response:assert response.status==200
     break
    except Exception:pass
   time.sleep(2)
