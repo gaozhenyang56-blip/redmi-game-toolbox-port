@@ -1,0 +1,30 @@
+name: Apply DSH Purge patches with rollback
+on:
+  push:
+    branches: [codex/dsh-deploy-20261115]
+    paths: ['.github/workflows/qinglian-dsh-apply.yml', 'qinglian/dsh-apply/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: qinglian-server-maintenance
+  cancel-in-progress: false
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            qinglian/dsh-apply
+            qinglian/server/github
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1 cryptography==44.0.3
+      - name: Back up, apply as DSH user, restore ownership and verify restart
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/dsh-apply/run.py
