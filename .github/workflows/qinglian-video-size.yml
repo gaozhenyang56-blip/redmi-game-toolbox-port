@@ -21,7 +21,7 @@ jobs:
             qinglian/video-size
             qinglian/server/github
       - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
-      - name: Inspect video parsing plugin size settings
+      - name: Remove video size cap, verify streaming and load plugin
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
