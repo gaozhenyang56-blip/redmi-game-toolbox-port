@@ -1,3 +1,11 @@
+# HelloTik 视频解析插件取消大小上限（2026-11-16，北京时间）
+
+用户明确要求移除服务器AstrBot视频解析插件上传大小限制。实际目标为/opt/astrbot/data/plugins/astrbot_plugin_hellotik_video，原配置max_video_mb=50且main.py硬夹1～50MiB，quality.py元数据筛选和client.py响应头/流式下载也有大小拦截。已设max_video_mb=0并统一定义0不限大小；正数支持自定义上限且不再强夹50。配置schema默认和描述同步修改，保留MP4完整性检查、流式落盘、URL/DNS校验、超时及失败清理；不修改QQ平台自身限制或其他插件。
+
+工作流43766953582完整成功：真实下载函数在受控测试流中写入51MiB（含Content-Length和无Content-Length两种）；正数上限与不完整文件清理、100MiB自定义配置、原清晰度选择不因大小降级、MP4检查调用均通过。测试不调用外网下载或向QQ发送消息，不代表真实QQ超大文件上传现场验收。AstrBot已重启加载插件，管理界面健康、max_video_mb=0、其他插件配置和其他服务进程保持。
+
+部署前在/root/hellotik-video-size-*保留root私有原main.py/client.py/quality.py/schema及配置备份。第一次43766644558的45秒启动验证窗口不足，自动回滚；只读诊断确认服务和6185端口正常后，加入预检并延长有界启动验证，最终成功。部署工具位于qinglian/video-size，工作流.github/workflows/qinglian-video-size.yml；原生产配置和密钥不进Git或日志。代码5ea419d/3a73640。
+
 # DeepSeek Harness 已接入服务聚合面板（2026-11-15）
 
 用户确认同机新增项目并提供入口 https://gaozy.tech/dsh 。SSH扫描确认dsh.service为DeepSeek Harness Web UI，本机127.0.0.1:3080，进程名MainThread且匿名HTTP401，旧自动发现会漏掉。已显式注册到server-hub采集器，提供DeepSeek Harness卡片、正确HTTPS入口、真实状态/内存/运行时长/响应时间及需登录标记；3080仍只监听本机。
