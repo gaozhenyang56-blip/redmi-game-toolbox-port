@@ -47,4 +47,17 @@ class HubTests(unittest.TestCase):
   self.assertEqual(h.peer(),'198.51.100.8');self.assertIn('; Secure',h.cookie_options())
   h.client_address=('198.51.100.9',1234)
   self.assertEqual(h.peer(),'198.51.100.9');self.assertNotIn('; Secure',h.cookie_options())
+
+class DSHCollectorTests(unittest.TestCase):
+ def test_local_authenticated_service_has_public_entry_and_live_status(self):
+  from unittest.mock import patch
+  with tempfile.TemporaryDirectory() as folder:
+   port={'protocol':'tcp','port':3080,'scope':'local','process':'MainThread','pid':123,'unit':'dsh.service','container':''}
+   props={'dsh.service':{'LoadState':'loaded','ActiveState':'active','SubState':'running','MemoryCurrent':'1024','ActiveEnterTimestampMonotonic':'1000000','NRestarts':'0'}}
+   with patch.object(collector,'DATA',Path(folder)),patch.object(collector,'KNOWN',{'dsh.service':collector.KNOWN['dsh.service']}),patch.object(collector,'sync_auth'),patch.object(collector,'listeners',return_value=[port]),patch.object(collector,'containers',return_value=[]),patch.object(collector,'unit_states',return_value=props),patch.object(collector,'system_metrics',return_value=({'uptime_seconds':100},{})),patch.object(collector,'http_probe',return_value={'reachable':True,'http_status':401,'latency_ms':1,'content_type':'text/plain'}) as probe:
+    result=collector.collect({'host':'fixture.example','port':9178})
+   item=result['projects'][0]
+   self.assertEqual(item['name'],'DeepSeek Harness');self.assertEqual(item['url'],'https://gaozy.tech/dsh');self.assertEqual(item['status'],'healthy');self.assertTrue(item['auth_required']);self.assertEqual(item['ports'],[(3080,'tcp','local')]);self.assertEqual(item['memory_bytes'],1024);self.assertEqual(item['uptime_seconds'],99)
+   probe.assert_called_once_with('http://127.0.0.1:3080/')
+
 if __name__=='__main__':unittest.main()

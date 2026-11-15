@@ -3,6 +3,7 @@ import concurrent.futures,hashlib,hmac,ipaddress,json,os,pwd,re,secrets,shutil,s
 from pathlib import Path
 DATA=Path('/var/lib/server-hub')
 KNOWN={
+ 'dsh.service':('DeepSeek Harness','DeepSeek Harness 网页控制台',3080,'/'),
  'astrbot.service':('AstrBot','对话机器人与插件后台',6185,'/'),
  'napcat-login.service':('NapCat','QQ 协议端与扫码登录',6099,'/health'),
  'openlist-astrbot.service':('OpenList','网盘与文件管理',5244,'/api/public/init_status'),
@@ -137,6 +138,7 @@ def collect(config):
   port=default_port;public=any(p['protocol']=='tcp' and p['port']==port and p['scope']=='public' for p in project_ports)
   url='http://'+config['host']+':'+str(port)+'/' if public else None
   if unit=='x-ui.service':url=config.get('management_url') or url
+  if unit=='dsh.service':url='https://gaozy.tech/dsh'
   if unit.startswith('qinglian-'):url=config.get('management_url')
   item={'id':unit,'name':name,'description':description,'unit':unit,'active_state':props.get('ActiveState','unknown'),'sub_state':props.get('SubState','unknown'),'status':'healthy' if props.get('ActiveState')=='active' else 'offline','url':url,'ports':sorted({(p['port'],p['protocol'],p['scope']) for p in project_ports}),'memory_bytes':number(props.get('MemoryCurrent')),'cpu_percent':None,'uptime_seconds':None,'restarts':number(props.get('NRestarts')),'discovered':False}
   started=number(props.get('ActiveEnterTimestampMonotonic'))
