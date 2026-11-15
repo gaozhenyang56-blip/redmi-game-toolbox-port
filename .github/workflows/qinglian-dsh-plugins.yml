@@ -1,0 +1,37 @@
+name: Install approved DSH Purge archived release
+on:
+  push:
+    branches: [codex/dsh-deploy-20261115]
+    paths: ['.github/workflows/qinglian-dsh-plugins.yml', 'qinglian/dsh-plugins/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: qinglian-server-maintenance
+  cancel-in-progress: false
+jobs:
+  install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            qinglian/dsh-plugins
+            qinglian/server/github
+      - name: Prepare approved source at exact commit
+        run: |
+          git clone https://github.com/mmparko/dsh-purge.git "$RUNNER_TEMP/dsh-purge"
+          git -C "$RUNNER_TEMP/dsh-purge" checkout 033e6bd1e0f101352b39075ecd0d758ffef26b76
+          python3 qinglian/dsh-plugins/prepare.py "$RUNNER_TEMP/dsh-purge"
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP" "$RUNNER_TEMP/dsh-purge"
+          python3 -m py_compile qinglian/dsh-plugins/*.py
+          python3 -m pip install --disable-pip-version-check paramiko==3.5.1 cryptography==44.0.3
+      - name: Install in Web profile and verify native plugin status
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/dsh-plugins/install.py
