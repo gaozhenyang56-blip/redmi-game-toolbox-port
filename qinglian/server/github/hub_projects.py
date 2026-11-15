@@ -8,8 +8,11 @@ from pathlib import Path
 
 def run(*args):return subprocess.run(args,check=True,capture_output=True,text=True,timeout=45).stdout.strip()
 def signature(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+phase='preflight'
 def api(path,body=None,cookie=None):
- c=http.client.HTTPConnection('127.0.0.1',9178,timeout=10);headers={'Content-Type':'application/json'}
+ global phase
+ phase='http_'+path
+ c=http.client.HTTPConnection('127.0.0.1',9178,timeout=30);headers={'Content-Type':'application/json'}
  if cookie:headers['Cookie']=cookie
  c.request('POST' if body is not None else 'GET','/panel'+path,body=json.dumps(body) if body is not None else None,headers=headers)
  r=c.getresponse();result=(r.status,dict(r.getheaders()),r.read());c.close();return result
@@ -35,6 +38,7 @@ try:
   if attempt==44:raise TimeoutError()
   time.sleep(1)
  replacement=target.with_suffix('.projects-new');shutil.copyfile(staged,replacement);replacement.chmod(0o644);os.replace(replacement,target);changed=True
+ phase='refresh_collector'
  run('systemctl','start','server-hub-collector.service')
  private=json.loads(Path('/opt/astrbot/data/config/astrbot_plugin_baidu_curl_config.json').read_text(encoding='utf-8-sig'))
  code,headers,body=api('/api/login',{'username':private['openlist_user'],'password':private['openlist_pass']});assert code==200 and json.loads(body)['ok']
@@ -61,7 +65,7 @@ except Exception as error:
  if timer_stopped:
   try:run('systemctl','start','server-hub-collector.timer')
   except Exception:pass
- print(json.dumps({'ok':False,'rolled_back':restored,'error_type':type(error).__name__,'line':__import__('traceback').extract_tb(error.__traceback__)[-1].lineno}))
+ print(json.dumps({'ok':False,'rolled_back':restored,'error_type':type(error).__name__,'phase':phase,'script_lines':[f.lineno for f in __import__('traceback').extract_tb(error.__traceback__) if f.filename=='<stdin>'],'line':__import__('traceback').extract_tb(error.__traceback__)[-1].lineno}))
 '''
 source=Path(__file__).resolve().parents[2]/'server-hub/collector.py'
 expected=hashlib.sha256(source.read_bytes()).hexdigest()
