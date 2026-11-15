@@ -1,3 +1,11 @@
+# DeepSeek Harness 已接入服务聚合面板（2026-11-15）
+
+用户确认同机新增项目并提供入口 https://gaozy.tech/dsh 。SSH扫描确认dsh.service为DeepSeek Harness Web UI，本机127.0.0.1:3080，进程名MainThread且匿名HTTP401，旧自动发现会漏掉。已显式注册到server-hub采集器，提供DeepSeek Harness卡片、正确HTTPS入口、真实状态/内存/运行时长/响应时间及需登录标记；3080仍只监听本机。
+
+仅更新/opt/server-hub/collector.py并刷新采集服务，未重启DSH、x-ui、聚合面板或其他项目；原9个项目与私有配置/认证密钥保持。root私有旧采集器备份位于/root/server-hub-projects-*。第一次部署43690042512接口验证超时后自动回滚；增加有界30秒验证等待及安全阶段诊断后，43690386578完整成功：8项测试、真实聚合面板登录/状态/退出、10个项目、新DSH健康且需登录、原服务进程和配置不变、公共HTTPS面板与受保护DSH入口均通过。一次成功样本内存约288MiB、响应200ms，仅代表采集当时状态。
+
+维护入口为.github/workflows/qinglian-hub-projects.yml，仅部署采集器；修改采集器时避免误触旧全量hub部署来替换现有域名路由二进制。代码2c8989c/67e7739。只读扫描脚本也增加了新服务的安全元数据与面板项目对照，不输出环境变量、密码、模型API密钥或原始配置。
+
 # 服务聚合面板 9178 与 /panel 已上线（2026-11-08 UTC）
 
 用户确认沿用原仓库 `redmi-game-toolbox-port` 的 `codex/qinglian-routing-and-presence` 分支维护聚合面板；独立公开 `qinglian-vpn` 仓库没有原服务器 Actions Secrets，未将生产凭据迁入该仓库。
