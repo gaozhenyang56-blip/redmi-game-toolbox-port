@@ -8,7 +8,6 @@ import re
 import secrets
 import subprocess
 import sys
-import tarfile
 import tempfile
 from pathlib import Path
 
@@ -41,15 +40,16 @@ def export_image(client, image, archive_path):
             output.write(chunk)
         if stdout.channel.recv_exit_status() != 0:
             raise RuntimeError('Docker image export failed')
-    subprocess.run(['gzip', '-t', str(archive_path)], check=True)
-    with tarfile.open(archive_path, 'r|gz') as archive:
-        for entry in archive:
-            if entry.name in ('manifest.json', './manifest.json'):
-                config = json.load(archive.extractfile(entry))[0]['Config']
-                if Path(config).stem != image.removeprefix('sha256:'):
-                    raise ValueError('Exported image does not match the installed image')
-                return
-    raise ValueError('Docker image archive has no manifest')
+    print(f'Received Docker image archive ({archive_path.stat().st_size} bytes).', flush=True)
+    subprocess.run(['docker', 'image', 'load', '--input', str(archive_path)],
+                   stdout=subprocess.DEVNULL, check=True, timeout=600)
+    loaded = subprocess.check_output(
+        ['docker', 'image', 'inspect', '--format', '{{.Id}}', image],
+        text=True, timeout=30,
+    ).strip()
+    if loaded != image:
+        raise ValueError('Loaded image does not match the installed image')
+
 
 
 def encrypt_image(source, destination, info):
