@@ -27,4 +27,4 @@ jobs:
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
           QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
           QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
-        run: python3 qinglian/dsh/preflight.py
+        run: python3 qinglian/dsh/prepare_key.py
