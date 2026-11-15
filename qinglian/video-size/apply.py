@@ -14,6 +14,8 @@ def write(path,text):
  shutil.copystat(path,temporary);stat=path.stat();os.chown(temporary,stat.st_uid,stat.st_gid);os.replace(temporary,path)
 try:
  assert run('systemctl','is-active','astrbot')=='active'
+ opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
+ with opener.open('http://127.0.0.1:6185/',timeout=10) as response:assert response.status==200
  config_before=json.loads(config.read_text(encoding='utf-8-sig'))
  names=('main.py','client.py','quality.py','_conf_schema.json')
  originals={name:(plugin/name).read_text() for name in names}
@@ -41,7 +43,8 @@ try:
  phase='restart_astrbot';started=int(time.time());run('systemctl','restart','astrbot',timeout=90)
  opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
  phase='startup_validation'
- for attempt in range(45):
+ deadline=time.monotonic()+180
+ while True:
   try:
    assert run('systemctl','is-active','astrbot')=='active'
    with opener.open('http://127.0.0.1:6185/',timeout=3) as response:assert response.status==200
@@ -51,7 +54,7 @@ try:
    assert lines and not errors
    break
   except Exception:
-   if attempt==44:raise
+   if time.monotonic()>=deadline:raise
    time.sleep(1)
  assert json.loads(config.read_text())['max_video_mb']==0
  assert {k:v for k,v in json.loads(config.read_text()).items() if k!='max_video_mb'}=={k:v for k,v in config_before.items() if k!='max_video_mb'}
