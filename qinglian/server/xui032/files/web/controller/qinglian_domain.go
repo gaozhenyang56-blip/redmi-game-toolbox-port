@@ -60,6 +60,7 @@ func (a *QinglianController) domainTLS() (*tls.Certificate, []*net.IPNet, error)
 // see the original user instead of a loopback reverse proxy.
 func (a *QinglianController) domainHandler(api, panel http.Handler, cdn []*net.IPNet) http.Handler {
 	hub := qServiceHubProxy()
+	dsh := qDSHProxy()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host := r.Host
 		if strings.Contains(host, ":") {
@@ -92,6 +93,10 @@ func (a *QinglianController) domainHandler(api, panel http.Handler, cdn []*net.I
 			request.Header.Del(name)
 		}
 		w.Header().Set("Cache-Control", "private, no-store")
+		if request.URL.Path == "/dsh" || strings.HasPrefix(request.URL.Path, "/dsh/") {
+			dsh.ServeHTTP(w, request)
+			return
+		}
 		if request.URL.Path == "/panel" || strings.HasPrefix(request.URL.Path, "/panel/") {
 			hub.ServeHTTP(w, request)
 			return

@@ -2,7 +2,7 @@ name: Qinglian DeepSeek Harness deployment
 on:
   push:
     branches: [codex/dsh-deploy-20261115]
-    paths: ['.github/workflows/qinglian-dsh.yml', 'qinglian/dsh/**']
+    paths: ['.github/workflows/qinglian-dsh.yml', 'qinglian/dsh/**', 'qinglian/server/xui032/files/web/controller/qinglian_dsh*', 'qinglian/server/xui032/files/web/controller/qinglian_domain.go']
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,19 +12,62 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
           sparse-checkout: |
             qinglian/dsh
-            qinglian/server/github
-      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1 cryptography==44.0.3
-      - name: Inspect DSH prerequisites
+            qinglian/server
+      - name: Validate deployment sources and install SSH client
+        run: |
+          python3 -m py_compile qinglian/dsh/*.py
+          python3 -m pip install --disable-pip-version-check paramiko==3.5.1 cryptography==44.0.3
+      - name: Prepare pinned Node runtime
+        run: |
+          curl -fsSL --retry 3 https://nodejs.org/dist/v24.11.1/node-v24.11.1-linux-x64.tar.xz -o "$RUNNER_TEMP/node.tar.xz"
+          echo "60e3b0a8500819514aca603487c254298cd776de0698d3cd08f11dba5b8289a8  $RUNNER_TEMP/node.tar.xz" | sha256sum -c -
+          mkdir "$RUNNER_TEMP/node"
+          tar -xJf "$RUNNER_TEMP/node.tar.xz" --strip-components=1 -C "$RUNNER_TEMP/node"
+          echo "$RUNNER_TEMP/node/bin" >> "$GITHUB_PATH"
+      - name: Prepare locked official DSH package outside production
+        run: |
+          mkdir "$RUNNER_TEMP/runtime"
+          cp qinglian/dsh/package*.json "$RUNNER_TEMP/runtime/"
+          npm ci --prefix "$RUNNER_TEMP/runtime" --omit=dev --no-audit --no-fund
+          node "$RUNNER_TEMP/runtime/node_modules/@deepseek-ai/dsh/lib/bin.js" --version
+          tar -czf "$RUNNER_TEMP/runtime.tar.gz" -C "$RUNNER_TEMP/runtime" .
+      - name: Install pinned Go toolchain
+        run: |
+          curl -fsSL --retry 3 https://go.dev/dl/go1.23.12.linux-amd64.tar.gz -o "$RUNNER_TEMP/go.tar.gz"
+          printf '%s  %s\n' "$(cat qinglian/server/github/go-sdk.sha256)" "$RUNNER_TEMP/go.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/go.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/go/bin" >> "$GITHUB_PATH"
+      - name: Test existing HTTPS boundaries and DSH login proxy, then build
+        run: |
+          git clone --branch 0.3.2 --depth 1 https://github.com/vaxilu/x-ui.git "$RUNNER_TEMP/x-ui"
+          python3 qinglian/server/xui032/apply.py "$RUNNER_TEMP/x-ui"
+          cd "$RUNNER_TEMP/x-ui"
+          go test -race ./web/controller ./web
+          go build -trimpath -o "$RUNNER_TEMP/qinglian-x-ui" .
+      - name: Deploy DSH with private backup and verify HTTPS login
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
           QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
           QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
-        run: python3 qinglian/dsh/prepare_key.py
+        run: python3 qinglian/dsh/deploy.py
+      - name: Verify anonymous public access requires login
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.error
+          request=urllib.request.Request('https://gaozy.tech/dsh/',headers={'User-Agent':'Qinglian-Deploy/1.0'})
+          try:
+              urllib.request.urlopen(request,timeout=20)
+              raise AssertionError('Anonymous access unexpectedly allowed')
+          except urllib.error.HTTPError as e:
+              assert e.code==401
+              assert 'Basic' in e.headers.get('WWW-Authenticate','')
+          print('Public HTTPS login gate verified')
+          PY
