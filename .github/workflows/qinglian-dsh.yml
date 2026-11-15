@@ -20,11 +20,11 @@ jobs:
           sparse-checkout: |
             qinglian/dsh
             qinglian/server/github
-      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1 cryptography==44.0.3
       - name: Inspect DSH prerequisites
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
           QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
           QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
-        run: python3 qinglian/dsh/inspect.py
+        run: python3 qinglian/dsh/preflight.py
