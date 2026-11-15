@@ -8,4 +8,6 @@ with connection() as client:
  _,out,err=client.exec_command('/opt/astrbot/.venv/bin/python /root/dsh-model-migration.py',timeout=300)
  data=out.read(65536);status=out.channel.recv_exit_status()
  if status:raise SystemExit('Private server migration failed; no credentials or stderr published')
- print(json.dumps(json.loads(data)),flush=True)
+ result=json.loads(data)
+ print(json.dumps(result),flush=True)
+ if not result.get("ok"):raise SystemExit(1)
