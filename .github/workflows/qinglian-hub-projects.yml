@@ -1,0 +1,44 @@
+name: Qinglian hub project registration
+on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['.github/workflows/qinglian-hub-projects.yml','qinglian/server/github/hub_projects.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: qinglian-server-maintenance
+  cancel-in-progress: false
+jobs:
+  register:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            qinglian/server-hub
+            qinglian/server/github
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - name: Test authenticated project registration and existing hub behavior
+        run: python3 -m unittest discover -s qinglian/server-hub -p test_hub.py -v
+      - name: Back up and update only the collector, preserving running projects
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/server/github/hub_projects.py
+      - name: Check public hub and protected DSH entry
+        run: |
+          python3 qinglian/server/github/hub_public_check.py
+          python3 - <<'PY'
+          import urllib.request,urllib.error
+          try:
+              urllib.request.urlopen(urllib.request.Request('https://gaozy.tech/dsh',headers={'User-Agent':'Qinglian-Deploy/1.0'}),timeout=20)
+              raise AssertionError('Expected existing DSH authentication challenge')
+          except urllib.error.HTTPError as error:
+              assert error.code==401
+          print('Public DSH entry is reachable and retains authentication.')
+          PY
