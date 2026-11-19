@@ -18,6 +18,7 @@ def main():
    apk.write_bytes(data)
    with zipfile.ZipFile(apk) as z:
     config=json.loads(z.read('assets/profile.json'));ca=root/'ca.pem';ca.write_bytes(z.read('assets/'+config['caAsset']))
+    original_node=json.loads(z.read('assets/node.json')) if os.environ.get('QINGLIAN_VERIFY_ORIGINAL')=='1' else None
    original=urllib.parse.urlsplit(config['url']);assert original.scheme=='https' and original.hostname=='107.150.7.124'
    cp=dependencies(cache)
    opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect())
@@ -82,6 +83,8 @@ def main():
     time.sleep(.5)
    results['nativeBytesMetered']=quota.get('usedBytes',0)>=expected
    results['quotaValid']=quota.get('limitBytes')==64*1024**3 and quota.get('domainHistory') is False
+   if original_node is not None:
+    phase='original-embedded-transfer';original_node.setdefault('protocol','vmess');results['originalCompatibility']=transfer(original_node,False)
   except Exception as error:results['error']={'phase':phase,'errorType':type(error).__name__,'httpStatus':error.code if isinstance(error,urllib.error.HTTPError) else None}
   finally:
    if started:
@@ -89,7 +92,7 @@ def main():
     except Exception:pass
   results['testGuestStopped']=stopped;results['credentialsOrPayloadLogged']=False
   print(json.dumps(results))
-  return 0 if results.get('compatibility',{}).get('transferVerified') and results.get('acceleration',{}).get('transferVerified') and results.get('quotaValid') and results.get('nativeBytesMetered') and stopped else 1
+  return 0 if results.get('compatibility',{}).get('transferVerified') and results.get('acceleration',{}).get('transferVerified') and results.get('quotaValid') and results.get('nativeBytesMetered') and stopped and (os.environ.get('QINGLIAN_VERIFY_ORIGINAL')!='1' or results.get('originalCompatibility',{}).get('transferVerified')) else 1
 
 def re_id(value):
  import re

@@ -9,6 +9,10 @@ on:
         description: Verify the domain443 WSS compatibility data path
         type: boolean
         default: false
+      original:
+        description: Also verify real transfer using the original embedded node configuration used by external clients
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -25,5 +29,6 @@ jobs:
       - name: Pinned released Android profile, temporary guest, real TCP and UDP data
         env:
           QINGLIAN_CDN_CHECK: ${{ inputs.cdn && '1' || '0' }}
+          QINGLIAN_VERIFY_ORIGINAL: ${{ inputs.original && '1' || '0' }}
           QINGLIAN_TEST_CACHE: ${{ runner.temp }}/qinglian-public-paths
         run: python3 qinglian/server/github/public_channel_smoke.py

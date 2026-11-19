@@ -1,0 +1,37 @@
+name: Qinglian guarded expired parent node recovery
+on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['.github/workflows/qinglian-parent-expiry-repair.yml']
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Restore only expired App-selected/original owner nodes to enabled with no parent expiry; retain all quotas/counters/export lifetimes
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: qinglian-server-maintenance
+  cancel-in-progress: false
+jobs:
+  recover:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian/server/github
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - name: Verify repair scope and quota guards
+        run: python3 -m unittest discover -s qinglian/server/github -p test_parent_expiry_policy.py -v
+      - name: Owner API expiry-only recovery with private snapshots and rollback
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+          QINGLIAN_APPLY_EXPIRY_REPAIR: ${{ inputs.apply && '1' || '0' }}
+        run: python3 qinglian/server/github/repair_parent_expiry.py
