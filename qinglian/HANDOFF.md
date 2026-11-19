@@ -1,3 +1,9 @@
+# 原内置VPN节点到期已恢复（2026-11-19，北京时间）
+
+用户轻连取节点失败、v2rayNG read/io closed pipe，未换服务器。已确认当前App与原bootstrap共用inbound1于11月17日22:15到期被停用，额度未满，API/数据库/worker服务本身正常。44547290854通过面板正常owner API仅恢复该节点enable=true、expiryTime=0（长期有效），保留1TiB总额、既有用量、原凭据/端口/伪装及其他节点/账号/导出7天规则。root私有一致性快照保留于/root/qinglian-parent-expiry-*；未重启HTTPS前端或其他项目。
+
+44547519452真实CDN兼容、HY2、冻结APK原内置VMess三条路径均传输成功，访客原计量/配额/停止通过；用户手机网络现场仍待重连确认。无需新包或换订阅。新维护工作流默认预检，显式apply且仅过期/未耗尽/绑定owner节点才允许恢复，不能用来覆盖耗尽额度或手动停用策略。详见verification/PARENT_EXPIRY_20261119.md。
+
 # HelloTik 视频解析插件取消大小上限（2026-11-16，北京时间）
 
 用户明确要求移除服务器AstrBot视频解析插件上传大小限制。实际目标为/opt/astrbot/data/plugins/astrbot_plugin_hellotik_video，原配置max_video_mb=50且main.py硬夹1～50MiB，quality.py元数据筛选和client.py响应头/流式下载也有大小拦截。已设max_video_mb=0并统一定义0不限大小；正数支持自定义上限且不再强夹50。配置schema默认和描述同步修改，保留MP4完整性检查、流式落盘、URL/DNS校验、超时及失败清理；不修改QQ平台自身限制或其他插件。
