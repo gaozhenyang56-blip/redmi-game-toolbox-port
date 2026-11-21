@@ -1,0 +1,31 @@
+[Unit]
+Description=ChatGPT Web Bridge HTTPS upstream
+After=network.target
+StartLimitIntervalSec=180
+StartLimitBurst=4
+
+[Service]
+Type=simple
+User=cgwb-web
+Group=cgwb-web
+SupplementaryGroups=cgwb-share
+ExecStart=/opt/chatgpt-web-bridge/current/bridge serve /etc/chatgpt-web-bridge/config.json
+Restart=on-failure
+RestartSec=5s
+UMask=0077
+MemoryMax=96M
+TasksMax=64
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ReadWritePaths=/var/lib/chatgpt-web-bridge/auth /srv/chatgpt-web-bridge
+InaccessiblePaths=/var/lib/chatgpt-web-bridge/browser
+StandardOutput=journal
+StandardError=journal
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=40
+
+[Install]
+WantedBy=multi-user.target

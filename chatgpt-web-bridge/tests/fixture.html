@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh"><meta charset="utf-8"><title>Bridge browser integration fixture</title>
+<body style="margin:0;background:#fff">
+<div style="position:absolute;left:48px;top:46px;width:320px;height:45px;background:#fcdf89">
+  <input id="text" autofocus style="display:block;box-sizing:border-box;width:100%;height:45px;font-size:20px" aria-label="测试文字" />
+</div>
+<a id="download" href="/fixture-download" style="display:block;position:absolute;left:48px;top:110px;width:230px;height:45px;background:#bfe3c6">下载测试文件</a>
+<div id="output" style="position:absolute;left:48px;top:180px;width:50px;height:40px;background:#ba5656"></div>
+<script>
+document.querySelector('#text').addEventListener('input', (e) => {
+  if (e.target.value === '你好，世界') {
+    document.querySelector('#output').style.background = '#227853';
+    localStorage.setItem('bridge-test-text', e.target.value);
+  }
+});
+if (localStorage.getItem('bridge-test-text') === '你好，世界') {
+  document.querySelector('#output').style.background = '#227853';
+}
+</script>
+</body></html>

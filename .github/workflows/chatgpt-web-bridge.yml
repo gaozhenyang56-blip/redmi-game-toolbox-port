@@ -1,0 +1,78 @@
+name: ChatGPT Web Bridge
+on:
+  push:
+    branches: [codex/chatgpt-web-bridge]
+    paths:
+      - 'chatgpt-web-bridge/**'
+      - '.github/workflows/chatgpt-web-bridge.yml'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Qinglian operation
+        type: choice
+        options: [probe, deploy]
+        default: probe
+      proxy:
+        description: HTTPS proxy mode for deployment
+        type: choice
+        options: [auto, nginx, caddy, manual]
+        default: auto
+permissions:
+  contents: read
+concurrency:
+  group: chatgpt-web-bridge-qinglian
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: chatgpt-web-bridge
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            chatgpt-web-bridge
+            qinglian/server/github
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: chatgpt-web-bridge/backend/go.sum
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: chatgpt-web-bridge/frontend/package-lock.json
+      - name: Verify Go and shell
+        run: |
+          go -C backend test -race ./...
+          go -C backend vet ./...
+          for path in scripts/*.sh browser/*.sh tests/*.sh; do bash -n "$path"; done
+      - name: Build reproducible inputs
+        run: bash scripts/build.sh
+      - name: Test frontend against real backend
+        run: |
+          (cd frontend && npx --no-install playwright install --with-deps chromium)
+          bash tests/web.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: chatgpt-web-bridge-linux-x86_64
+          path: chatgpt-web-bridge/dist/*
+          if-no-files-found: error
+      - name: Configure SSH client
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'codex/chatgpt-web-bridge'
+        run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - name: Qinglian server
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'codex/chatgpt-web-bridge'
+        env:
+          BRIDGE_OPERATION: ${{ inputs.mode || 'probe' }}
+          BRIDGE_PROXY: ${{ inputs.proxy || 'auto' }}
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+          QINGLIAN_SSH_HOST_KEY: ${{ secrets.QINGLIAN_SSH_HOST_KEY }}
+          BRIDGE_ADMIN_PASSWORD: ${{ secrets.CHATGPT_BRIDGE_PASSWORD }}
+        run: python3 scripts/qinglian.py

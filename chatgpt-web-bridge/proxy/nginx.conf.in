@@ -1,0 +1,33 @@
+# Managed by ChatGPT Web Bridge.
+server {
+    listen 80;
+    server_name @DOMAIN@;
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/lib/chatgpt-web-bridge/acme;
+        default_type text/plain;
+    }
+    location / { return 308 https://@DOMAIN@$request_uri; }
+}
+
+server {
+    listen 443 ssl;
+    server_name @DOMAIN@;
+    ssl_certificate @CERT@;
+    ssl_certificate_key @KEY@;
+    client_max_body_size 256m;
+    location / {
+        proxy_pass http://127.0.0.1:@PORT@;
+        proxy_http_version 1.1;
+        proxy_set_header Host @DOMAIN@;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_cgwb;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 60s;
+        proxy_request_buffering off;
+    }
+}
+
+map $http_upgrade $connection_cgwb {
+    default upgrade;
+    '' close;
+}

@@ -1,0 +1,39 @@
+[Unit]
+Description=ChatGPT Web Bridge isolated Chromium
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=180
+StartLimitBurst=4
+
+[Service]
+Type=simple
+User=cgwb-browser
+Group=cgwb-share
+Environment=HOME=/var/lib/chatgpt-web-bridge/browser
+Environment=DISPLAY=:76
+Environment=XAUTHORITY=/var/lib/chatgpt-web-bridge/browser/.Xauthority
+Environment=XDG_RUNTIME_DIR=/var/lib/chatgpt-web-bridge/browser/runtime
+EnvironmentFile=/etc/chatgpt-web-bridge/browser.env
+RuntimeDirectory=chatgpt-web-bridge
+RuntimeDirectoryMode=0750
+ExecStart=/opt/chatgpt-web-bridge/current/bridge browser /etc/chatgpt-web-bridge/config.json
+Restart=on-failure
+RestartSec=12s
+TimeoutStopSec=15s
+KillMode=mixed
+OOMPolicy=continue
+MemoryHigh=750M
+MemoryMax=1G
+CPUWeight=35
+TasksMax=240
+UMask=0027
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/chatgpt-web-bridge/browser /srv/chatgpt-web-bridge/downloads
+InaccessiblePaths=/var/lib/chatgpt-web-bridge/auth
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=40
+
+[Install]
+WantedBy=multi-user.target

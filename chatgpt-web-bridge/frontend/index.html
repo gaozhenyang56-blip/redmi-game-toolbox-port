@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#171d24">
+  <title>ChatGPT Web Bridge</title>
+</head>
+<body>
+  <section id="gate" class="gate" aria-labelledby="title">
+    <div class="access">
+      <span class="mark" aria-hidden="true"><i></i><i></i></span>
+      <h1 id="title">ChatGPT<br>Web Bridge<span>.</span></h1>
+      <p>自托管的远程浏览器</p>
+      <form id="login" hidden>
+        <label for="password">Web Bridge 访问密码</label>
+        <input id="password" type="password" autocomplete="current-password" required>
+        <button class="primary" type="submit">进入远程浏览器 <span aria-hidden="true">↗</span></button>
+      </form>
+      <p id="gate-status" role="status">正在检查访问权限…</p>
+    </div>
+  </section>
+  <main id="workspace" hidden>
+    <div id="screen" aria-label="远程 Chromium"></div>
+    <div id="connection" class="connection" role="status" hidden></div>
+    <nav class="dock" aria-label="远程控制">
+      <button id="keyboard" title="手机键盘" aria-label="手机键盘">⌨</button>
+      <button id="tools" title="远程工具" aria-label="远程工具">⋯</button>
+    </nav>
+  </main>
+  <main id="admin" hidden>
+    <header><a href="/">‹ 返回远程画面</a><button id="admin-logout">退出</button></header>
+    <article>
+      <p class="identity">ChatGPT Web Bridge</p>
+      <h1>管理后台</h1>
+      <section class="card">
+        <h2>ChatGPT 账号</h2>
+        <p>在远程 Chromium 的 ChatGPT 官方页面完成登录、验证码或退出。登录后的对话和历史记录由官方账号同步。</p>
+        <a class="primary inline" href="/">打开官方页面 · 登录 ChatGPT ↗</a>
+      </section>
+      <section class="card">
+        <h2>浏览器与资源</h2>
+        <dl id="metrics"></dl>
+        <div class="actions"><button id="status-refresh">刷新状态</button><button id="browser-restart">重启 Chromium</button><button id="admin-files">文件管理</button></div>
+        <details><summary>查看错误日志</summary><pre id="events"></pre></details>
+      </section>
+      <section class="card">
+        <h2>修改 Web Bridge 密码</h2>
+        <form id="change">
+          <label for="current">当前密码</label><input id="current" type="password" autocomplete="current-password" required>
+          <label for="next">新密码（12–72 字节）</label><input id="next" type="password" autocomplete="new-password" required>
+          <button type="submit">保存并退出所有设备</button>
+        </form>
+      </section>
+      <p id="admin-status" role="status"></p>
+    </article>
+  </main>
+  <dialog id="toolbox" aria-labelledby="tool-heading">
+    <header><h2 id="tool-heading">远程工具</h2><button data-close="toolbox" aria-label="关闭">×</button></header>
+    <p id="tool-status" role="status"></p>
+    <div class="actions">
+      <button id="open-files">上传与下载</button><button id="open-input">键盘与剪贴板</button>
+      <button id="refresh">刷新 Chromium</button><button id="reconnect">重新连接</button>
+      <button id="fullscreen">切换全屏</button><button id="logout">退出会话</button>
+      <a href="/admin">管理后台 ↗</a>
+    </div>
+    <label for="display-mode">画面布局</label>
+    <select id="display-mode"><option value="auto">自动适配方向和尺寸</option><option value="portrait">手机竖屏</option><option value="landscape">宽屏</option><option value="zoom">原始尺寸，可拖动画面</option></select>
+    <label><input id="low" type="checkbox"> 低带宽画质</label>
+  </dialog>
+  <dialog id="files" aria-labelledby="file-heading">
+    <header><h2 id="file-heading">文件传输</h2><button data-close="files" aria-label="关闭">×</button></header>
+    <p>上传后，在 ChatGPT 文件选择器中打开 <code id="upload-dir">/srv/chatgpt-web-bridge/uploads</code>。</p>
+    <input type="file" id="local-files" multiple>
+    <div class="actions"><button id="upload">开始 / 重试上传</button><button id="cancel" disabled>取消上传</button><button id="list-refresh">刷新列表</button></div>
+    <progress id="progress" max="100" value="0" hidden></progress>
+    <p id="file-status" role="status"></p>
+    <h3>已上传</h3><ul id="uploads"></ul>
+    <h3>远程下载</h3><ul id="downloads"></ul>
+  </dialog>
+  <dialog id="input" aria-labelledby="input-heading">
+    <header><h2 id="input-heading">键盘与剪贴板</h2><button data-close="input" aria-label="关闭">×</button></header>
+    <p>先点远程输入框，再打开此面板。中文可通过手机输入法编辑后粘贴。</p>
+    <label for="compose">本地文字</label>
+    <textarea id="compose" rows="4" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+    <label><input id="keystrokes" type="checkbox"> 按键输入（ASCII，可用于登录字段）</label>
+    <div class="actions">
+      <button id="send">输入到远程</button><button id="enter">远程回车</button><button id="tab">远程 Tab</button>
+      <button id="read-clipboard">取回远程复制的文字</button><button id="write-clipboard">复制到本机</button>
+    </div>
+    <p id="input-status" role="status"></p>
+  </dialog>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

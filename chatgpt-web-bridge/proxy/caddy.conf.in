@@ -1,0 +1,4 @@
+# Managed by ChatGPT Web Bridge.
+@DOMAIN@ {
+    reverse_proxy 127.0.0.1:@PORT@
+}
