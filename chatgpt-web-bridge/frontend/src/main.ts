@@ -149,7 +149,10 @@ function openSession(value: string) {
   show('workspace', !isAdmin);
   show('admin', isAdmin);
   if (isAdmin) report('admin-status', refreshStatus);
-  else void connect();
+  else {
+    void connect();
+    if (location.hash === '#display') showDialog('toolbox');
+  }
 }
 async function logout() {
   await api('logout', 'POST');

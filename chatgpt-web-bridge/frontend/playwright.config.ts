@@ -7,6 +7,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.BRIDGE_TEST_URL,
     ignoreHTTPSErrors: true,
+    screenshot: 'only-on-failure',
     launchOptions: {executablePath: process.env.BRIDGE_TEST_CLIENT || undefined},
   },
 });

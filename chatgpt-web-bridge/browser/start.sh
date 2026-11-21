@@ -8,11 +8,37 @@ umask 0027
 : "${BRIDGE_START_URL:=https://chatgpt.com/}" "${BRIDGE_CACHE_BYTES:=67108864}"
 export DISPLAY XAUTHORITY="$BRIDGE_BROWSER_HOME/.Xauthority"
 if [[ ! -e "$HOME/Downloads" ]]; then ln -s "$BRIDGE_FILES/downloads" "$HOME/Downloads"; fi
-mkdir -p "$HOME/.config" "$BRIDGE_BROWSER_HOME/profile/Default"
-if [[ ! -e "$BRIDGE_BROWSER_HOME/profile/Default/Preferences" ]]; then
-  printf '{"credentials_enable_service":false,"profile":{"password_manager_enabled":false}}\n' > "$BRIDGE_BROWSER_HOME/profile/Default/Preferences"
-fi
-printf 'XDG_DOWNLOAD_DIR="%s/downloads"\n' "$BRIDGE_FILES" > "$HOME/.config/user-dirs.dirs"
+export XDG_CONFIG_HOME="$HOME/.config"
+mkdir -p "$XDG_CONFIG_HOME" "$BRIDGE_BROWSER_HOME/profile/Default"
+python3 - "$BRIDGE_BROWSER_HOME/profile/Default/Preferences" "$BRIDGE_FILES/downloads" "$BRIDGE_FILES/uploads" "$XDG_CONFIG_HOME" <<'PY_CONFIG'
+import json
+import os
+from pathlib import Path
+import sys
+import tempfile
+
+prefs = Path(sys.argv[1])
+downloads = sys.argv[2]
+try:
+    data = json.loads(prefs.read_text()) if prefs.exists() else {}
+except (OSError, ValueError):
+    sys.exit("无法安全读取 Chromium 的下载配置。")
+data["credentials_enable_service"] = False
+data.setdefault("profile", {})["password_manager_enabled"] = False
+data.setdefault("download", {}).update(default_directory=downloads, directory_upgrade=True, prompt_for_download=False)
+data.setdefault("savefile", {})["default_directory"] = downloads
+with tempfile.NamedTemporaryFile(mode="w", dir=prefs.parent, delete=False) as f:
+    json.dump(data, f, ensure_ascii=True, separators=(",", ":"))
+os.replace(f.name, prefs)
+upload_uri = Path(sys.argv[3]).as_uri()
+for gtk_version in ("gtk-3.0", "gtk-4.0"):
+    bookmarks = Path(sys.argv[4], gtk_version, "bookmarks")
+    bookmarks.parent.mkdir(parents=True, exist_ok=True)
+    existing = bookmarks.read_text().splitlines() if bookmarks.exists() else []
+    if not any(line.split(maxsplit=1)[0] == upload_uri for line in existing if line.strip()):
+        bookmarks.write_text("\n".join([*existing, upload_uri + " Bridge 上传"]) + "\n")
+PY_CONFIG
+printf 'XDG_DOWNLOAD_DIR="%s/downloads"\n' "$BRIDGE_FILES" > "$XDG_CONFIG_HOME/user-dirs.dirs"
 touch "$XAUTHORITY"
 chmod 0600 "$XAUTHORITY"
 xauth -f "$XAUTHORITY" add "$DISPLAY" MIT-MAGIC-COOKIE-1 "$(mcookie)"
@@ -46,9 +72,23 @@ done
 xdpyinfo >/dev/null 2>&1
 openbox --config-file "$(dirname -- "$0")/openbox.xml" >/dev/null &
 wm_pid=$!
+for ((i=0;i<60;i++)); do
+  if xprop -root _NET_SUPPORTING_WM_CHECK | grep -q 'window id'; then break; fi
+  kill -0 "$wm_pid" 2>/dev/null || exit 1
+  sleep .1
+done
+xprop -root _NET_SUPPORTING_WM_CHECK | grep -q 'window id'
 "$BRIDGE_CHROMIUM" --user-data-dir="$BRIDGE_BROWSER_HOME/profile" --disk-cache-size="$BRIDGE_CACHE_BYTES" \
   --kiosk --no-first-run --no-default-browser-check --disable-extensions --disable-background-networking \
-  --disable-sync --disable-session-crashed-bubble --password-store=basic --ozone-platform=x11 "$BRIDGE_START_URL" \
+  --disable-sync --disable-session-crashed-bubble --force-device-scale-factor=1 --password-store=basic --ozone-platform=x11 --app="$BRIDGE_START_URL" \
   >/dev/null 2>&1 &
 chrome_pid=$!
-wait -n "$display_pid" "$wm_pid" "$chrome_pid"
+finished=
+result=0
+wait -n -p finished "$display_pid" "$wm_pid" "$chrome_pid" || result=$?
+case "$finished" in
+  "$chrome_pid") printf 'Chromium 已退出（%s）\n' "$result" >&2;;
+  "$wm_pid") printf 'Openbox 已退出（%s）\n' "$result" >&2;;
+  "$display_pid") printf 'TigerVNC 已退出（%s）\n' "$result" >&2;;
+esac
+exit "$result"

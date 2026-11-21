@@ -52,6 +52,8 @@ jobs:
           for path in scripts/*.sh browser/*.sh tests/*.sh; do bash -n "$path"; done
       - name: Build reproducible inputs
         run: bash scripts/build.sh
+      - name: Exercise isolated deployment lifecycle
+        run: python3 tests/deployment.py dist/chatgpt-web-bridge-linux-x86_64.tar.gz
       - name: Test frontend against real backend
         run: |
           (cd frontend && npx --no-install playwright install --with-deps chromium)

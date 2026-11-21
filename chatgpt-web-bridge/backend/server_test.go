@@ -143,6 +143,9 @@ func TestFiles(t *testing.T) {
 	if err := os.Symlink(credentialPath(s.cfg), filepath.Join(downloads, "leak.txt")); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.Link(credentialPath(s.cfg), filepath.Join(downloads, "hardlink.txt")); err != nil {
+		t.Fatal(err)
+	}
 	for _, tc := range []struct {
 		method, path, data string
 		want               int
@@ -154,6 +157,7 @@ func TestFiles(t *testing.T) {
 		{"PUT", "/api/files/uploads/big.txt", strings.Repeat("x", 1048577), 413},
 		{"PUT", "/api/files/uploads/full.txt", strings.Repeat("x", 1048576), 507},
 		{"GET", "/api/files/downloads/leak.txt", "", 404},
+		{"GET", "/api/files/downloads/hardlink.txt", "", 404},
 		{"GET", "/api/files/downloads/work.crdownload", "", 404},
 		{"GET", "/api/files/downloads/%2e%2e%2fpassword.bcrypt", "", 404},
 		{"GET", "/api/files/downloads/report.txt", "", 200},

@@ -96,7 +96,7 @@ if [[ -z "$chromium" ]]; then
   fi
 fi
 [[ "$chromium" =~ ^/[a-zA-Z0-9/_.-]+$ && -x "$chromium" ]] || die 'Chromium 可执行文件不存在。'
-for cmd in Xtigervnc openbox xauth xdpyinfo xclip xdotool; do command -v "$cmd" >/dev/null || die "缺少 $cmd"; done
+for cmd in Xtigervnc openbox xauth xdpyinfo xprop xclip xdotool; do command -v "$cmd" >/dev/null || die "缺少 $cmd"; done
 if ! getent group cgwb-share >/dev/null; then groupadd --system cgwb-share; fi
 for account in cgwb-web cgwb-browser; do
   if ! id "$account" >/dev/null 2>&1; then useradd --system --user-group --no-create-home --shell /usr/sbin/nologin "$account"; fi

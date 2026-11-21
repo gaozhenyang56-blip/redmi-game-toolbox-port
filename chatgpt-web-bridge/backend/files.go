@@ -63,7 +63,7 @@ func (s *Server) entries(kind string) ([]fileEntry, error) {
 			continue
 		}
 		f, err := e.Info()
-		if err != nil || !f.Mode().IsRegular() {
+		if err != nil || !independentFile(f) {
 			continue
 		}
 		state := "ready"
@@ -160,6 +160,11 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request, x session) {
 	w.WriteHeader(201)
 }
 
+func independentFile(info os.FileInfo) bool {
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	return info.Mode().IsRegular() && ok && stat.Nlink == 1
+}
+
 func openRegular(path string) (*os.File, os.FileInfo, error) {
 	fd, err := syscall.Open(path, syscall.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK|syscall.O_CLOEXEC, 0)
 	if err != nil {
@@ -167,7 +172,7 @@ func openRegular(path string) (*os.File, os.FileInfo, error) {
 	}
 	f := os.NewFile(uintptr(fd), path)
 	info, err := f.Stat()
-	if err == nil && info.Mode().IsRegular() {
+	if err == nil && independentFile(info) {
 		return f, info, nil
 	}
 	f.Close()

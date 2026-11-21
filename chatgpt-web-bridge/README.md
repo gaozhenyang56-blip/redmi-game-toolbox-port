@@ -28,7 +28,7 @@ sudo bash scripts/install.sh --domain chat.gaozy.tech --proxy auto
 ## 日常操作
 
 - **聊天和历史**。在 ChatGPT 画面中使用原生侧栏、搜索、新建、重命名、删除、归档和继续对话。可用模型与历史范围取决于账号。
-- **上传**。展开画面右侧工具，打开文件传输，选择本地文件并上传。再在 ChatGPT 中选择添加文件，进入文件面板显示的服务器上传目录。GTK 文件对话框可按 `Ctrl+L` 后输入绝对路径。默认限制每文件 64 MiB、上传目录共 384 MiB，默认保留 24 小时。官方网页单独决定文件接收条件。
+- **上传**。展开画面右侧工具，打开文件传输，选择本地文件并上传。再在 ChatGPT 中选择添加文件，进入文件面板显示的服务器上传目录。GTK 文件对话框可点左侧「Bridge 上传」书签，也可按 `Ctrl+L` 输入绝对路径。默认限制每文件 64 MiB、上传目录共 384 MiB，默认保留 24 小时。官方网页单独决定文件接收条件。
 - **下载**。在远程 ChatGPT 中触发下载，文件完成后会出现在 Bridge 的“远程下载”。点击“保存到本机”，可以随后删除服务器临时副本。带 `.crdownload` 的文件显示下载中。
 - **触屏和中文**。使用鼠标、触控和物理键盘直接操作。手机先点远程输入框，再点右边的键盘按钮，用本机输入法编辑文字并输入到远程。ASCII 登录字段可切换为按键输入。远程复制后在输入面板取回文字，可手动复制，或授权浏览器写入剪贴板。图片可走文件上传。
 - **布局**。默认按窗口尺寸协商远程分辨率。工具面板可切换竖屏、宽屏、原始尺寸和低带宽画质。原始尺寸支持拖动画面。系统全屏取决于本机浏览器。
@@ -57,4 +57,4 @@ bash tests/web.sh
 BRIDGE_LIVE_TEST=1 bash tests/web.sh
 ```
 
-真实桌面测试需以非 root 用户运行，预装 Chromium、Xtigervnc、Openbox、xauth、xdpyinfo、xdotool 和 xclip。它在本机离线测试页验证端到端交互，真实 ChatGPT 账号需用户自行登录验收。更多说明见[部署与故障排查](docs/deploy.md)、[安全说明](SECURITY.md)及[英文说明](README_EN.md)。
+真实桌面测试需以非 root 用户运行，预装 Chromium、Xtigervnc、Openbox、xauth、xdpyinfo、xprop、xdotool 和 xclip。它在本机离线测试页验证端到端交互，真实 ChatGPT 账号需用户自行登录验收。更多说明见[部署与故障排查](docs/deploy.md)、[安全说明](SECURITY.md)及[英文说明](README_EN.md)。

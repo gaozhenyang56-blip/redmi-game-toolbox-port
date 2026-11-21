@@ -189,6 +189,12 @@ func runBrowser(c Config) error {
 					if err == nil {
 						ready = true
 						state.set("running", "Chromium 已就绪")
+					} else if time.Since(started) >= 30*time.Second {
+						terminateBrowser(cmd, done)
+						failures++
+						state.set("recovering", "Chromium 启动超时，正在恢复")
+						fmt.Fprintln(os.Stderr, "Chromium 启动超时")
+						waiting = false
 					}
 				}
 			case <-state.restart:

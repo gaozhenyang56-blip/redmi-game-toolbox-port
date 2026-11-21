@@ -5,6 +5,6 @@
   <keyboard/>
   <mouse/>
   <applications>
-    <application class="*"><decor>no</decor></application>
+    <application class="*" type="normal"><decor>no</decor><fullscreen>yes</fullscreen></application>
   </applications>
 </openbox_config>

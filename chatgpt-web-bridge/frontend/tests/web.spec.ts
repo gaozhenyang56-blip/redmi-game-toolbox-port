@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { expect, test, type Page } from '@playwright/test';
 
 async function login(page: Page, path = '/') {
@@ -58,33 +59,53 @@ test('real noVNC Chromium supports mouse, Unicode clipboard, downloads and profi
   await page.setViewportSize({width: 1000, height: 640});
   await login(page);
   await expect(page.locator('#connection')).toBeHidden({timeout: 25_000});
-  const pixel = () => page.locator('#screen canvas').evaluate((canvas: HTMLCanvasElement) => {
-    const c = canvas.getContext('2d')!;
-    return [...c.getImageData(68, 200, 1, 1).data].slice(0, 3).join(',');
+  const markerTop = () => page.locator('#screen canvas').evaluate((canvas: HTMLCanvasElement) => {
+    const pixels = canvas.getContext('2d')!.getImageData(68, 160, 1, 160).data;
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i] === 186 && pixels[i + 1] === 86 && pixels[i + 2] === 86) return 160 + i / 4;
+    }
+    return -1;
   });
-  await expect.poll(pixel).toBe('186,86,86');
+  await expect.poll(markerTop).toBeGreaterThanOrEqual(180);
+  // Some Chromium builds add an informational banner above the fixture.
+  const offset = (await markerTop()) - 180;
+  const pixel = (target = 200) => page.locator('#screen canvas').evaluate((canvas: HTMLCanvasElement, y) => {
+    const c = canvas.getContext('2d')!;
+    return [...c.getImageData(68, y, 1, 1).data].slice(0, 3).join(',');
+  }, target + offset);
   const clickRemote = async (x: number, y: number) => {
     const pos = await page.locator('#screen canvas').boundingBox();
     const dimensions = await page.locator('#screen canvas').evaluate((el: HTMLCanvasElement) => ({width: el.width,height: el.height}));
-    await page.mouse.click(pos!.x + x * pos!.width / dimensions.width, pos!.y + y * pos!.height / dimensions.height);
+    await page.mouse.click(pos!.x + x * pos!.width / dimensions.width, pos!.y + (y + offset) * pos!.height / dimensions.height);
   };
   await clickRemote(80, 65);
   await page.keyboard.type('ASCII');
-  await page.keyboard.press('Control+A');
   await page.getByRole('button', {name: '远程工具'}).click();
   await page.getByRole('button', {name: '键盘与剪贴板'}).click();
   await page.getByLabel('本地文字').fill('你好，世界');
   await page.getByRole('button', {name: '输入到远程'}).click();
-  await expect.poll(pixel).toBe('34,120,83');
+  await expect.poll(() => pixel()).toBe('34,120,83');
   await clickRemote(90, 130);
   await page.getByRole('button', {name: '远程工具'}).click();
   await page.getByRole('button', {name: '上传与下载'}).click();
   await expect(page.getByText('remote-fixture.txt')).toBeVisible({timeout: 15_000});
+  await page.locator('#local-files').setInputFiles({name: 'remote-upload.txt', mimeType: 'text/plain', buffer: Buffer.from('remote file fixture')});
+  await page.getByRole('button', {name: '开始 / 重试上传'}).click();
+  await expect(page.getByText('已上传 1 个文件。')).toBeVisible();
+  await page.getByRole('dialog', {name: '文件传输'}).getByRole('button', {name: '关闭'}).click();
+  await clickRemote(80, 264);
+  const remoteUpload = process.env.BRIDGE_TEST_DIR + '/files/uploads/remote-upload.txt';
+  // Drive the actual GTK file chooser through its location keyboard shortcut.
+  await expect.poll(() => execFileSync('xdotool', ['getactivewindow','getwindowname'], {encoding: 'utf8'}).trim()).not.toContain('Bridge browser integration fixture');
+  execFileSync('xdotool', ['key', 'ctrl+l']);
+  execFileSync('xdotool', ['type', remoteUpload]);
+  execFileSync('xdotool', ['key', '--delay', '350', 'Return', 'Return']);
+  await expect.poll(() => pixel(335), {timeout: 10_000}).toBe('34,120,83');
   await page.goto('/admin');
   page.once('dialog', d => d.accept());
   await page.getByRole('button', {name: '重启 Chromium'}).click();
   await expect(page.getByText('已请求重启 Chromium。')).toBeVisible();
   await page.getByRole('link', {name: '返回远程画面'}).click();
   await expect(page.locator('#connection')).toBeHidden({timeout: 30_000});
-  await expect.poll(pixel).toBe('34,120,83');
+  await expect.poll(() => pixel()).toBe('34,120,83');
 });

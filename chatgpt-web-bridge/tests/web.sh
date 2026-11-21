@@ -10,7 +10,18 @@ finish() {
   for pid in "$browser" "$web" "$proxy" "$fixture"; do
     if [[ -n "$pid" ]]; then kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi
   done
-  if ((rc)); then tail -25 "$dir"/*.log 2>/dev/null || true; fi
+  if ((rc)); then
+    tail -n 25 "$dir"/*.log 2>/dev/null || true
+    find "$dir/files" -maxdepth 2 -type f -printf '%P\n'
+    if [[ ${BRIDGE_TEST_DIAGNOSTICS:-0} == 1 && -f "$dir/home/profile/Default/History" ]]; then
+      python3 - "$dir/home/profile/Default/History" <<'PY_SQL'
+import sqlite3, sys
+with sqlite3.connect("file:" + sys.argv[1] + "?mode=ro", uri=True) as database:
+    print("Fixture download metadata:", database.execute(
+        "select target_path, current_path, state, danger_type, interrupt_reason from downloads").fetchall())
+PY_SQL
+    fi
+  fi
   rm -rf -- "$dir"
   exit "$rc"
 }

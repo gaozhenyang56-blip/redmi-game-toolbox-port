@@ -10,7 +10,7 @@ class Handler(BaseHTTPRequestHandler):
             mime = "text/html; charset=utf-8"
         elif self.path == "/fixture-download":
             body = b"remote browser download"
-            mime = "application/octet-stream"
+            mime = "text/plain"
             self.send_response(200)
             self.send_header("Content-Disposition", 'attachment; filename="remote-fixture.txt"')
             self.send_header("Content-Type", mime)
