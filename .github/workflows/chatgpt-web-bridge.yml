@@ -17,6 +17,10 @@ on:
         type: choice
         options: [auto, nginx, caddy, manual]
         default: auto
+      on_demand:
+        description: Start Chromium only when a remote client connects
+        type: boolean
+        default: true
 permissions:
   contents: read
 concurrency:
@@ -71,6 +75,8 @@ jobs:
         env:
           BRIDGE_OPERATION: ${{ inputs.mode || 'probe' }}
           BRIDGE_PROXY: ${{ inputs.proxy || 'auto' }}
+          BRIDGE_ON_DEMAND: ${{ inputs.on_demand }}
+          BRIDGE_ADMIN_USER: ${{ vars.CHATGPT_BRIDGE_ADMIN_USER }}
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
           QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}

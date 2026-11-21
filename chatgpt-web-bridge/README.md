@@ -20,10 +20,10 @@ sudo bash scripts/install.sh --domain chat.gaozy.tech --proxy auto
 - Caddy 需要现有 Caddyfile 导入 `/etc/caddy/conf.d/*.caddy`。脚本检查 Caddy 实际加载的路由。
 - Apache、已有同名站点或非标准入口使用 `--proxy manual`。按[部署手册](docs/deploy.md)接入独立 HTTPS 虚拟主机。
 - Debian 12/13 使用发行版 Chromium 和沙箱包。Ubuntu 22.04/24.04 优先使用已有的受支持 Chromium/Chrome，amd64 可自动使用经 Google APT 签名校验的 Chrome。可通过 `--chromium /path/to/executable` 指定其他受信任的 Chromium。
-- 首次安装时设置独立的 Web Bridge 密码，长度为 12–72 字节。非交互安装通过 `--password-stdin` 接收一行密码。
-- 默认上游端口为 `18642`，可通过 `--port` 修改。指定 `--memory-max-mib` 可选择更小的浏览器内存上限，但须满足脚本的可用内存检查。
+- 首次安装用 `--admin-user <登录名>` 设置 Bridge 登录名，默认 `admin`。设置独立的 Web Bridge 密码，长度为 12–72 字节。非交互安装通过 `--password-stdin` 接收一行密码。
+- 默认上游端口为 `18642`，可通过 `--port` 修改。指定 `--memory-max-mib` 可选择更小的浏览器内存上限，但须满足脚本的可用内存检查。内存紧张时加 `--on-demand`，只启动待机后台。连接时检测内存，空闲十分钟后释放 Chromium。
 
-安装成功后打开 `https://chat.gaozy.tech/admin`。输入 Web Bridge 访问密码，点击 **打开官方页面 · 登录 ChatGPT**，在远程画面中点击 ChatGPT 的官方“登录”，自行完成验证码或第二步验证。登录后的 Chromium 配置保存在 `/var/lib/chatgpt-web-bridge/browser/profile`。
+安装成功后打开 `https://chat.gaozy.tech/admin`。输入 Web Bridge 登录名和访问密码，点击 **打开官方页面 · 登录 ChatGPT**，在远程画面中点击 ChatGPT 的官方“登录”，自行完成验证码或第二步验证。登录后，可在远程工具或后台打开 ChatGPT 聊天和 Codex 官方网页。切换页面会重新打开 Chromium，两者共用同一份官方账号登录和浏览器资料。Codex 功能由账号和工作区权限决定。Chromium 配置保存在 `/var/lib/chatgpt-web-bridge/browser/profile`。
 
 ## 日常操作
 

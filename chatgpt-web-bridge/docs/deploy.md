@@ -4,7 +4,7 @@
 
 源码位于 Redmi Game Toolbox 仓库的 `codex/chatgpt-web-bridge` 分支，基于已有 Qinglian 服务器分支。工作流复用 `QINGLIAN_SSH_HOST`、`QINGLIAN_SSH_PASSWORD` 及可选的 `QINGLIAN_SSH_USER`、`QINGLIAN_SSH_PORT`、`QINGLIAN_SSH_HOST_KEY`。若未单独提供主机指纹，使用仓库中原有的固定 Qinglian 主机指纹。
 
-分支推送构建产物并进行只读预检。待生产域名和 TLS 入口就绪，在仓库 Secrets 中配置 `CHATGPT_BRIDGE_PASSWORD`，然后执行工作流的 `deploy` 模式。手动触发的可见性取决于 GitHub 工作流注册及调用权限。
+分支推送构建产物并进行只读预检。待生产域名和 TLS 入口就绪，在仓库 Secrets 中配置 `CHATGPT_BRIDGE_PASSWORD`，并在 Variables 设置 `CHATGPT_BRIDGE_ADMIN_USER`（可选，默认 `admin`），然后执行工作流的 `deploy` 模式。默认按需启动。手动触发的可见性取决于 GitHub 工作流注册及调用权限。
 
 ```bash
 gh workflow run chatgpt-web-bridge.yml --ref codex/chatgpt-web-bridge -f mode=deploy -f proxy=auto
@@ -14,7 +14,7 @@ gh workflow run chatgpt-web-bridge.yml --ref codex/chatgpt-web-bridge -f mode=de
 
 ## 手动接入现有代理
 
-保持后端在 `127.0.0.1:18642`。独立域名站点转发 HTTP/1.1、WebSocket Upgrade 与 Connection，请求 Host 保留为 `chat.gaozy.tech`。关闭上传请求缓冲，并将主体上限设为与 Bridge 一致的值。现有 HTTPS 站点可参考 [Nginx 模板](../proxy/nginx.conf.in) 或 [Caddy 模板](../proxy/caddy.conf.in)。配置应先校验，再平滑重载。上游 `/healthz` 在 Web 服务在线时返回 204，浏览器进程的状态可通过管理后台查看。
+保持后端在 `127.0.0.1:18642`。如果 443 已被现有服务占用，可用已有 Cloudflare Tunnel 添加专用主机名，或让现有 HTTPS 网关接入上游，两者都不需要额外绑定 VPS 的 443 端口。Tunnel 公开主机名应当使用 HTTPS，并保留与 `Origin` 相同的请求 Host。独立域名站点转发 HTTP/1.1、WebSocket Upgrade 与 Connection，请求 Host 保留为 `chat.gaozy.tech`。关闭上传请求缓冲，并将主体上限设为与 Bridge 一致的值。现有 HTTPS 站点可参考 [Nginx 模板](../proxy/nginx.conf.in) 或 [Caddy 模板](../proxy/caddy.conf.in)。配置应先校验，再平滑重载。上游 `/healthz` 在 Web 服务在线时返回 204，浏览器进程的状态可通过管理后台查看。
 
 Cloudflare 等 DNS/CDN 的代理配置应确保 VPS 的源站 TLS 校验和 WebSocket 正常工作。域名已被其他虚拟主机精确占用时，使用现有站点配置并由管理员完成该域名的路由。脚本不会改动主配置文件、DNS、AstrBot、V2Ray、系统 swap 或其他服务的配置。
 
@@ -22,8 +22,8 @@ Cloudflare 等 DNS/CDN 的代理配置应确保 VPS 的源站 TLS 校验和 WebS
 
 | 文件 | 设置 |
 | --- | --- |
-| `/etc/chatgpt-web-bridge/config.json` | `Origin`、`Listen`、`UploadMiB`、`UploadQuotaMiB`、`FileHours`、`SessionHours` |
-| `/etc/chatgpt-web-bridge/browser.env` | `BRIDGE_CHROMIUM`、`BRIDGE_GEOMETRY`、`BRIDGE_CACHE_BYTES` |
+| `/etc/chatgpt-web-bridge/config.json` | `AdminUser`、`Origin`、`Listen`、`UploadMiB`、`UploadQuotaMiB`、`FileHours`、`SessionHours` |
+| `/etc/chatgpt-web-bridge/browser.env` | `BRIDGE_CHROMIUM`、`BRIDGE_GEOMETRY`、`BRIDGE_CACHE_BYTES`、`BRIDGE_ON_DEMAND` |
 | `/etc/chatgpt-web-bridge/browser-limits.conf` | 浏览器 `MemoryHigh`、`MemoryMax` |
 
 更改其他数据目录时，同时更新两个 systemd unit 的权限与浏览器环境变量，建议通过本机 systemd override 管理。迁移域名或端口可先卸载已启用的专用代理并保留数据，修改 config 的 `Origin` 和 `Listen` 后，用新参数重装。更新会保留 Chromium 目录，Ubuntu 采用项目内置 Chrome 时需在浏览器安全更新后重新获取相应官方 APT 包，或改用管理员维护的 Chromium 路径。

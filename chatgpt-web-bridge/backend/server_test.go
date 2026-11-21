@@ -64,7 +64,7 @@ func request(s *Server, method, path, body, origin, csrf string, cookie *http.Co
 
 func loginFixture(t *testing.T, s *Server) (*http.Cookie, string) {
 	t.Helper()
-	w := request(s, "POST", "/api/login", `{"password":"`+testPassword+`"}`, s.cfg.Origin, "", nil)
+	w := request(s, "POST", "/api/login", `{"username":"admin","password":"`+testPassword+`"}`, s.cfg.Origin, "", nil)
 	if w.Code != 200 {
 		t.Fatalf("login %d: %s", w.Code, w.Body)
 	}
@@ -102,7 +102,7 @@ func TestAuthCSRFPasswordAndExpiry(t *testing.T) {
 	}{
 		{"GET", "/api/status", "", "", "", nil, 401},
 		{"GET", "/api/files", "", "", "", nil, 401},
-		{"POST", "/api/login", `{"password":"wrong"}`, "https://else.test", "", nil, 403},
+		{"POST", "/api/login", `{"username":"admin","password":"wrong"}`, "https://else.test", "", nil, 403},
 		{"POST", "/api/logout", "", s.cfg.Origin, "wrong", c, 403},
 		{"POST", "/api/logout", "", "https://else.test", csrf, c, 403},
 		{"POST", "/api/password", `{"current":"wrong","new":"` + testPassword + `"}`, s.cfg.Origin, csrf, c, 401},
@@ -114,7 +114,7 @@ func TestAuthCSRFPasswordAndExpiry(t *testing.T) {
 			t.Errorf("%s %d != %d: %s", tc.path, w.Code, tc.want, w.Body)
 		}
 	}
-	w := request(s, "POST", "/api/login", `{"password":"another bridge passphrase"}`, s.cfg.Origin, "", nil)
+	w := request(s, "POST", "/api/login", `{"username":"admin","password":"another bridge passphrase"}`, s.cfg.Origin, "", nil)
 	if w.Code != 200 {
 		t.Fatal(w.Code)
 	}
@@ -126,7 +126,7 @@ func TestAuthCSRFPasswordAndExpiry(t *testing.T) {
 		t.Fatal(got)
 	}
 	s.auth.attempts = 8
-	if got := request(s, "POST", "/api/login", `{"password":"wrong"}`, s.cfg.Origin, "", nil).Code; got != 429 {
+	if got := request(s, "POST", "/api/login", `{"username":"admin","password":"wrong"}`, s.cfg.Origin, "", nil).Code; got != 429 {
 		t.Fatal(got)
 	}
 }
@@ -268,5 +268,26 @@ func TestWebSocketAuthLeaseAndRevoke(t *testing.T) {
 	_ = ws.SetReadDeadline(time.Now().Add(time.Second))
 	if _, _, err = ws.ReadMessage(); err == nil {
 		t.Fatal("socket still open")
+	}
+}
+
+func TestBrowserRoutesAreAuthenticatedAndAllowlisted(t *testing.T) {
+	s := fixture(t)
+	c, csrf := loginFixture(t, s)
+	path := "/api/browser/open"
+	for _, tc := range []struct {
+		body, origin, token string
+		cookie              *http.Cookie
+		code                int
+	}{
+		{`{"target":"codex"}`, s.cfg.Origin, "", nil, 401},
+		{`{"target":"codex"}`, "https://else.test", csrf, c, 403},
+		{`{"target":"https://other.test"}`, s.cfg.Origin, csrf, c, 400},
+		{`{"target":"codex"}`, s.cfg.Origin, csrf, c, 503},
+	} {
+		got := request(s, "POST", path, tc.body, tc.origin, tc.token, tc.cookie).Code
+		if got != tc.code {
+			t.Errorf("browser open %d != %d", got, tc.code)
+		}
 	}
 }

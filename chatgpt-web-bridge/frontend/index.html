@@ -13,6 +13,8 @@
       <h1 id="title">ChatGPT<br>Web Bridge<span>.</span></h1>
       <p>自托管的远程浏览器</p>
       <form id="login" hidden>
+        <label for="username">Web Bridge 登录名</label>
+        <input id="username" type="text" autocomplete="username" autocapitalize="off" required>
         <label for="password">Web Bridge 访问密码</label>
         <input id="password" type="password" autocomplete="current-password" required>
         <button class="primary" type="submit">进入远程浏览器 <span aria-hidden="true">↗</span></button>
@@ -36,7 +38,11 @@
       <section class="card">
         <h2>ChatGPT 账号</h2>
         <p>在远程 Chromium 的 ChatGPT 官方页面完成登录、验证码或退出。登录后的对话和历史记录由官方账号同步。</p>
-        <a class="primary inline" href="/">打开官方页面 · 登录 ChatGPT ↗</a>
+        <div class="actions">
+          <a class="primary inline" href="/?view=login">打开官方页面 · 登录 ChatGPT ↗</a>
+          <a href="/?view=chat">ChatGPT 聊天</a>
+          <a href="/?view=codex">Codex</a>
+        </div>
       </section>
       <section class="card">
         <h2>浏览器与资源</h2>
@@ -58,6 +64,10 @@
   <dialog id="toolbox" aria-labelledby="tool-heading">
     <header><h2 id="tool-heading">远程工具</h2><button data-close="toolbox" aria-label="关闭">×</button></header>
     <p id="tool-status" role="status"></p>
+    <div class="actions">
+      <button id="open-chat">ChatGPT 聊天</button><button id="open-codex">Codex</button>
+      <button id="open-account">官方账号登录</button>
+    </div>
     <div class="actions">
       <button id="open-files">上传与下载</button><button id="open-input">键盘与剪贴板</button>
       <button id="refresh">刷新 Chromium</button><button id="reconnect">重新连接</button>

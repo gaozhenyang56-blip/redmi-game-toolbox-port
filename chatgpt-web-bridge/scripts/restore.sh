@@ -30,7 +30,7 @@ for name in ('Origin','Listen','State','Runtime','Files','Assets'):
     if old.get(name) != new.get(name):
         sys.exit("备份绑定到不同的域名、端口或目录。请先迁移配置。")
 env = open(sys.argv[3]).read()
-if not re.fullmatch(r'BRIDGE_CHROMIUM=/[\w/.-]+\nBRIDGE_GEOMETRY=\d{3,4}x\d{3,4}\n', env):
+if not re.fullmatch(r'BRIDGE_CHROMIUM=/[\w/.-]+\nBRIDGE_GEOMETRY=\d{3,4}x\d{3,4}\n(?:BRIDGE_ON_DEMAND=[01]\n)?', env):
     sys.exit("浏览器启动设置包含非标准选项，请手动恢复。")
 limits = re.fullmatch(r'\[Service\]\nMemoryHigh=(\d+)M\nMemoryMax=(\d+)M\n', open(sys.argv[4]).read())
 if not limits or not 288 <= int(limits[1]) <= int(limits[2]) <= 4096:

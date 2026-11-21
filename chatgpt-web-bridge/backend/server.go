@@ -184,6 +184,7 @@ func (s *Server) vnc(w http.ResponseWriter, r *http.Request, x session) {
 	s.auth.mu.Unlock()
 	stop := context.AfterFunc(ctx, func() { vnc.Close(); socket.Close() })
 	defer stop()
+	_, _ = s.browserRequest(ctx, "POST", "activity", nil)
 	socket.SetReadLimit(1 << 20)
 	_ = socket.SetReadDeadline(time.Now().Add(35 * time.Second))
 	socket.SetPongHandler(func(string) error {
@@ -197,6 +198,7 @@ func (s *Server) vnc(w http.ResponseWriter, r *http.Request, x session) {
 			case <-ctx.Done():
 				return
 			case <-tick.C:
+				_, _ = s.browserRequest(ctx, "POST", "activity", nil)
 				if socket.WriteControl(websocket.PingMessage, nil, time.Now().Add(3*time.Second)) != nil {
 					cancel()
 					return
@@ -254,7 +256,7 @@ func (s *Server) browserRequest(ctx context.Context, method, action string, body
 
 func (s *Server) browser(w http.ResponseWriter, r *http.Request, x session) {
 	action := r.PathValue("action")
-	if action != "restart" && action != "refresh" && action != "paste" && action != "copy" {
+	if action != "restart" && action != "refresh" && action != "paste" && action != "copy" && action != "open" {
 		problem(w, 404, "未知浏览器操作")
 		return
 	}
@@ -270,11 +272,23 @@ func (s *Server) browser(w http.ResponseWriter, r *http.Request, x session) {
 		}
 		body = strings.NewReader(in.Text)
 	}
+	if action == "open" {
+		var in struct{ Target string }
+		if !readJSON(w, r, &in, 128) {
+			return
+		}
+		if in.Target != "" && officialPages[in.Target] == "" {
+			problem(w, 400, "未知的官方页面")
+			return
+		}
+		body = strings.NewReader(in.Target)
+	}
 	if action != "restart" {
 		s.auth.mu.Lock()
-		owns := s.controller != nil && s.controller.owner == x.id && s.controller.ws != nil
+		active := s.controller != nil
+		owns := active && s.controller.owner == x.id && s.controller.ws != nil
 		s.auth.mu.Unlock()
-		if !owns {
+		if !owns && (action != "open" || active) {
 			problem(w, 409, "请先连接远程浏览器")
 			return
 		}

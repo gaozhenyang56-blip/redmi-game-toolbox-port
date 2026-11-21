@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -18,16 +19,71 @@ import (
 )
 
 type browserState struct {
-	mu      sync.Mutex
-	state   string
-	message string
-	restart chan struct{}
+	mu           sync.Mutex
+	state        string
+	message      string
+	request      chan string
+	target       string
+	lastActivity time.Time
+	onDemand     bool
 }
 
 func (b *browserState) set(state, message string) {
 	b.mu.Lock()
 	b.state, b.message = state, message
 	b.mu.Unlock()
+}
+
+var officialPages = map[string]string{
+	"login": "https://chatgpt.com/auth/login",
+	"chat":  "https://chatgpt.com/",
+	"codex": "https://chatgpt.com/codex",
+}
+
+func (b *browserState) touch() {
+	b.mu.Lock()
+	b.lastActivity = time.Now()
+	b.mu.Unlock()
+}
+
+func (b *browserState) navigate(target string) {
+	if officialPages[target] == "" {
+		return
+	}
+	b.mu.Lock()
+	b.target = target
+	b.mu.Unlock()
+}
+
+func (b *browserState) idleFor() time.Duration {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return time.Since(b.lastActivity)
+}
+
+func browserMemory() (availableMiB, minimumMiB uint64) {
+	available, err := os.ReadFile("/proc/meminfo")
+	if err != nil {
+		return 0, 732
+	}
+	limit := metric(filepath.Join(cgroupPath(), "memory.max"))
+	required := uint64(512+220) << 10
+	if limit != nil && *limit <= 4096<<20 {
+		required = *limit/1024 + (220 << 10)
+	}
+	for _, line := range strings.Split(string(available), "\n") {
+		if v, ok := strings.CutPrefix(line, "MemAvailable:"); ok {
+			words := strings.Fields(v)
+			if len(words) == 0 {
+				break
+			}
+			kib, err := strconv.ParseUint(words[0], 10, 64)
+			if err == nil {
+				return kib >> 10, required >> 10
+			}
+		}
+	}
+	return 0, required >> 10
 }
 
 func envDefault(key, value string) string {
@@ -52,7 +108,7 @@ func (b *browserState) handler() http.Handler {
 	var inputMu sync.Mutex
 	m.HandleFunc("GET /status", func(w http.ResponseWriter, r *http.Request) {
 		b.mu.Lock()
-		state, message := b.state, b.message
+		state, message, target := b.state, b.message, b.target
 		b.mu.Unlock()
 		cg := cgroupPath()
 		var cpu string
@@ -65,14 +121,32 @@ func (b *browserState) handler() http.Handler {
 			}
 		}
 		events, _ := os.ReadFile(filepath.Join(cg, "memory.events"))
-		reply(w, map[string]any{"state": state, "message": message, "memoryBytes": metric(filepath.Join(cg, "memory.current")),
+		reply(w, map[string]any{"state": state, "message": message, "target": target, "onDemand": b.onDemand, "memoryBytes": metric(filepath.Join(cg, "memory.current")),
 			"memoryMax": metric(filepath.Join(cg, "memory.max")), "cpuMicros": cpu, "memoryEvents": string(events)})
 	})
 	m.HandleFunc("POST /restart", func(w http.ResponseWriter, r *http.Request) {
 		select {
-		case b.restart <- struct{}{}:
+		case b.request <- "restart":
 		default:
 		}
+		w.WriteHeader(204)
+	})
+	m.HandleFunc("POST /open", func(w http.ResponseWriter, r *http.Request) {
+		data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 16))
+		target := string(data)
+		if err != nil || (target != "" && officialPages[target] == "") {
+			problem(w, 400, "未知的官方页面")
+			return
+		}
+		b.touch()
+		select {
+		case b.request <- target:
+		default:
+		}
+		w.WriteHeader(204)
+	})
+	m.HandleFunc("POST /activity", func(w http.ResponseWriter, r *http.Request) {
+		b.touch()
 		w.WriteHeader(204)
 	})
 	for _, action := range []string{"refresh", "paste", "copy"} {
@@ -142,7 +216,13 @@ func runBrowser(c Config) error {
 	if os.Geteuid() == 0 {
 		return errors.New("浏览器禁止以 root 运行")
 	}
-	state := browserState{state: "starting", message: "正在启动远程浏览器", restart: make(chan struct{}, 1)}
+	state := browserState{state: "starting", message: "正在启动远程浏览器",
+		target: "login", onDemand: os.Getenv("BRIDGE_ON_DEMAND") == "1", request: make(chan string, 1)}
+	state.touch()
+	sleeping := state.onDemand
+	if sleeping {
+		state.set("idle", "浏览器待机，连接时启动")
+	}
 	path := filepath.Join(c.Runtime, "control.sock")
 	_ = os.Remove(path)
 	l, err := net.Listen("unix", path)
@@ -161,9 +241,31 @@ func runBrowser(c Config) error {
 
 	var failures int
 	for ctx.Err() == nil {
+		if sleeping {
+			select {
+			case <-ctx.Done():
+				return nil
+			case target := <-state.request:
+				state.navigate(target)
+				failures = 0
+			}
+		}
+		if state.onDemand {
+			available, minimum := browserMemory()
+			if available < minimum {
+				sleeping = true
+				state.set("low-memory", fmt.Sprintf("Chromium 待机：当前可用 %d MiB，启动需要至少 %d MiB", available, minimum))
+				continue
+			}
+		}
+		sleeping = false
+		state.touch()
 		state.set("starting", "正在启动远程浏览器")
 		started := time.Now()
 		cmd := exec.Command(envDefault("BRIDGE_BROWSER_SCRIPT", "/opt/chatgpt-web-bridge/current/browser/start.sh"))
+		if os.Getenv("BRIDGE_START_URL") == "" {
+			cmd.Env = append(os.Environ(), "BRIDGE_START_URL="+officialPages[state.target])
+		}
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -181,6 +283,11 @@ func runBrowser(c Config) error {
 			select {
 			case <-fileTicker.C:
 				prepareDownloads(filepath.Join(c.Files, "downloads"))
+				if state.onDemand && state.idleFor() > 10*time.Minute {
+					terminateBrowser(cmd, done)
+					state.set("idle", "浏览器已待机，连接时重新启动")
+					sleeping, waiting, failures = true, false, 0
+				}
 			case <-ticker.C:
 				if !ready {
 					probe, cancel := context.WithTimeout(ctx, 350*time.Millisecond)
@@ -197,8 +304,12 @@ func runBrowser(c Config) error {
 						waiting = false
 					}
 				}
-			case <-state.restart:
-				state.set("starting", "正在重启 Chromium")
+			case target := <-state.request:
+				if target == "" || target == state.target {
+					continue
+				}
+				state.navigate(target)
+				state.set("starting", "正在重新打开 Chromium")
 				terminateBrowser(cmd, done)
 				failures = 0
 				waiting = false
@@ -224,14 +335,16 @@ func runBrowser(c Config) error {
 			state.set("failed", "浏览器多次退出，请检查日志和内存后手动重启")
 			select {
 			case <-ctx.Done():
-			case <-state.restart:
+			case target := <-state.request:
+				state.navigate(target)
 				failures = 0
 			}
 		} else if failures > 0 {
 			timer := time.NewTimer(time.Duration(failures*5) * time.Second)
 			select {
 			case <-ctx.Done():
-			case <-state.restart:
+			case target := <-state.request:
+				state.navigate(target)
 				failures = 0
 			case <-timer.C:
 			}

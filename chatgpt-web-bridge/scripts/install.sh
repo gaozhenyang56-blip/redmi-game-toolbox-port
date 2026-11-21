@@ -7,7 +7,7 @@ lock
 system_supported
 bundle=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 [[ -x "$bundle/bridge" && -f "$bundle/web/index.html" ]] || die '请从已构建的 Linux 安装包运行此脚本。'
-domain=chat.gaozy.tech port=18642 proxy=auto cert= key= chromium= memory= password_stdin=0 skip_deps=0
+domain=chat.gaozy.tech port=18642 proxy=auto cert= key= chromium= memory= admin_user=admin on_demand= password_stdin=0 skip_deps=0
 while (($#)); do
   case "$1" in
     --domain) domain=${2:?}; shift;;
@@ -17,6 +17,9 @@ while (($#)); do
     --key) key=${2:?}; shift;;
     --chromium) chromium=${2:?}; shift;;
     --memory-max-mib) memory=${2:?}; shift;;
+    --admin-user) admin_user=${2:?}; shift;;
+    --on-demand) on_demand=1;;
+    --always-on) on_demand=0;;
     --password-stdin) password_stdin=1;;
     --skip-dependencies) skip_deps=1;;
     *) die "未知参数 $1";;
@@ -24,6 +27,7 @@ while (($#)); do
   shift
 done
 domain_ok "$domain" || die '域名无效。'
+[[ "$admin_user" =~ ^[a-zA-Z0-9_.-]{2,48}$ ]] || die '管理员登录名需要 2–48 个字母、数字、句点、下划线或连字符。'
 [[ "$port" =~ ^[1-9][0-9]{3,4}$ ]] && ((port<=65535)) || die '上游端口无效。'
 [[ "$proxy" =~ ^(auto|nginx|caddy|manual)$ ]] || die '反向代理选项无效。'
 [[ -z "$cert$key" || ( "$cert" =~ ^/[a-zA-Z0-9/_.-]+$ && "$key" =~ ^/[a-zA-Z0-9/_.-]+$ ) ]] || die '请同时给出规范的证书、密钥绝对路径。'
@@ -42,6 +46,9 @@ fi
 info "80 端口占用：$(used_port 80 && printf '有' || printf '无')，443 端口占用：$(used_port 443 && printf '有' || printf '无')"
 [[ -n $(swapon --show=NAME --noheadings) ]] || info '未检测到 swap。若资源紧张，可按需要自行配置。'
 available=$(awk '/^MemAvailable:/{print int($2/1024)}' /proc/meminfo)
+if [[ -z "$on_demand" ]]; then
+  if grep -Fqx 'BRIDGE_ON_DEMAND=1' "$ETC/browser.env" 2>/dev/null; then on_demand=1; else on_demand=0; fi
+fi
 total=$(awk '/^MemTotal:/{print int($2/1024)}' /proc/meminfo)
 if [[ -z "$memory" && -f "$ETC/browser-limits.conf" ]]; then
   memory=$(sed -nE 's/^MemoryMax=([0-9]+)M$/\1/p' "$ETC/browser-limits.conf")
@@ -50,9 +57,17 @@ if [[ -z "$memory" ]]; then
   memory=$((available*2/3))
   ((memory<=1024)) || memory=1024
   ((memory<=total/2)) || memory=$((total/2))
+  if ((on_demand && memory<512)); then memory=512; fi
 fi
 [[ "$memory" =~ ^[1-9][0-9]{2,3}$ ]] && ((memory>=384 && memory<=4096 && memory<=total*3/4)) || die "可用内存约 ${available} MiB，无法给浏览器安全分配所需内存。"
-if [[ ! -f "$ETC/config.json" ]] && ((available < memory + 220)); then die '当前可用内存不足以保护现有服务。'; fi
+if [[ ! -f "$ETC/config.json" ]]; then
+  if ((on_demand)); then
+    ((available>=220)) || die '可用内存低于 220 MiB，无法安全安装待机后台。'
+    info '按需启动已启用。打开聊天或 Codex 时，Chromium 会重新检查可用内存。'
+  elif ((available < memory + 220)); then
+    die '当前可用内存不足以安全启动 Chromium。可用 --on-demand 安装待机后台。'
+  fi
+fi
 info "当前可用内存约 ${available} MiB，Chromium 上限 ${memory} MiB。"
 if [[ ! -f "$LIB/auth/password.bcrypt" ]]; then
   if ((password_stdin)); then
@@ -84,7 +99,13 @@ if (( ! skip_deps )); then
       fi
     fi
   fi
-  safe_apt "${deps[@]}"
+  pending=()
+  for dependency in "${deps[@]}"; do
+    if ! dpkg-query -W -f='${db:Status-Abbrev}' "$dependency" 2>/dev/null | grep -q '^ii'; then
+      pending+=("$dependency")
+    fi
+  done
+  if ((${#pending[@]})); then safe_apt "${pending[@]}"; fi
 fi
 install -d -m 0755 "$APP" "$APP/releases"
 if [[ -z "$chromium" ]]; then
@@ -160,14 +181,17 @@ cp -a "$bundle"/{bridge,web,browser,scripts,systemd,proxy,docs,release.txt,READM
 chown -R root:root "$release"
 chmod -R u=rwX,go=rX "$release"
 if [[ ! -e "$ETC/config.json" ]]; then
-  printf '{"Listen":"127.0.0.1:%s","Origin":"https://%s"}\n' "$port" "$domain" > "$snap/config"
+  printf '{"Listen":"127.0.0.1:%s","Origin":"https://%s","AdminUser":"%s"}\n' "$port" "$domain" "$admin_user" > "$snap/config"
   copy_file "$snap/config" "$ETC/config.json" 0644
 fi
 "$release/bridge" check "$ETC/config.json"
 if [[ ! -e "$ETC/browser.env" ]]; then
   printf 'BRIDGE_CHROMIUM=%s\nBRIDGE_GEOMETRY=1152x768\n' "$chromium" > "$snap/env"
-  copy_file "$snap/env" "$ETC/browser.env" 0644
+else
+  sed '/^BRIDGE_ON_DEMAND=/d' "$ETC/browser.env" > "$snap/env"
 fi
+printf 'BRIDGE_ON_DEMAND=%s\n' "$on_demand" >> "$snap/env"
+copy_file "$snap/env" "$ETC/browser.env" 0644
 printf '[Service]\nMemoryHigh=%sM\nMemoryMax=%sM\n' "$((memory*3/4))" "$memory" > "$snap/limit"
 copy_file "$snap/limit" "$ETC/browser-limits.conf" 0644
 if [[ ! -e "$LIB/auth/password.bcrypt" ]]; then
@@ -186,9 +210,11 @@ systemd-analyze verify "$UNITS/$WEB" "$UNITS/$BROWSER"
 systemctl daemon-reload
 systemctl restart "$BROWSER" "$WEB"
 ready=0
+expected=running
+(( ! on_demand )) || expected=idle
 for ((i=0;i<35;i++)); do
   if curl -fsS --max-time 2 -H "Host: $domain" "http://127.0.0.1:$port/healthz" >/dev/null 2>&1 &&
-      curl -fsS --max-time 2 --unix-socket /run/chatgpt-web-bridge/control.sock http://localhost/status 2>/dev/null | grep -q '"state":"running"'; then
+      curl -fsS --max-time 2 --unix-socket /run/chatgpt-web-bridge/control.sock http://localhost/status 2>/dev/null | grep -q "\"state\":\"$expected\""; then
     ready=1
     break
   fi

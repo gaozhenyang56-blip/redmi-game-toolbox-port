@@ -9,10 +9,14 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 )
 
+var usernamePattern = regexp.MustCompile("^[A-Za-z0-9_.-]{2,48}$")
+
 type Config struct {
+	AdminUser      string
 	Listen         string
 	Origin         string
 	State          string
@@ -27,7 +31,7 @@ type Config struct {
 
 func loadConfig(path string) (Config, error) {
 	cfg := Config{
-		Listen: "127.0.0.1:18642", Origin: "https://chat.gaozy.tech",
+		AdminUser: "admin", Listen: "127.0.0.1:18642", Origin: "https://chat.gaozy.tech",
 		State: "/var/lib/chatgpt-web-bridge/auth", Files: "/srv/chatgpt-web-bridge",
 		Runtime: "/run/chatgpt-web-bridge", Assets: "/opt/chatgpt-web-bridge/current/web",
 		UploadMiB: 64, UploadQuotaMiB: 384, FileHours: 24, SessionHours: 12,
@@ -38,6 +42,9 @@ func loadConfig(path string) (Config, error) {
 	}
 	if err = decode(bytes.NewReader(data), &cfg); err != nil {
 		return cfg, err
+	}
+	if !usernamePattern.MatchString(cfg.AdminUser) {
+		return cfg, errors.New("管理员登录名无效")
 	}
 	addr, err := net.ResolveTCPAddr("tcp", cfg.Listen)
 	u, originErr := url.Parse(cfg.Origin)

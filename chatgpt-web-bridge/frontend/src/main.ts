@@ -20,6 +20,9 @@ let connected = false;
 let timer: number | undefined;
 let retry = 0;
 const isAdmin = location.pathname === '/admin';
+type OfficialPage = 'login' | 'chat' | 'codex';
+const initialTarget = new URLSearchParams(location.search).get('view');
+let pendingPage: OfficialPage | undefined = initialTarget === 'login' || initialTarget === 'chat' || initialTarget === 'codex' ? initialTarget : undefined;
 
 class APIError extends Error {
   constructor(public status: number, description: string) { super(description); }
@@ -45,7 +48,7 @@ function report(id: string, run: () => Promise<void>) {
 }
 
 interface Status {
-  browser: { state: string; message: string; memoryBytes?: number; memoryMax?: number; cpuMicros?: string; memoryEvents?: string } | null;
+  browser: { state: string; message: string; target?: OfficialPage; onDemand?: boolean; memoryBytes?: number; memoryMax?: number; cpuMicros?: string; memoryEvents?: string } | null;
   active: boolean;
   owned: boolean;
   version: string;
@@ -95,11 +98,20 @@ async function connect() {
       schedule();
       return;
     }
-    if (state.browser?.state !== 'running') {
-      connection(state.browser?.message || '浏览器服务暂不可用，可在管理后台查看状态');
+    const browser = state.browser;
+    const shouldWake = browser?.state === 'idle' || browser?.state === 'low-memory';
+    if (shouldWake || (pendingPage && browser?.state === 'running' && browser.target !== pendingPage)) {
+      await api('browser/open', 'POST', {target: pendingPage || ''});
+      connection(browser?.state === 'low-memory' ? browser.message : '正在打开远程浏览器…');
       schedule();
       return;
     }
+    if (browser?.state !== 'running') {
+      connection(browser?.message || '浏览器服务暂不可用，可在管理后台查看状态');
+      schedule();
+      return;
+    }
+    pendingPage = undefined;
     const addr = new URL('/api/vnc', location.href);
     addr.protocol = addr.protocol === 'https:' ? 'wss:' : 'ws:';
     const client = new RFB(element('screen'), addr.href, {wsProtocols: ['binary']});
@@ -170,7 +182,8 @@ element<HTMLFormElement>('login').addEventListener('submit', event => {
   button.disabled = true;
   report('gate-status', async () => {
     try {
-      const result = await api<{csrf: string}>('login', 'POST', {password});
+      const username = element<HTMLInputElement>('username').value.trim();
+      const result = await api<{csrf: string}>('login', 'POST', {username, password});
       input.value = '';
       openSession(result.csrf);
     } finally { button.disabled = false; }
@@ -183,6 +196,14 @@ window.addEventListener('online', () => void connect());
 window.addEventListener('pagehide', stopConnection);
 window.addEventListener('pageshow', event => { if (event.persisted && csrf && !isAdmin) void connect(); });
 click('tools', () => showDialog('toolbox'));
+for (const [id, target] of [['open-chat', 'chat'], ['open-codex', 'codex'], ['open-account', 'login']] as const) {
+  click(id, () => report('tool-status', async () => {
+    await api('browser/open', 'POST', {target});
+    pendingPage = target;
+    dialog('toolbox').close();
+    reconnect();
+  }));
+}
 click('reconnect', () => { dialog('toolbox').close(); reconnect(); });
 click('refresh', () => report('tool-status', async () => {
   await api('browser/refresh', 'POST');

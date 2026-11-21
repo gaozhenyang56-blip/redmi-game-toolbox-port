@@ -65,7 +65,15 @@ print(json.dumps(cfg))
 PY_END
 exec "$1" "$2" "$TEST_ROOT/auth-config.json"
 ''')
-    stub("curl", '''if [[ "$*" == *--unix-socket* ]]; then printf '{"state":"running"}'; fi''')
+    stub("curl", '''
+if [[ "$*" == *--unix-socket* ]]; then
+  if grep -q '^BRIDGE_ON_DEMAND=1$' "$TEST_ROOT/etc/chatgpt-web-bridge/browser.env"; then
+    printf '{"state":"idle"}'
+  else
+    printf '{"state":"running"}'
+  fi
+fi
+''')
     stub("systemd-analyze", '[[ ${FAIL_VERIFY:-0} == 0 ]]')
     stub("systemctl", '''
 case "$1" in
@@ -117,14 +125,17 @@ exec /usr/bin/install "${args[@]}"
     unrelated = root / "etc/systemd/system/astrbot.service"
     unrelated.write_text("leave unrelated unit untouched")
 
-    run("install.sh", args, "deployment test passphrase\n")
+    run("install.sh", [*args, "--on-demand", "--admin-user", "fixture-admin"], "deployment test passphrase\n")
     original = current.resolve()
     assert original.is_dir() and json.loads(config.read_text())["Origin"] == "https://chat.gaozy.tech"
+    assert json.loads(config.read_text())["AdminUser"] == "fixture-admin"
+    assert "BRIDGE_ON_DEMAND=1" in config.with_name("browser.env").read_text()
     assert (original / "web/index.html").stat().st_mode & 0o044 == 0o044
     profile.write_text("fixture browser state")
     hash_before = credential.read_bytes()
     run("install.sh", args)
     assert current.resolve() != original
+    assert "BRIDGE_ON_DEMAND=1" in config.with_name("browser.env").read_text()
     assert credential.read_bytes() == hash_before
     assert profile.read_text() == "fixture browser state"
     before_failure = current.resolve()

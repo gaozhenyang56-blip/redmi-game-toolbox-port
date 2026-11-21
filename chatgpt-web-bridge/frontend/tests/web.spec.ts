@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function login(page: Page, path = '/') {
   await page.goto(path);
+  await page.getByLabel('Web Bridge 登录名').fill('admin');
   await page.getByLabel('Web Bridge 访问密码').fill(process.env.BRIDGE_TEST_PASSWORD!);
   await page.getByRole('button', {name: '进入远程浏览器'}).click();
 }
@@ -11,12 +12,14 @@ test('mobile login, private admin and official entry', async ({page}) => {
   await page.setViewportSize({width: 390, height: 844});
   await page.goto('/admin');
   await expect(page.getByRole('heading', {name: '管理后台'})).toBeHidden();
+  await page.getByLabel('Web Bridge 登录名').fill('admin');
   await page.getByLabel('Web Bridge 访问密码').fill('incorrect fixture');
   await page.getByRole('button', {name: '进入远程浏览器'}).click();
-  await expect(page.getByText('访问密码错误')).toBeVisible();
+  await expect(page.getByText('登录名或访问密码错误')).toBeVisible();
   await login(page, '/admin');
   await expect(page.getByRole('heading', {name: '管理后台'})).toBeVisible();
-  await expect(page.getByRole('link', {name: '打开官方页面 · 登录 ChatGPT'})).toHaveAttribute('href', '/');
+  await expect(page.getByRole('link', {name: '打开官方页面 · 登录 ChatGPT'})).toHaveAttribute('href', '/?view=login');
+  await expect(page.getByRole('link', {name: 'Codex', exact: true})).toHaveAttribute('href', '/?view=codex');
   for (const [width,height] of [[390,844], [844,390]]) {
     await page.setViewportSize({width,height});
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
@@ -99,7 +102,10 @@ test('real noVNC Chromium supports mouse, Unicode clipboard, downloads and profi
   await expect.poll(() => execFileSync('xdotool', ['getactivewindow','getwindowname'], {encoding: 'utf8'}).trim()).not.toContain('Bridge browser integration fixture');
   execFileSync('xdotool', ['key', 'ctrl+l']);
   execFileSync('xdotool', ['type', remoteUpload]);
-  execFileSync('xdotool', ['key', '--delay', '350', 'Return', 'Return']);
+  // Clicking Open commits the GTK location field even when filename completion consumes Return.
+  const windowSize = execFileSync('xdotool', ['getactivewindow','getwindowgeometry','--shell'], {encoding:'utf8'});
+  const dimensions = Object.fromEntries(windowSize.trim().split('\n').map(line => line.split('=')));
+  execFileSync('xdotool', ['mousemove', '--window', dimensions.WINDOW, String(Number(dimensions.WIDTH) - 42), String(Number(dimensions.HEIGHT) - 24), 'click', '1']);
   await expect.poll(() => pixel(335), {timeout: 10_000}).toBe('34,120,83');
   await page.goto('/admin');
   page.once('dialog', d => d.accept());
@@ -108,4 +114,11 @@ test('real noVNC Chromium supports mouse, Unicode clipboard, downloads and profi
   await page.getByRole('link', {name: '返回远程画面'}).click();
   await expect(page.locator('#connection')).toBeHidden({timeout: 30_000});
   await expect.poll(() => pixel()).toBe('34,120,83');
+  await page.goto('/admin');
+  await page.getByRole('link', {name: 'Codex', exact: true}).click();
+  await expect.poll(async () => {
+    const response = await page.request.get('/api/status');
+    const parts = await response.json();
+    return parts.browser?.state + ':' + parts.browser?.target;
+  }, {timeout: 20_000}).toBe('running:codex');
 });

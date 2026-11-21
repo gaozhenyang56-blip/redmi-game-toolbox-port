@@ -44,6 +44,7 @@ chmod 0640 "$dir/files/downloads/fixture.txt"
 "$dir/bridge" serve "$dir/config.json" > "$dir/web.log" 2>&1 & web=$!
 "$dir/proxy" "127.0.0.1:$port" "http://127.0.0.1:$upstream" "$dir/tls.crt" "$dir/tls.key" > "$dir/proxy.log" 2>&1 & proxy=$!
 if [[ ${BRIDGE_LIVE_TEST:-0} == 1 ]]; then
+  export BRIDGE_ON_DEMAND="${BRIDGE_TEST_ON_DEMAND:-0}"
   export DISPLAY=:89 HOME="$dir/home" XAUTHORITY="$dir/home/.Xauthority"
   export BRIDGE_RUNTIME="$dir/runtime" BRIDGE_FILES="$dir/files" BRIDGE_BROWSER_HOME="$HOME"
   export BRIDGE_BROWSER_SCRIPT="$PWD/browser/start.sh"
@@ -53,9 +54,11 @@ if [[ ${BRIDGE_LIVE_TEST:-0} == 1 ]]; then
   fixture=$!
   "$dir/bridge" browser "$dir/config.json" > "$dir/browser.log" 2>&1 & browser=$!
 fi
+browser_expected=running
+[[ ${BRIDGE_TEST_ON_DEMAND:-0} != 1 ]] || browser_expected=idle
 for ((i=0;i<35;i++)); do
   if curl -kfsS "$BRIDGE_TEST_URL/healthz" >/dev/null 2>&1 &&
-      { [[ ${BRIDGE_LIVE_TEST:-0} != 1 ]] || curl -fsS --unix-socket "$dir/runtime/control.sock" http://localhost/status 2>/dev/null | grep -q '"state":"running"'; }; then
+      { [[ ${BRIDGE_LIVE_TEST:-0} != 1 ]] || curl -fsS --unix-socket "$dir/runtime/control.sock" http://localhost/status 2>/dev/null | grep -q "\"state\":\"$browser_expected\""; }; then
     (cd frontend && npm test)
     exit
   fi

@@ -12,13 +12,15 @@ import paramiko
 
 MODE = os.environ.get("BRIDGE_OPERATION", "probe")
 PROXY = os.environ.get("BRIDGE_PROXY", "auto")
+ON_DEMAND = os.environ.get("BRIDGE_ON_DEMAND", "true") == "true"
+ADMIN_USER = os.environ.get("BRIDGE_ADMIN_USER") or "admin"
 PIN_PATH = Path(__file__).resolve().parents[2] / "qinglian/server/github/server-host-key.sha256"
 DOMAIN = "chat.gaozy.tech"
 PROBE = r"""
 . /etc/os-release
 printf '系统 %s %s; 架构 %s\n' "$ID" "$VERSION_ID" "$(uname -m)"
 awk '/^MemTotal:|^MemAvailable:|^SwapTotal:/{printf "%s %.0f MiB\n",$1,$2/1024}' /proc/meminfo
-for name in nginx caddy apache2; do
+for name in nginx caddy apache2 cloudflared; do
   if systemctl is-active --quiet "$name"; then printf '%s 已运行\n' "$name"; fi
 done
 for port in 80 443 18642; do
@@ -27,6 +29,7 @@ done
 if getent ahosts chat.gaozy.tech >/dev/null; then printf '目标域名已解析\n'; else printf '目标域名未解析\n'; fi
 if [ -r /etc/letsencrypt/live/chat.gaozy.tech/fullchain.pem ]; then printf '发现同名证书\n'; fi
 if command -v certbot >/dev/null; then printf '已安装 certbot\n'; fi
+df -Pm /opt | awk 'END{printf "可用磁盘 %s MiB\n",$4}' 
 if [ -f /etc/chatgpt-web-bridge/config.json ]; then printf 'Bridge 已安装\n'; fi
 """
 
@@ -61,6 +64,9 @@ def run(client, command, secret=None, publish=True, timeout=480):
 def deploy(client, username, password):
     bundle = Path("dist/chatgpt-web-bridge-linux-x86_64.tar.gz")
     checksum = bundle.with_name(bundle.name + ".sha256")
+    if not re.fullmatch(r"[a-zA-Z0-9_.-]{2,48}", ADMIN_USER):
+        raise RuntimeError("管理员登录名格式无效。")
+    launch = "--on-demand" if ON_DEMAND else "--always-on"
     if not bundle.is_file() or not checksum.is_file():
         raise RuntimeError("找不到已验证的部署包。")
     if run(client, 'uname -m', publish=False) != "x86_64":
@@ -81,12 +87,12 @@ set -eu
 cd {remote_dir}
 sha256sum -c {shlex.quote(checksum.name)}
 tar xzf {shlex.quote(bundle.name)}
-{root}sh -c 'umask 077; exec bash chatgpt-web-bridge/scripts/install.sh --domain {DOMAIN} --proxy {PROXY} --password-stdin >/var/log/chatgpt-web-bridge-install.log 2>&1'
+{root}sh -c 'umask 077; exec bash chatgpt-web-bridge/scripts/install.sh --domain {DOMAIN} --proxy {PROXY} --admin-user {ADMIN_USER} {launch} --password-stdin >/var/log/chatgpt-web-bridge-install.log 2>&1'
 """
         run(client, "bash -c " + shlex.quote(script), secret=password, publish=False)
     finally:
         run(client, f"rm -rf -- {remote_dir}", publish=False)
-    print("VPS 本地验收通过。")
+    print("VPS 本地验收通过。按需模式只验证待机后台，实际浏览器在连接时检查内存。")
     if PROXY != "manual":
         run(client, f"curl -fsS --max-time 20 https://{DOMAIN}/healthz >/dev/null", publish=False)
         print(f"HTTPS 验收通过 https://{DOMAIN}/admin")

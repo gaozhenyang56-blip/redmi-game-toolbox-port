@@ -89,7 +89,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		problem(w, 403, "请求来源无效")
 		return
 	}
-	var in struct{ Password string }
+	var in struct{ Username, Password string }
 	if !readJSON(w, r, &in, 1024) {
 		return
 	}
@@ -103,8 +103,9 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	}
 	hash := a.hash
 	a.mu.Unlock()
-	if bcrypt.CompareHashAndPassword(hash, []byte(in.Password)) != nil {
-		problem(w, 401, "访问密码错误")
+	if bcrypt.CompareHashAndPassword(hash, []byte(in.Password)) != nil ||
+		subtle.ConstantTimeCompare([]byte(in.Username), []byte(s.cfg.AdminUser)) != 1 {
+		problem(w, 401, "登录名或访问密码错误")
 		return
 	}
 	a.mu.Lock()
