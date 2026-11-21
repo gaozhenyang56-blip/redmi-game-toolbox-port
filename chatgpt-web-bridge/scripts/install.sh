@@ -7,10 +7,11 @@ lock
 system_supported
 bundle=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 [[ -x "$bundle/bridge" && -f "$bundle/web/index.html" ]] || die '请从已构建的 Linux 安装包运行此脚本。'
-domain=chat.gaozy.tech port=18642 proxy=auto cert= key= chromium= memory= admin_user=admin on_demand= password_stdin=0 skip_deps=0
+domain=chat.gaozy.tech base_path= port=18642 proxy=auto cert= key= chromium= memory= admin_user=admin on_demand= password_init=password-init min_password_bytes=12 password_stdin=0 skip_deps=0
 while (($#)); do
   case "$1" in
     --domain) domain=${2:?}; shift;;
+    --base-path) base_path=${2:?}; shift;;
     --port) port=${2:?}; shift;;
     --proxy) proxy=${2:?}; shift;;
     --cert) cert=${2:?}; shift;;
@@ -20,6 +21,7 @@ while (($#)); do
     --admin-user) admin_user=${2:?}; shift;;
     --on-demand) on_demand=1;;
     --always-on) on_demand=0;;
+    --accept-11-byte-password) min_password_bytes=11; password_init=password-init-explicit;;
     --password-stdin) password_stdin=1;;
     --skip-dependencies) skip_deps=1;;
     *) die "未知参数 $1";;
@@ -27,18 +29,22 @@ while (($#)); do
   shift
 done
 domain_ok "$domain" || die '域名无效。'
+if [[ -n "$base_path" ]]; then
+  [[ "$base_path" =~ ^(/[a-zA-Z0-9_-]+)+$ && ${#base_path} -le 128 ]] || die 'URL 子路径无效。'
+  [[ "$proxy" == manual ]] || die '共享域名的子路径需要使用 --proxy manual。'
+fi
 [[ "$admin_user" =~ ^[a-zA-Z0-9_.-]{2,48}$ ]] || die '管理员登录名需要 2–48 个字母、数字、句点、下划线或连字符。'
 [[ "$port" =~ ^[1-9][0-9]{3,4}$ ]] && ((port<=65535)) || die '上游端口无效。'
 [[ "$proxy" =~ ^(auto|nginx|caddy|manual)$ ]] || die '反向代理选项无效。'
 [[ -z "$cert$key" || ( "$cert" =~ ^/[a-zA-Z0-9/_.-]+$ && "$key" =~ ^/[a-zA-Z0-9/_.-]+$ ) ]] || die '请同时给出规范的证书、密钥绝对路径。'
 if [[ -f "$ETC/config.json" ]]; then
-  read -r old_domain old_port < <(python3 - "$ETC/config.json" <<'PY'
+  read -r old_domain old_port old_path < <(python3 - "$ETC/config.json" <<'PY'
 import json, sys, urllib.parse
 c = json.load(open(sys.argv[1]))
-print(urllib.parse.urlsplit(c["Origin"]).netloc, c["Listen"].rsplit(":", 1)[1])
+print(urllib.parse.urlsplit(c["Origin"]).netloc, c["Listen"].rsplit(":", 1)[1], c.get("BasePath", ""))
 PY
 )
-  [[ "$old_domain/$old_port" == "$domain/$port" ]] || die '已有实例的域名或端口不同。更新时请使用原设置，迁移步骤见文档。'
+  [[ "$old_domain/$old_port$old_path" == "$domain/$port$base_path" ]] || die '已有实例的域名或端口不同。更新时请使用原设置，迁移步骤见文档。'
 else
   used_port "$port" && die "端口 $port 已被占用，请换用其他上游端口。"
 fi
@@ -82,7 +88,7 @@ if [[ ! -f "$LIB/auth/password.bcrypt" ]]; then
     unset repeated
   fi
   bytes=$(printf %s "$password" | wc -c)
-  ((bytes>=12 && bytes<=72)) || die '访问密码需要 12–72 字节。'
+  ((bytes>=min_password_bytes && bytes<=72)) || die "访问密码需要 $min_password_bytes–72 字节。"
 fi
 if (( ! skip_deps )); then
   apt-get update
@@ -181,7 +187,7 @@ cp -a "$bundle"/{bridge,web,browser,scripts,systemd,proxy,docs,release.txt,READM
 chown -R root:root "$release"
 chmod -R u=rwX,go=rX "$release"
 if [[ ! -e "$ETC/config.json" ]]; then
-  printf '{"Listen":"127.0.0.1:%s","Origin":"https://%s","AdminUser":"%s"}\n' "$port" "$domain" "$admin_user" > "$snap/config"
+  printf '{"Listen":"127.0.0.1:%s","Origin":"https://%s","AdminUser":"%s","BasePath":"%s"}\n' "$port" "$domain" "$admin_user" "$base_path" > "$snap/config"
   copy_file "$snap/config" "$ETC/config.json" 0644
 fi
 "$release/bridge" check "$ETC/config.json"
@@ -196,7 +202,7 @@ printf '[Service]\nMemoryHigh=%sM\nMemoryMax=%sM\n' "$((memory*3/4))" "$memory" 
 copy_file "$snap/limit" "$ETC/browser-limits.conf" 0644
 if [[ ! -e "$LIB/auth/password.bcrypt" ]]; then
   auth_created=1
-  printf '%s' "$password" | runuser -u cgwb-web -- "$release/bridge" password-init "$ETC/config.json"
+  printf '%s' "$password" | runuser -u cgwb-web -- "$release/bridge" "$password_init" "$ETC/config.json"
   unset password
 fi
 for unit in "$WEB" "$BROWSER"; do
@@ -213,7 +219,7 @@ ready=0
 expected=running
 (( ! on_demand )) || expected=idle
 for ((i=0;i<35;i++)); do
-  if curl -fsS --max-time 2 -H "Host: $domain" "http://127.0.0.1:$port/healthz" >/dev/null 2>&1 &&
+  if curl -fsS --max-time 2 -H "Host: $domain" "http://127.0.0.1:$port$base_path/healthz" >/dev/null 2>&1 &&
       curl -fsS --max-time 2 --unix-socket /run/chatgpt-web-bridge/control.sock http://localhost/status 2>/dev/null | grep -q "\"state\":\"$expected\""; then
     ready=1
     break
@@ -223,4 +229,4 @@ done
 ((ready)) || die '本地浏览器或后端未通过启动检查。请查看本项目 journal。'
 systemctl enable "$BROWSER" "$WEB"
 bash "$release/scripts/proxy.sh" "$proxy" "$domain" "$port" "$cert" "$key"
-info "服务已启动。管理后台 https://$domain/admin"
+info "服务已启动。管理后台 https://$domain$base_path/admin"

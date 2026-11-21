@@ -4,13 +4,21 @@
 
 源码位于 Redmi Game Toolbox 仓库的 `codex/chatgpt-web-bridge` 分支，基于已有 Qinglian 服务器分支。工作流复用 `QINGLIAN_SSH_HOST`、`QINGLIAN_SSH_PASSWORD` 及可选的 `QINGLIAN_SSH_USER`、`QINGLIAN_SSH_PORT`、`QINGLIAN_SSH_HOST_KEY`。若未单独提供主机指纹，使用仓库中原有的固定 Qinglian 主机指纹。
 
-分支推送构建产物并进行只读预检。待生产域名和 TLS 入口就绪，在仓库 Secrets 中配置 `CHATGPT_BRIDGE_PASSWORD`，并在 Variables 设置 `CHATGPT_BRIDGE_ADMIN_USER`（可选，默认 `admin`），然后执行工作流的 `deploy` 模式。默认按需启动。手动触发的可见性取决于 GitHub 工作流注册及调用权限。
+分支推送构建产物并进行只读预检。待生产域名和 TLS 入口就绪，在仓库 Secrets 中配置 `CHATGPT_BRIDGE_PASSWORD`，并在 Variables 设置 `CHATGPT_BRIDGE_ADMIN_USER`（可选，默认 `admin`），然后执行工作流的 `deploy` 模式。默认按需启动。Qinglian 部署使用 `https://gaozy.tech/codex/`，仅绑定 VPS 的回环端口。手动触发的可见性取决于 GitHub 工作流注册及调用权限。
 
 ```bash
-gh workflow run chatgpt-web-bridge.yml --ref codex/chatgpt-web-bridge -f mode=deploy -f proxy=auto
+gh workflow run chatgpt-web-bridge.yml --ref codex/chatgpt-web-bridge -f mode=deploy -f proxy=manual
 ```
 
 部署模式通过 SSH 上传当次通过测试的构建产物和 SHA-256 校验文件。服务器检查构建、只修改 Bridge 专用文件，并在最终检查 HTTPS。首次部署读取配置的密码。以后在后台改密，更新会保留新的哈希。可在服务器查看 `/var/log/chatgpt-web-bridge-install.log`。如果 GitHub 未注册该分支工作流的手动入口，可下载构建产物，按 README 通过 SSH 安装。
+
+## 共享域名子路径
+
+```sh
+sudo bash scripts/install.sh --domain gaozy.tech --base-path /codex --proxy manual --on-demand
+```
+
+现有 HTTPS 网关应将精确的 `/codex` 和 `/codex/` 子树转发给 `http://127.0.0.1:18642`，保留完整请求路径、查询字符串、Host 和 WebSocket Upgrade。独立 Cookie 仅发送到 `/codex/`。后端拒绝此子树以外的请求。通过 `https://gaozy.tech/codex/healthz` 返回 204 验证入口。避免覆盖主站的其他路径和现有 443 监听。
 
 ## 手动接入现有代理
 

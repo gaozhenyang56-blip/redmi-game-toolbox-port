@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -89,6 +90,10 @@ func (s *Server) handler() http.Handler {
 			http.ServeFile(w, r, filepath.Join(s.cfg.Assets, "index.html"))
 		})
 	}
+	var routes http.Handler = m
+	if s.cfg.BasePath != "" {
+		routes = http.StripPrefix(s.cfg.BasePath, m)
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Host != s.host {
 			http.Error(w, "Invalid Host", 421)
@@ -99,8 +104,30 @@ func (s *Server) handler() http.Handler {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss://"+s.host+"; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000")
-		m.ServeHTTP(w, r)
+		if prefix := s.cfg.BasePath; prefix != "" {
+			if r.URL.Path == prefix && (r.Method == "GET" || r.Method == "HEAD") {
+				target := prefix + "/"
+				if r.URL.RawQuery != "" {
+					target += "?" + r.URL.RawQuery
+				}
+				http.Redirect(w, r, target, http.StatusPermanentRedirect)
+				return
+			}
+			if !strings.HasPrefix(r.URL.EscapedPath(), prefix+"/") || r.URL.Path != cleanRequestPath(r.URL.Path) {
+				http.NotFound(w, r)
+				return
+			}
+		}
+		routes.ServeHTTP(w, r)
 	})
+}
+
+func cleanRequestPath(value string) string {
+	clean := path.Clean(value)
+	if clean != "/" && strings.HasSuffix(value, "/") {
+		clean += "/"
+	}
+	return clean
 }
 
 func (s *Server) note(message string) {
@@ -350,7 +377,7 @@ func serve(c Config) error {
 
 func main() {
 	if len(os.Args) != 3 {
-		log.Fatal("用法：bridge serve|browser|password-init|check CONFIG")
+		log.Fatal("用法：bridge serve|browser|password-init|password-init-explicit|check CONFIG")
 	}
 	cfg, err := loadConfig(os.Args[2])
 	if err != nil {
@@ -362,12 +389,16 @@ func main() {
 	case "browser":
 		err = runBrowser(cfg)
 	case "check":
-	case "password-init":
+	case "password-init", "password-init-explicit":
 		var raw []byte
 		raw, err = io.ReadAll(io.LimitReader(os.Stdin, 1024))
 		if err == nil {
 			var hash []byte
-			hash, err = passwordHash(string(bytes.TrimRight(raw, "\r\n")))
+			minimum := 12
+			if os.Args[1] == "password-init-explicit" {
+				minimum = 11
+			}
+			hash, err = hashWithMinimum(string(bytes.TrimRight(raw, "\r\n")), minimum)
 			if err == nil {
 				err = atomicFile(credentialPath(cfg), hash)
 			}

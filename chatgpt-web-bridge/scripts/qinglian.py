@@ -11,11 +11,13 @@ import sys
 import paramiko
 
 MODE = os.environ.get("BRIDGE_OPERATION", "probe")
-PROXY = os.environ.get("BRIDGE_PROXY", "auto")
+PROXY = os.environ.get("BRIDGE_PROXY", "manual")
 ON_DEMAND = os.environ.get("BRIDGE_ON_DEMAND", "true") == "true"
+ALLOW_11 = os.environ.get("BRIDGE_ALLOW_11") == "true"
 ADMIN_USER = os.environ.get("BRIDGE_ADMIN_USER") or "admin"
 PIN_PATH = Path(__file__).resolve().parents[2] / "qinglian/server/github/server-host-key.sha256"
-DOMAIN = "chat.gaozy.tech"
+DOMAIN = "gaozy.tech"
+BASE_PATH = "/codex"
 PROBE = r"""
 . /etc/os-release
 printf '系统 %s %s; 架构 %s\n' "$ID" "$VERSION_ID" "$(uname -m)"
@@ -26,10 +28,10 @@ done
 for port in 80 443 18642; do
   if [ -n "$(ss -H -lnt "sport = :$port")" ]; then printf '%s 端口已占用\n' "$port"; fi
 done
-if getent ahosts chat.gaozy.tech >/dev/null; then printf '目标域名已解析\n'; else printf '目标域名未解析\n'; fi
-if [ -r /etc/letsencrypt/live/chat.gaozy.tech/fullchain.pem ]; then printf '发现同名证书\n'; fi
+if getent ahosts gaozy.tech >/dev/null; then printf '目标域名已解析\n'; else printf '目标域名未解析\n'; fi
+if systemctl is-active --quiet x-ui; then printf 'x-ui 已运行\n'; fi
 if command -v certbot >/dev/null; then printf '已安装 certbot\n'; fi
-df -Pm /opt | awk 'END{printf "可用磁盘 %s MiB\n",$4}' 
+df -Pm /opt | awk 'END{printf "可用磁盘 %s MiB\n",$4}'
 if [ -f /etc/chatgpt-web-bridge/config.json ]; then printf 'Bridge 已安装\n'; fi
 """
 
@@ -67,12 +69,13 @@ def deploy(client, username, password):
     if not re.fullmatch(r"[a-zA-Z0-9_.-]{2,48}", ADMIN_USER):
         raise RuntimeError("管理员登录名格式无效。")
     launch = "--on-demand" if ON_DEMAND else "--always-on"
+    password_option = "--accept-11-byte-password" if ALLOW_11 else ""
     if not bundle.is_file() or not checksum.is_file():
         raise RuntimeError("找不到已验证的部署包。")
     if run(client, 'uname -m', publish=False) != "x86_64":
         raise RuntimeError("此部署包仅支持 x86_64。")
     if PROXY != "manual":
-        run(client, f"getent ahosts {DOMAIN} >/dev/null", publish=False)
+        raise RuntimeError("共享域名 /codex 必须通过现有 HTTPS 入口接入，请选择 manual。")
     remote = run(client, "mktemp -d /tmp/cgwb-deploy.XXXXXXXX", publish=False)
     if not re.fullmatch(r"/tmp/cgwb-deploy\.[A-Za-z0-9]+", remote):
         raise RuntimeError("服务器临时目录格式无效。")
@@ -87,15 +90,18 @@ set -eu
 cd {remote_dir}
 sha256sum -c {shlex.quote(checksum.name)}
 tar xzf {shlex.quote(bundle.name)}
-{root}sh -c 'umask 077; exec bash chatgpt-web-bridge/scripts/install.sh --domain {DOMAIN} --proxy {PROXY} --admin-user {ADMIN_USER} {launch} --password-stdin >/var/log/chatgpt-web-bridge-install.log 2>&1'
+{root}sh -c 'umask 077; exec bash chatgpt-web-bridge/scripts/install.sh --domain {DOMAIN} --base-path {BASE_PATH} --proxy {PROXY} --admin-user {ADMIN_USER} {launch} {password_option} --password-stdin >/var/log/chatgpt-web-bridge-install.log 2>&1'
 """
         run(client, "bash -c " + shlex.quote(script), secret=password, publish=False)
     finally:
         run(client, f"rm -rf -- {remote_dir}", publish=False)
     print("VPS 本地验收通过。按需模式只验证待机后台，实际浏览器在连接时检查内存。")
-    if PROXY != "manual":
-        run(client, f"curl -fsS --max-time 20 https://{DOMAIN}/healthz >/dev/null", publish=False)
-        print(f"HTTPS 验收通过 https://{DOMAIN}/admin")
+    try:
+        run(client, f'test "$(curl -sS -o /dev/null -w \'%{{http_code}}\' --max-time 20 https://{DOMAIN}{BASE_PATH}/healthz)" = 204', publish=False)
+    except RuntimeError:
+        print(f"现有 HTTPS 入口仍需配置 {BASE_PATH} 路由，回环上游已安装。")
+    else:
+        print(f"HTTPS 验收通过 https://{DOMAIN}{BASE_PATH}/admin")
 
 
 def main():
@@ -107,7 +113,7 @@ def main():
     password = os.environ.get("BRIDGE_ADMIN_PASSWORD", "")
     if not host or not credential:
         raise RuntimeError("GitHub Actions 缺少 Qinglian SSH Secret。")
-    if MODE == "deploy" and (not 12 <= len(password.encode()) <= 72 or "\n" in password or "\r" in password):
+    if MODE == "deploy" and (not (11 if ALLOW_11 else 12) <= len(password.encode()) <= 72 or "\n" in password or "\r" in password):
         raise RuntimeError("部署需要配置 CHATGPT_BRIDGE_PASSWORD。")
     fingerprint = (os.environ.get("QINGLIAN_SSH_HOST_KEY") or PIN_PATH.read_text()).strip()
     if not re.fullmatch(r"SHA256:[A-Za-z0-9+/]{43}", fingerprint):

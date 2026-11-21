@@ -13,12 +13,15 @@ import (
 	"time"
 )
 
+var basePathPattern = regexp.MustCompile(`^(/[a-zA-Z0-9_-]+)+$`)
+
 var usernamePattern = regexp.MustCompile("^[A-Za-z0-9_.-]{2,48}$")
 
 type Config struct {
 	AdminUser      string
 	Listen         string
 	Origin         string
+	BasePath       string
 	State          string
 	Files          string
 	Runtime        string
@@ -53,6 +56,9 @@ func loadConfig(path string) (Config, error) {
 	}
 	if originErr != nil || u.Scheme != "https" || u.Hostname() == "" || cfg.Origin != "https://"+u.Host {
 		return cfg, errors.New("Origin 必须是 HTTPS 来源地址，且不含路径")
+	}
+	if cfg.BasePath != "" && (len(cfg.BasePath) > 128 || !basePathPattern.MatchString(cfg.BasePath)) {
+		return cfg, errors.New("BasePath 必须是规范的 URL 子路径")
 	}
 	for _, dir := range []string{cfg.State, cfg.Files, cfg.Runtime, cfg.Assets} {
 		if !filepath.IsAbs(dir) || filepath.Clean(dir) != dir || dir == "/" {

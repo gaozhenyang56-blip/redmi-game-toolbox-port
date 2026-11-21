@@ -22,12 +22,13 @@ type session struct {
 	until    time.Time
 }
 type authState struct {
-	mu       sync.Mutex
-	sessions map[string]session
-	hashPath string
-	hash     []byte
-	window   time.Time
-	attempts int
+	mu                     sync.Mutex
+	sessions               map[string]session
+	cookieName, cookiePath string
+	hashPath               string
+	hash                   []byte
+	window                 time.Time
+	attempts               int
 }
 
 func token() string {
@@ -37,9 +38,11 @@ func token() string {
 	return hex.EncodeToString(b[:])
 }
 
-func passwordHash(password string) ([]byte, error) {
-	if len(password) < 12 || len(password) > 72 {
-		return nil, errors.New("访问密码需要 12–72 字节")
+func passwordHash(password string) ([]byte, error) { return hashWithMinimum(password, 12) }
+
+func hashWithMinimum(password string, min int) ([]byte, error) {
+	if len(password) < min || len(password) > 72 {
+		return nil, errors.New("访问密码长度超出允许范围")
 	}
 	return bcrypt.GenerateFromPassword([]byte(password), 12)
 }
@@ -55,7 +58,11 @@ func loadAuth(c Config) (*authState, error) {
 	if _, err = bcrypt.Cost(hash); err != nil {
 		return nil, err
 	}
-	return &authState{hashPath: path, hash: hash, sessions: make(map[string]session)}, nil
+	name, scope := sessionCookie, "/"
+	if c.BasePath != "" {
+		name, scope = "__Secure-chatgpt-web-bridge", c.BasePath+"/"
+	}
+	return &authState{hashPath: path, hash: hash, sessions: make(map[string]session), cookieName: name, cookiePath: scope}, nil
 }
 
 func (a *authState) attempt() bool {
@@ -72,7 +79,7 @@ func (a *authState) attempt() bool {
 }
 
 func (a *authState) find(r *http.Request) (session, bool) {
-	c, err := r.Cookie(sessionCookie)
+	c, err := r.Cookie(a.cookieName)
 	if err != nil {
 		return session{}, false
 	}
@@ -80,8 +87,8 @@ func (a *authState) find(r *http.Request) (session, bool) {
 	return s, ok && time.Now().Before(s.until)
 }
 
-func cookie(w http.ResponseWriter, id string, maxAge int) {
-	http.SetCookie(w, &http.Cookie{Name: sessionCookie, Value: id, Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode, MaxAge: maxAge})
+func (a *authState) cookie(w http.ResponseWriter, id string, maxAge int) {
+	http.SetCookie(w, &http.Cookie{Name: a.cookieName, Value: id, Path: a.cookiePath, Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode, MaxAge: maxAge})
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
@@ -124,7 +131,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	ttl := duration(s.cfg.SessionHours)
 	sess := session{token(), token(), time.Now().Add(ttl)}
 	a.sessions[sess.id] = sess
-	cookie(w, sess.id, int(ttl.Seconds()))
+	a.cookie(w, sess.id, int(ttl.Seconds()))
 	reply(w, map[string]string{"csrf": sess.csrf})
 }
 
@@ -162,7 +169,7 @@ func (s *Server) logout(w http.ResponseWriter, _ *http.Request, sess session) {
 	s.auth.mu.Lock()
 	s.revokeLocked(sess.id)
 	s.auth.mu.Unlock()
-	cookie(w, "", -1)
+	s.auth.cookie(w, "", -1)
 	w.WriteHeader(204)
 }
 
@@ -204,7 +211,7 @@ func (s *Server) password(w http.ResponseWriter, r *http.Request, sess session) 
 	for id := range a.sessions {
 		s.revokeLocked(id)
 	}
-	cookie(w, "", -1)
+	s.auth.cookie(w, "", -1)
 	w.WriteHeader(204)
 }
 

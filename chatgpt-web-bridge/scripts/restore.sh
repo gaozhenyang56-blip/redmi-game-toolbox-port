@@ -26,8 +26,8 @@ PY
 python3 - "$ETC/config.json" "$stage/config.json" "$stage/browser.env" "$stage/browser-limits.conf" "$stage/password.bcrypt" <<'PY'
 import json, re, sys
 old, new = [json.load(open(p)) for p in sys.argv[1:3]]
-for name in ('Origin','Listen','State','Runtime','Files','Assets'):
-    if old.get(name) != new.get(name):
+for name in ('Origin','Listen','State','Runtime','Files','Assets','BasePath'):
+    if old.get(name, "") != new.get(name, ""):
         sys.exit("备份绑定到不同的域名、端口或目录。请先迁移配置。")
 env = open(sys.argv[3]).read()
 if not re.fullmatch(r'BRIDGE_CHROMIUM=/[\w/.-]+\nBRIDGE_GEOMETRY=\d{3,4}x\d{3,4}\n(?:BRIDGE_ON_DEMAND=[01]\n)?', env):

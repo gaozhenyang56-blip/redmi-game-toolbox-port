@@ -19,7 +19,9 @@ let rfb: RFB | null = null;
 let connected = false;
 let timer: number | undefined;
 let retry = 0;
-const isAdmin = location.pathname === '/admin';
+const appBase = new URL('.', location.href);
+const isAdmin = location.pathname === new URL('admin', appBase).pathname;
+function apiURL(path: string) { return new URL('api/' + path, appBase); }
 type OfficialPage = 'login' | 'chat' | 'codex';
 const initialTarget = new URLSearchParams(location.search).get('view');
 let pendingPage: OfficialPage | undefined = initialTarget === 'login' || initialTarget === 'chat' || initialTarget === 'codex' ? initialTarget : undefined;
@@ -32,7 +34,7 @@ async function api<T = void>(path: string, method = 'GET', data?: object): Promi
   const headers = new Headers();
   if (method !== 'GET' && csrf) headers.set('X-CSRF-Token', csrf);
   if (data) headers.set('Content-Type', 'application/json');
-  const reply = await fetch('/api/' + path, {method, headers, body: data && JSON.stringify(data), cache: 'no-store'});
+  const reply = await fetch(apiURL(path), {method, headers, body: data && JSON.stringify(data), cache: 'no-store'});
   if (reply.status === 204) return undefined as T;
   if (!reply.ok) {
     const reason = await reply.json().catch(() => ({}));
@@ -112,7 +114,7 @@ async function connect() {
       return;
     }
     pendingPage = undefined;
-    const addr = new URL('/api/vnc', location.href);
+    const addr = apiURL('vnc');
     addr.protocol = addr.protocol === 'https:' ? 'wss:' : 'ws:';
     const client = new RFB(element('screen'), addr.href, {wsProtocols: ['binary']});
     rfb = client;
@@ -303,7 +305,7 @@ async function listFiles() {
       if (file.state === 'ready') {
         if (kind === 'downloads') {
           const link = document.createElement('a');
-          link.href = '/api/' + path;
+          link.href = apiURL(path).href;
           link.download = file.name;
           link.textContent = '保存到本机';
           item.append(link);
@@ -344,7 +346,7 @@ function upload(file: File): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     inFlight = xhr;
-    xhr.open('PUT', '/api/files/uploads/' + encodeURIComponent(file.name));
+    xhr.open('PUT', apiURL('files/uploads/' + encodeURIComponent(file.name)));
     xhr.setRequestHeader('X-CSRF-Token', csrf);
     xhr.upload.onprogress = event => { if (event.lengthComputable && event.total) progress.value = event.loaded / event.total * 100; };
     xhr.onload = () => {

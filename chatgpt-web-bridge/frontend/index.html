@@ -31,7 +31,7 @@
     </nav>
   </main>
   <main id="admin" hidden>
-    <header><a href="/">‹ 返回远程画面</a><button id="admin-logout">退出</button></header>
+    <header><a href="./">‹ 返回远程画面</a><button id="admin-logout">退出</button></header>
     <article>
       <p class="identity">ChatGPT Web Bridge</p>
       <h1>管理后台</h1>
@@ -39,15 +39,15 @@
         <h2>ChatGPT 账号</h2>
         <p>在远程 Chromium 的 ChatGPT 官方页面完成登录、验证码或退出。登录后的对话和历史记录由官方账号同步。</p>
         <div class="actions">
-          <a class="primary inline" href="/?view=login">打开官方页面 · 登录 ChatGPT ↗</a>
-          <a href="/?view=chat">ChatGPT 聊天</a>
-          <a href="/?view=codex">Codex</a>
+          <a class="primary inline" href="./?view=login">打开官方页面 · 登录 ChatGPT ↗</a>
+          <a href="./?view=chat">ChatGPT 聊天</a>
+          <a href="./?view=codex">Codex</a>
         </div>
       </section>
       <section class="card">
         <h2>浏览器与资源</h2>
         <dl id="metrics"></dl>
-        <div class="actions"><button id="status-refresh">刷新状态</button><button id="browser-restart">重启 Chromium</button><button id="admin-files">文件管理</button><a href="/#display">调整远程分辨率 ↗</a></div>
+        <div class="actions"><button id="status-refresh">刷新状态</button><button id="browser-restart">重启 Chromium</button><button id="admin-files">文件管理</button><a href="./#display">调整远程分辨率 ↗</a></div>
         <details><summary>查看错误日志</summary><pre id="events"></pre></details>
       </section>
       <section class="card">
@@ -72,7 +72,7 @@
       <button id="open-files">上传与下载</button><button id="open-input">键盘与剪贴板</button>
       <button id="refresh">刷新 Chromium</button><button id="reconnect">重新连接</button>
       <button id="fullscreen">切换全屏</button><button id="logout">退出会话</button>
-      <a href="/admin">管理后台 ↗</a>
+      <a href="./admin">管理后台 ↗</a>
     </div>
     <label for="display-mode">画面布局</label>
     <select id="display-mode"><option value="auto">自动适配方向和尺寸</option><option value="portrait">手机竖屏</option><option value="landscape">宽屏</option><option value="zoom">原始尺寸，可拖动画面</option></select>

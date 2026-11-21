@@ -29,11 +29,12 @@ trap finish EXIT
 mkdir -p "$dir"/{files/uploads,files/downloads,auth,runtime,home}
 port=${BRIDGE_TEST_PORT:-18443}
 upstream=$((port + 1))
+export BRIDGE_TEST_BASE_PATH="${BRIDGE_TEST_BASE_PATH:-}"
 export BRIDGE_TEST_URL="https://127.0.0.1:$port"
 export BRIDGE_TEST_DIR="$dir"
 export BRIDGE_TEST_PASSWORD='local bridge integration fixture'
-printf '{"Listen":"127.0.0.1:%s","Origin":"%s","State":"%s/auth","Runtime":"%s/runtime","Assets":"%s/frontend/dist","Files":"%s/files","UploadMiB":1,"UploadQuotaMiB":2}\n' \
-  "$upstream" "$BRIDGE_TEST_URL" "$dir" "$dir" "$PWD" "$dir" > "$dir/config.json"
+printf '{"Listen":"127.0.0.1:%s","Origin":"%s","State":"%s/auth","Runtime":"%s/runtime","Assets":"%s/frontend/dist","Files":"%s/files","UploadMiB":1,"UploadQuotaMiB":2,"BasePath":"%s"}\n' \
+  "$upstream" "$BRIDGE_TEST_URL" "$dir" "$dir" "$PWD" "$dir" "$BRIDGE_TEST_BASE_PATH" > "$dir/config.json"
 openssl req -new -newkey rsa:2048 -x509 -days 1 -nodes -subj '/CN=127.0.0.1' \
   -addext 'subjectAltName=IP:127.0.0.1' -keyout "$dir/tls.key" -out "$dir/tls.crt" 2>/dev/null
 go -C backend build -o "$dir/bridge" .
@@ -57,7 +58,7 @@ fi
 browser_expected=running
 [[ ${BRIDGE_TEST_ON_DEMAND:-0} != 1 ]] || browser_expected=idle
 for ((i=0;i<35;i++)); do
-  if curl -kfsS "$BRIDGE_TEST_URL/healthz" >/dev/null 2>&1 &&
+  if curl -kfsS "$BRIDGE_TEST_URL$BRIDGE_TEST_BASE_PATH/healthz" >/dev/null 2>&1 &&
       { [[ ${BRIDGE_LIVE_TEST:-0} != 1 ]] || curl -fsS --unix-socket "$dir/runtime/control.sock" http://localhost/status 2>/dev/null | grep -q "\"state\":\"$browser_expected\""; }; then
     (cd frontend && npm test)
     exit

@@ -291,3 +291,36 @@ func TestBrowserRoutesAreAuthenticatedAndAllowlisted(t *testing.T) {
 		}
 	}
 }
+
+func TestSharedHostSubpath(t *testing.T) {
+	s := fixture(t)
+	s.cfg.BasePath = "/codex"
+	a, err := loadAuth(s.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.auth = a
+	w := request(s, "GET", "/codex?view=codex", "", "", "", nil)
+	if w.Code != 308 || w.Header().Get("Location") != "/codex/?view=codex" {
+		t.Fatal(w.Code, w.Header())
+	}
+	for _, invalid := range []string{"/healthz", "/codex-other/healthz", "/codex/../healthz", "/codex/%2e%2e/healthz"} {
+		if got := request(s, "GET", invalid, "", "", "", nil).Code; got != 404 {
+			t.Fatal(invalid, got)
+		}
+	}
+	if got := request(s, "GET", "/codex/healthz", "", "", "", nil).Code; got != 204 {
+		t.Fatal(got)
+	}
+	w = request(s, "POST", "/codex/api/login", `{"username":"admin","password":"`+testPassword+`"}`, s.cfg.Origin, "", nil)
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body)
+	}
+	c := w.Result().Cookies()[0]
+	if c.Path != "/codex/" || c.Name != "__Secure-chatgpt-web-bridge" || !c.Secure || !c.HttpOnly {
+		t.Fatal(c)
+	}
+	if got := request(s, "GET", "/codex/api/session", "", "", "", c).Code; got != 200 {
+		t.Fatal(got)
+	}
+}

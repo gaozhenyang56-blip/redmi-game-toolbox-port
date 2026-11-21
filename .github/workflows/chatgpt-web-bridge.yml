@@ -16,7 +16,15 @@ on:
         description: HTTPS proxy mode for deployment
         type: choice
         options: [auto, nginx, caddy, manual]
-        default: auto
+        default: manual
+      admin_user:
+        description: Bridge username for a new installation
+        type: string
+        required: false
+      accept_11_byte_password:
+        description: Explicitly allow an 11-byte password at bootstrap
+        type: boolean
+        default: false
       on_demand:
         description: Start Chromium only when a remote client connects
         type: boolean
@@ -48,6 +56,20 @@ jobs:
       run:
         working-directory: chatgpt-web-bridge
     steps:
+      - name: Verify deployment credential is available
+        if: inputs.mode == 'deploy'
+        working-directory: .
+        env:
+          BRIDGE_ADMIN_PASSWORD: ${{ secrets.CHATGPT_BRIDGE_PASSWORD }}
+          BRIDGE_ALLOW_11: ${{ inputs.accept_11_byte_password }}
+        run: |
+          python3 - <<'PY_PASSWORD'
+          import os
+          value = os.environ.get("BRIDGE_ADMIN_PASSWORD", "")
+          minimum = 11 if os.environ.get("BRIDGE_ALLOW_11") == "true" else 12
+          if not minimum <= len(value.encode()) <= 72 or "\n" in value or "\r" in value:
+              raise SystemExit("部署需要配置 CHATGPT_BRIDGE_PASSWORD Secret。")
+          PY_PASSWORD
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
@@ -75,7 +97,7 @@ jobs:
       - name: Test frontend against real backend
         run: |
           (cd frontend && npx --no-install playwright install --with-deps chromium)
-          bash tests/web.sh
+          BRIDGE_TEST_BASE_PATH=/codex bash tests/web.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: chatgpt-web-bridge-linux-x86_64
@@ -90,7 +112,8 @@ jobs:
           BRIDGE_OPERATION: ${{ inputs.mode || 'probe' }}
           BRIDGE_PROXY: ${{ inputs.proxy || 'auto' }}
           BRIDGE_ON_DEMAND: ${{ inputs.on_demand }}
-          BRIDGE_ADMIN_USER: ${{ vars.CHATGPT_BRIDGE_ADMIN_USER }}
+          BRIDGE_ALLOW_11: ${{ inputs.accept_11_byte_password }}
+          BRIDGE_ADMIN_USER: ${{ inputs.admin_user || vars.CHATGPT_BRIDGE_ADMIN_USER }}
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
           QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
