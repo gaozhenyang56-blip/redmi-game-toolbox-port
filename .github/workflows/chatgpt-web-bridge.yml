@@ -10,7 +10,7 @@ on:
       mode:
         description: Qinglian operation
         type: choice
-        options: [probe, deploy]
+        options: [probe, deploy, cloudflare_probe]
         default: probe
       proxy:
         description: HTTPS proxy mode for deployment
@@ -27,7 +27,21 @@ concurrency:
   group: chatgpt-web-bridge-qinglian
   cancel-in-progress: false
 jobs:
+  cloudflare:
+    if: github.ref_name == 'codex/chatgpt-web-bridge' && (github.event_name == 'push' || inputs.mode == 'cloudflare_probe')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: chatgpt-web-bridge/scripts
+      - name: Inspect Cloudflare access for the Bridge hostname
+        env:
+          QINGLIAN_CLOUDFLARE_TOKEN: ${{ secrets.QINGLIAN_CLOUDFLARE_TOKEN }}
+        run: python3 chatgpt-web-bridge/scripts/cloudflare_probe.py
   verify:
+    if: github.event_name != 'workflow_dispatch' || inputs.mode != 'cloudflare_probe'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
