@@ -87,6 +87,19 @@ test "$state" = running
 '''
 
 
+
+STOP = r'''
+set -eu
+for unit in chatgpt-web-bridge-ingress.service chatgpt-web-bridge.service chatgpt-web-bridge-browser.service; do
+    systemctl stop "$unit"
+    state=$(systemctl show -p ActiveState --value "$unit")
+    printf 'bridge-stop %s %s\n' "$unit" "$state"
+    test "$state" = inactive
+done
+printf 'x-ui %s\n' "$(systemctl is-active x-ui || true)"
+df -B1 --output=size,used,avail,pcent,target / /opt /srv | awk 'NR>1 && !seen[$5]++ {printf "bridge-disk total=%s used=%s available=%s use=%s mount=%s\n",$1,$2,$3,$4,$5}'
+'''
+
 def main():
     pin = (os.environ.get("QINGLIAN_SSH_HOST_KEY") or PIN_PATH.read_text()).strip()
     if not re.fullmatch(r"SHA256:[A-Za-z0-9+/]{43}", pin):
@@ -99,7 +112,10 @@ def main():
                        port=int(os.environ.get("QINGLIAN_SSH_PORT") or "22"),
                        password=os.environ["QINGLIAN_SSH_PASSWORD"],
                        timeout=15, auth_timeout=15, look_for_keys=False, allow_agent=False)
-        if os.environ.get("BRIDGE_BROWSER_MODE") == "browser_repair":
+        mode = os.environ.get("BRIDGE_BROWSER_MODE")
+        if mode == "bridge_stop":
+            run(client, sudo + "bash -c " + shlex.quote(STOP), timeout=55)
+        elif mode == "browser_repair":
             # Return the limited recovery output even when the readiness check fails.
             wrapped = "set +e; bash -c " + shlex.quote(REPAIR) + "; printf '\nrepair_exit=%s\n' $?"
             log = run(client, sudo + "bash -c " + shlex.quote(wrapped), timeout=65)
