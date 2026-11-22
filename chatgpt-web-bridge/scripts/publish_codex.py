@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import subprocess
 import sys
 import time
 from urllib import request
@@ -52,11 +53,17 @@ def fetch_json(url):
 
 
 def check(url):
-    try:
-        with request.urlopen(request.Request(url, headers={"Cache-Control": "no-cache"}), timeout=10) as response:
-            return response.status, response.read(65536)
-    except OSError as error:
-        return getattr(error, "code", 0), b""
+    result = subprocess.run(
+        ["curl", "--silent", "--show-error", "--location", "--max-redirs", "3",
+         "--proto", "=https", "--proto-redir", "=https", "--max-time", "10",
+         "--max-filesize", "1048576", "--write-out", "\n%{http_code}",
+         "--header", "Cache-Control: no-cache", url],
+        capture_output=True, check=False,
+    )
+    if result.returncode:
+        return 0, b""
+    body, _, status = result.stdout.rpartition(b"\n")
+    return (int(status), body) if status.isdigit() else (0, b"")
 
 
 def verify_public(before):
@@ -141,7 +148,7 @@ def publish(client, sudo, token, zone_id):
     run(client, '''test "$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 5 -H 'Host: gaozy.tech' http://127.0.0.1:18642/codex/healthz)" = 204''', publish=False)
     before = {path: check("https://" + HOST + path)[0] for path in ("/", "/panel/")}
     if any(value != 200 for value in before.values()):
-        raise RuntimeError("原站或面板未通过发布前检查。")
+        raise RuntimeError(f"原站或面板未通过发布前检查（首页 {before['/']}，面板 {before['/panel/']}）。")
     existing = run(client, f"if systemctl is-active --quiet {SERVICE}; then printf active; fi", publish=False) == "active"
     if existing != bool(current):
         raise RuntimeError("现有 ingress 服务和 Cloudflare 路由状态不一致。")
