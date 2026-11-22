@@ -103,7 +103,7 @@ def watchdog():
  age=now-int(props.get('ActiveEnterTimestampMonotonic','0'))/1e6
  if not active or age<120 or backend():data['failures']=0
  else:data['failures']=data.get('failures',0)+1
- if data.get('failures',0)>=3 and now-data.get('lastRestart',0)>300:
+ if data.get('failures',0)>=3 and (not data.get('lastRestart') or now-data['lastRestart']>300):
   # Recheck state to preserve an intentional manual stop.
   if properties().get('ActiveState')=='active':
    command('systemctl','--no-block','try-restart',UNIT)

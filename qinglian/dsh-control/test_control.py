@@ -55,7 +55,7 @@ class ControlTests(unittest.TestCase):
  def test_watchdog_recovers_only_after_three_failures(self):
   original=helper.Path
   def path(value):return original(self.temp.name)/'state.json' if value=='/run/dsh-watchdog/state.json' else original(value)
-  with patch.object(helper,'Path',side_effect=path),patch.object(helper,'properties',return_value={'ActiveState':'active','ActiveEnterTimestampMonotonic':'1'}),patch.object(helper,'backend',return_value=False),patch.object(helper,'command') as command:
+  with patch.object(helper.time,'monotonic',return_value=10000),patch.object(helper,'Path',side_effect=path),patch.object(helper,'properties',return_value={'ActiveState':'active','ActiveEnterTimestampMonotonic':'1'}),patch.object(helper,'backend',return_value=False),patch.object(helper,'command') as command:
    helper.watchdog();helper.watchdog();command.assert_not_called();helper.watchdog()
    command.assert_called_once_with('systemctl','--no-block','try-restart','dsh.service')
 if __name__=='__main__':unittest.main()
