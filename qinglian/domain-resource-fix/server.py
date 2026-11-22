@@ -23,7 +23,7 @@ try:
  before=properties();assert before['ActiveState']=='active'
  group=before['ControlGroup'];assert group.startswith('/') and group.endswith('/dsh.service')
  root=Path('/sys/fs/cgroup'+group);quota_raw,period_raw=(root/'cpu.max').read_text().split()
- ratio=0.5 if quota_raw=='max' else min(.5,int(quota_raw)/int(period_raw))
+ ratio=1.0 if dropin.exists() or quota_raw=='max' else min(1.0,int(quota_raw)/int(period_raw))
  old_high=int(before['MemoryHigh']);max_mem=int(before['MemoryMax'])
  initial_events=mem_events(group);time.sleep(2);baseline_events=mem_events(group)
  # Maintain the existing hard ceiling; relax only an observed soft-limit stall.
@@ -35,17 +35,21 @@ try:
  backup=Path(tempfile.mkdtemp(prefix='domain-resource-',dir='/root'));backup.chmod(0o700)
  if dropin.exists():shutil.copy2(dropin,backup/'dropin.before')
  dropin.parent.mkdir(parents=True,exist_ok=True)
- contents='[Service]\nCPUAccounting=true\nCPUQuota='+str(ratio*100)+'%\nCPUWeight='+str(weight)+'\nMemoryHigh='+str(target_high)+'\nNice=10\n'
+ contents='[Service]\nCPUAccounting=true\nCPUQuota='+str(ratio*100)+'%\nCPUWeight='+str(weight)+'\nMemoryHigh='+str(target_high)+'\nNice=0\n'
  temp=dropin.with_suffix('.new');temp.write_text(contents);temp.chmod(0o644);temp.replace(dropin);changed=True
  run('systemctl','daemon-reload')
  run('systemctl','set-property','--runtime','dsh.service','CPUQuota='+str(ratio*100)+'%','CPUWeight='+str(weight),'MemoryHigh='+str(target_high))
- uid=pwd.getpwnam('dsh').pw_uid;adjusted=0
+ uid=pwd.getpwnam('dsh').pw_uid;adjusted=0;frontend_threads=0
  for proc in Path('/proc').glob('[0-9]*'):
   try:
    if proc.stat().st_uid!=uid or not re.search(r'/dsh\.service(?:/|\n|$)',(proc/'cgroup').read_text()):continue
+   args=(proc/'cmdline').read_bytes().split(b'\0')
+   frontend=b'web' in args and any(b'/node_modules/@deepseek-ai/dsh/lib/bin.js' in word for word in args)
    for thread in (proc/'task').glob('[0-9]*'):
     tid=int(thread.name);nice=os.getpriority(os.PRIO_PROCESS,tid)
-    if nice<10:os.setpriority(os.PRIO_PROCESS,tid,10);adjusted+=1
+    desired=min(nice,0) if frontend else max(nice,15)
+    if desired!=nice:os.setpriority(os.PRIO_PROCESS,tid,desired);adjusted+=1
+    if frontend:frontend_threads+=1
   except (ProcessLookupError,FileNotFoundError):pass
  now_events=mem_events(group);time.sleep(8);after_events=mem_events(group);after=properties()
  assert after['ActiveState']=='active' and after['MainPID']==before['MainPID']
@@ -56,7 +60,7 @@ try:
   'memoryHighBeforeMiB':old_high//1024**2,'memoryHighAfterMiB':target_high//1024**2,'memoryHardLimitUnchanged':True,
   'memoryHighStallsInBaseline2Seconds':baseline_events.get('high',0)-initial_events.get('high',0),
   'memoryHighStallsAfterFix8Seconds':after_events.get('high',0)-now_events.get('high',0),
-  'threadsDeprioritized':adjusted,'existingDshProcessPreserved':True,'originHttpsChecks':checks,'persistentAcrossRestarts':True}))
+  'threadsPrioritiesAdjusted':adjusted,'frontendThreadsPrioritized':frontend_threads,'existingDshProcessPreserved':True,'originHttpsChecks':checks,'persistentAcrossRestarts':True}))
 except Exception as e:
  if changed and before:
   try:
