@@ -181,6 +181,91 @@ exit 1''', publish=False)
     print("已验证 https://gaozy.tech/codex/，原站和 /panel/ 正常。")
 
 
+
+DISK = """df -B1 --output=size,used,avail,pcent,target / /opt /srv | awk 'NR>1 && !seen[$5]++ {printf "bridge-disk total=%s used=%s available=%s use=%s mount=%s\\n",$1,$2,$3,$4,$5}'"""
+
+PRE_REMOVE = r'''
+set -eu
+root=/opt/chatgpt-web-bridge
+if [ -e "$root" ]; then
+    test ! -L "$root"
+    test -L "$root/current" && test -f "$root/current/release.txt" && test -f "$root/current/scripts/uninstall.sh"
+    case "$(readlink -f "$root/current")" in "$root/releases/"*) ;; *) exit 1 ;; esac
+fi
+for unit in chatgpt-web-bridge.service chatgpt-web-bridge-browser.service; do
+    file=/etc/systemd/system/$unit
+    if [ -e "$file" ]; then
+        test ! -L "$file"
+        grep -Fq 'ExecStart=/opt/chatgpt-web-bridge/current/bridge ' "$file"
+    fi
+done
+for file in /etc/systemd/system/chatgpt-web-bridge-ingress.service /etc/letsencrypt/renewal-hooks/deploy/chatgpt-web-bridge-ingress; do
+    if [ -e "$file" ]; then
+        test ! -L "$file"
+        grep -Fxq '# Managed by ChatGPT Web Bridge' "$file"
+    fi
+done
+'''
+
+REMOVE = r'''
+set -eu
+root=/opt/chatgpt-web-bridge
+if [ -L "$root/current" ] && [ -f "$root/current/scripts/uninstall.sh" ]; then
+    bash "$root/current/scripts/uninstall.sh"
+fi
+for unit in chatgpt-web-bridge-ingress.service chatgpt-web-bridge.service chatgpt-web-bridge-browser.service; do
+    state=$(systemctl show -p LoadState --value "$unit" || true)
+    printf 'bridge-remove %s %s\n' "$unit" "$state"
+    test "$state" = not-found
+done
+test ! -e "$root"
+for state_dir in /var/lib/chatgpt-web-bridge/browser /srv/chatgpt-web-bridge/uploads; do
+    if [ -d "$state_dir" ]; then printf 'bridge-data preserved %s\n' "$state_dir"; fi
+done
+printf 'x-ui %s\n' "$(systemctl is-active x-ui || true)"
+'''
+
+
+def remove(client, sudo, token, zone_id):
+    run(client, sudo + "bash -c " + shlex.quote(PRE_REMOVE), publish=False)
+    print("卸载前磁盘")
+    run(client, DISK)
+    path = f"/zones/{zone_id}/rulesets"
+    current = [item for item in client_get(token, path)["result"]
+               if item.get("kind") == "zone" and item.get("phase") == PHASE]
+    if len(current) > 1:
+        raise RuntimeError("无法唯一确认主站 Origin Rules 配置。")
+    if current:
+        entry = current[0]
+        ruleset = path + "/" + identifier(entry, "id")
+        rules = client_get(token, ruleset)["result"].get("rules", [])
+        matched = [item for item in rules if item.get("description") == NAME and
+                   all(item.get(key) == RULE[key] for key in ("action", "action_parameters", "expression"))]
+        if len(matched) > 1:
+            raise RuntimeError("发现多个同名 Bridge 路由，需要先确认归属。")
+        if matched:
+            if len(rules) == 1 and entry.get("name") == NAME:
+                change(token, "DELETE", ruleset)
+            else:
+                change(token, "DELETE", ruleset + "/rules/" + identifier(matched[0], "id"))
+            print("已移除 Bridge 专用 Origin Rule。")
+        else:
+            print("未发现匹配的 Bridge Origin Rule。")
+    uninstall_ingress(client, sudo)
+    run(client, sudo + "bash -c " + shlex.quote(REMOVE))
+    print("卸载后磁盘")
+    run(client, DISK)
+    for _ in range(8):
+        if check("https://" + HOST + "/codex/healthz")[0] == 404:
+            break
+        time.sleep(3)
+    else:
+        raise RuntimeError("已卸载，但公网 /codex 尚未确认返回 404。")
+    for endpoint in ("/", "/panel/"):
+        if check("https://" + HOST + endpoint)[0] != 200:
+            raise RuntimeError("已卸载，但主站或面板验证失败。")
+    print("已验证 /codex 返回 404，主站和 /panel/ 返回 200。")
+
 def main():
     token = os.environ.get("QINGLIAN_CLOUDFLARE_TOKEN", "")
     if not re.fullmatch(r"[A-Za-z0-9_-]{20,1024}",token):
@@ -198,7 +283,8 @@ def main():
                        port=int(os.environ.get("QINGLIAN_SSH_PORT") or "22"), username=name,
                        password=os.environ["QINGLIAN_SSH_PASSWORD"], look_for_keys=False,
                        allow_agent=False, timeout=15, auth_timeout=15, banner_timeout=15)
-        publish(client, "" if name == "root" else "sudo -n ", token, identifier(zones[0],"id"))
+        operation = remove if os.environ.get("BRIDGE_INGRESS_MODE") == "bridge_remove" else publish
+        operation(client, "" if name == "root" else "sudo -n ", token, identifier(zones[0],"id"))
 
 
 if __name__ == "__main__":
