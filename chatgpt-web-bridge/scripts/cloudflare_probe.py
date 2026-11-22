@@ -60,6 +60,22 @@ def inspect(token):
         print(f"gha-cloudflare: DNS 查询失败（{error}）")
 
     try:
+        domains = client_get(token, f"/zones/{zone_id}/dns_records", name=ZONE)["result"]
+        proxied = sum(entry.get("proxied") is True and entry.get("name") == ZONE and
+                      entry.get("type") in {"A", "AAAA", "CNAME"} for entry in domains)
+        print(f"gha-cloudflare: 主站有 {proxied} 条启用代理的源站记录")
+    except ProbeError as error:
+        print(f"gha-cloudflare: 主站代理查询失败（{error}）")
+
+    try:
+        rulesets = client_get(token, f"/zones/{zone_id}/rulesets")["result"]
+        phase_present = any(item.get("phase") == "http_request_origin" and item.get("kind") == "zone"
+                            for item in rulesets)
+        print("gha-cloudflare: 规则集可读取，Origin Rules " + ("已有配置" if phase_present else "暂无配置"))
+    except ProbeError as error:
+        print(f"gha-cloudflare: Origin Rules 查询失败（{error}）")
+
+    try:
         result = client_get(token, f"/accounts/{account_id}/cfd_tunnel", is_deleted="false", per_page=100)
         tunnels = result["result"]
         healthy = sum(tunnel.get("status") == "healthy" for tunnel in tunnels)

@@ -32,7 +32,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: chatgpt-web-bridge-qinglian
+  group: chatgpt-web-bridge-qinglian-${{ inputs.mode == 'cloudflare_probe' && 'cloudflare-probe' || 'server' }}
   cancel-in-progress: false
 jobs:
   cloudflare:
