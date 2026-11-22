@@ -1,0 +1,24 @@
+# Managed by ChatGPT Web Bridge
+[Unit]
+Description=ChatGPT Web Bridge dedicated Cloudflare HTTPS ingress
+After=network.target chatgpt-web-bridge.service
+
+[Service]
+Type=simple
+DynamicUser=true
+ExecStart=/opt/chatgpt-web-bridge/ingress/codex-ingress
+LoadCredential=cert:/etc/letsencrypt/live/qinglian-gaozy-tech/fullchain.pem
+LoadCredential=key:/etc/letsencrypt/live/qinglian-gaozy-tech/privkey.pem
+LoadCredential=cloudflare-ranges:/opt/chatgpt-web-bridge/ingress/cloudflare-ranges
+Restart=on-failure
+RestartSec=5s
+MemoryMax=64M
+TasksMax=32
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

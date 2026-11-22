@@ -14,6 +14,8 @@ gh workflow run chatgpt-web-bridge.yml --ref codex/chatgpt-web-bridge -f mode=de
 
 ## 共享域名子路径
 
+Qinglian 首次运行 `deploy` 安装回环服务后，可运行 `publish`。它在独立的 8443 端口提供 TLS，并通过 Cloudflare Origin Rule 匹配 `gaozy.tech/codex` 和该子树。发布检查同时验证项目与原站路径。未通过时回滚本次的规则和入口服务。此模式需要该域区的 Cloudflare Origin Rules 写权限、可用的 8443 端口和现有 Qinglian 主站证书。
+
 ```sh
 sudo bash scripts/install.sh --domain gaozy.tech --base-path /codex --proxy manual --on-demand
 ```

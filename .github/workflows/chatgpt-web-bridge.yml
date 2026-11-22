@@ -10,7 +10,7 @@ on:
       mode:
         description: Qinglian operation
         type: choice
-        options: [probe, deploy, cloudflare_probe]
+        options: [probe, deploy, publish, cloudflare_probe]
         default: probe
       proxy:
         description: HTTPS proxy mode for deployment
@@ -49,7 +49,7 @@ jobs:
           QINGLIAN_CLOUDFLARE_TOKEN: ${{ secrets.QINGLIAN_CLOUDFLARE_TOKEN }}
         run: python3 chatgpt-web-bridge/scripts/cloudflare_probe.py
   verify:
-    if: github.event_name != 'workflow_dispatch' || inputs.mode != 'cloudflare_probe'
+    if: github.event_name != 'workflow_dispatch' || (inputs.mode != 'cloudflare_probe' && inputs.mode != 'publish')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
@@ -121,3 +121,37 @@ jobs:
           QINGLIAN_SSH_HOST_KEY: ${{ secrets.QINGLIAN_SSH_HOST_KEY }}
           BRIDGE_ADMIN_PASSWORD: ${{ secrets.CHATGPT_BRIDGE_PASSWORD }}
         run: python3 scripts/qinglian.py
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'codex/chatgpt-web-bridge' && inputs.mode == 'publish'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    defaults:
+      run:
+        working-directory: chatgpt-web-bridge
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            chatgpt-web-bridge
+            qinglian/server/github
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: chatgpt-web-bridge/backend/go.sum
+      - name: Verify and build the dedicated HTTPS ingress
+        run: |
+          go -C backend test ./cmd/codex-ingress
+          mkdir -p dist
+          CGO_ENABLED=0 go -C backend build -trimpath -ldflags='-s -w' -o ../dist/codex-ingress ./cmd/codex-ingress
+          python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - name: Verify and publish only the Codex path
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+          QINGLIAN_SSH_HOST_KEY: ${{ secrets.QINGLIAN_SSH_HOST_KEY }}
+          QINGLIAN_CLOUDFLARE_TOKEN: ${{ secrets.QINGLIAN_CLOUDFLARE_TOKEN }}
+        run: python3 scripts/publish_codex.py
