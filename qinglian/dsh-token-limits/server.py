@@ -41,9 +41,17 @@ try:
  backup=Path(tempfile.mkdtemp(prefix='dsh-output-budget-',dir='/root'));backup.chmod(0o700)
  shutil.copy2(patch,backup/'cordis.patch.yml')
  candidate=backup/'provider-candidate.json';candidate.write_text(json.dumps(row['config']));candidate.chmod(0o600)
- code="""import fs from 'node:fs';import {Config} from '/opt/dsh/runtime/node_modules/@deepseek-ai/dsh-llm-pi-ai/lib/index.js';Config(JSON.parse(fs.readFileSync(process.argv[1],'utf8')));console.log('OK')"""
+ code="""import fs from 'node:fs';import {Config} from '/opt/dsh/runtime/node_modules/@deepseek-ai/dsh-llm-pi-ai/lib/index.js';try{Config(JSON.parse(fs.readFileSync(process.argv[1],'utf8')));console.log(JSON.stringify({ok:true}))}catch(e){console.log(JSON.stringify({ok:false,errorName:e.name,message:String(e.message)}))}"""
  validated=subprocess.run(['/opt/dsh/node/bin/node','--input-type=module','-e',code,str(candidate)],capture_output=True,text=True,timeout=30)
- assert validated.returncode==0 and validated.stdout.strip()=='OK'
+ schema=json.loads(validated.stdout) if validated.returncode==0 else {'ok':False,'errorName':'NodeValidationFailed','message':validated.stderr[-1200:]}
+ if not schema.get('ok'):
+  message=schema.get('message','')
+  secrets=list((yaml.safe_load(credentials.read_text()).get('refs') or {}).values())
+  for route in row['config']['providers'].values():secrets.extend((route.get('headers') or {}).values());secrets.append(route.get('baseURL',''))
+  for secret in sorted((str(x) for x in secrets if x),key=len,reverse=True):message=message.replace(secret,'[redacted]')
+  import re
+  message=re.sub(r'https?://[^\s\"\']+','[endpoint]',message)
+  print(json.dumps({'ok':False,'stage':'schemaValidation','errorName':schema.get('errorName'),'diagnostic':message[:900]}));raise SystemExit(0)
  assert patch.read_bytes()==original,'Concurrent settings edit'
  temp=patch.with_suffix('.yml.output-budget');temp.write_text(yaml.safe_dump(after,allow_unicode=True,sort_keys=False));temp.chmod(0o600);shutil.chown(temp,user='dsh',group='dsh');temp.replace(patch);changed=True
  # Profile HMR updates future requests; do not interrupt existing user jobs.
