@@ -2,6 +2,7 @@
 import hashlib,http.cookiejar,json,os,shutil,subprocess,tempfile,time,traceback,urllib.request,uuid
 from pathlib import Path
 import yaml
+from yaml12 import load as load_yaml
 home=Path('/var/lib/dsh');patch=home/'profiles/web/cordis.patch.yml';credentials=home/'.credentials.yaml'
 backup=None;changed=False
 TARGETS={'glm-4.7-flash':8192,'glm-4-flash-250414':8192,'glm-4.6v-flash':8192,'glm-4.1v-thinking-flash':8192,
@@ -19,7 +20,7 @@ def rpc_client():
   return result.get('value')
  return rpc
 try:
- original=patch.read_bytes();config=yaml.safe_load(original) or [];after=json.loads(json.dumps(config))
+ original=patch.read_bytes();config=load_yaml(original) or [];after=json.loads(json.dumps(config))
  credential_sha=hashlib.sha256(credentials.read_bytes()).hexdigest()
  row=next(r for r in after if isinstance(r,dict) and r.get('id')=='llm-pi-ai')
  modifications=[];untouched_small=[]
@@ -46,7 +47,7 @@ try:
  schema=json.loads(validated.stdout) if validated.returncode==0 else {'ok':False,'errorName':'NodeValidationFailed','message':validated.stderr[-1200:]}
  if not schema.get('ok'):
   message=schema.get('message','')
-  secrets=list((yaml.safe_load(credentials.read_text()).get('refs') or {}).values())
+  secrets=list((load_yaml(credentials.read_text()).get('refs') or {}).values())
   for route in row['config']['providers'].values():secrets.extend((route.get('headers') or {}).values());secrets.append(route.get('baseURL',''))
   for secret in sorted((str(x) for x in secrets if x),key=len,reverse=True):message=message.replace(secret,'[redacted]')
   import re
@@ -83,7 +84,7 @@ try:
  assert not unknown_variable
  assert credential_sha==hashlib.sha256(credentials.read_bytes()).hexdigest()
  other=lambda rows:[r for r in rows if not isinstance(r,dict) or r.get('id')!='llm-pi-ai']
- assert other(config)==other(yaml.safe_load(patch.read_text()))
+ assert other(config)==other(load_yaml(patch.read_text()))
  audit={'changedModels':modifications,'smallContextModelsUnchanged':untouched_small,'selectionModel':selection.get('model'),
  'testSessionId':sid,'liveRequestLimits':limits,'testEventTypes':event_types,'replyOK':reply_ok,'waitReason':wait.get('reason')}
  (backup/'verification.json').write_text(json.dumps(audit,ensure_ascii=False,indent=2));(backup/'verification.json').chmod(0o600)
