@@ -67,6 +67,9 @@ install_ubuntu_chrome() (
   chown _apt "$stage/pkg"
   (cd "$stage/pkg" && apt-get "${aptopt[@]}" download google-chrome-stable)
   dpkg-deb -x "$stage"/pkg/*.deb "$stage/extracted"
+  # The package can supply private permissions for its archive root. This
+  # dedicated directory must be traversable by the sandboxed browser user.
+  chmod 0755 "$stage/extracted" "$stage/extracted/opt" "$stage/extracted/opt/google" "$stage/extracted/opt/google/chrome"
   chmod 4755 "$stage/extracted/opt/google/chrome/chrome-sandbox"
   [[ ! -e "$APP/chrome" ]] || mv "$APP/chrome" "$stage/previous"
   if ! mv "$stage/extracted" "$APP/chrome"; then

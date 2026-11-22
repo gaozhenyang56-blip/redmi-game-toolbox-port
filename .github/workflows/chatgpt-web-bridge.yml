@@ -10,7 +10,7 @@ on:
       mode:
         description: Qinglian operation
         type: choice
-        options: [probe, deploy, publish, cloudflare_probe, browser_probe]
+        options: [probe, deploy, publish, cloudflare_probe, browser_probe, browser_repair]
         default: probe
       proxy:
         description: HTTPS proxy mode for deployment
@@ -49,7 +49,7 @@ jobs:
           QINGLIAN_CLOUDFLARE_TOKEN: ${{ secrets.QINGLIAN_CLOUDFLARE_TOKEN }}
         run: python3 chatgpt-web-bridge/scripts/cloudflare_probe.py
   verify:
-    if: github.event_name != 'workflow_dispatch' || (inputs.mode != 'cloudflare_probe' && inputs.mode != 'publish' && inputs.mode != 'browser_probe')
+    if: github.event_name != 'workflow_dispatch' || (inputs.mode != 'cloudflare_probe' && inputs.mode != 'publish' && inputs.mode != 'browser_probe' && inputs.mode != 'browser_repair')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
@@ -157,7 +157,7 @@ jobs:
         run: python3 scripts/publish_codex.py
 
   browser-probe:
-    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'codex/chatgpt-web-bridge' && inputs.mode == 'browser_probe'
+    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'codex/chatgpt-web-bridge' && (inputs.mode == 'browser_probe' || inputs.mode == 'browser_repair')
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     defaults:
@@ -171,11 +171,12 @@ jobs:
             chatgpt-web-bridge
             qinglian/server/github
       - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
-      - name: Inspect bridge browser errors without session data
+      - name: Diagnose or repair the isolated Bridge browser
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
           QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
           QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
           QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
           QINGLIAN_SSH_HOST_KEY: ${{ secrets.QINGLIAN_SSH_HOST_KEY }}
+          BRIDGE_BROWSER_MODE: ${{ inputs.mode }}
         run: python3 scripts/browser_probe.py
