@@ -134,8 +134,7 @@ assert request('http://127.0.0.1:1378/api/session')==401
 assert request('http://127.0.0.1:9178/panel/dsh/')==200
 assert request('http://127.0.0.1:9178/panel/health')==200
 assert private_hashes()==before,'DSH API settings changed unexpectedly'
-# Verify login through the helper with the server-held sealed deployment credentials.
-# No plaintext credential is returned to Actions or written to the deployment bundle.
+# Return only whitelisted deployment checks; never publish credentials or private logs.
 props=run('systemctl','show','dsh.service','--property=ActiveState,Restart,MemoryHigh,MemoryMax,Environment').stdout
 listeners=run('ss','-ltnH').stdout.splitlines()
 manager=[x.split()[3] for x in listeners if x.split()[3].endswith(':1378')]
