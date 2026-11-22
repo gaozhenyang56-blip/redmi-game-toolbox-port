@@ -30,7 +30,8 @@ try:
  target_high=old_high
  if baseline_events.get('high',0)>0 and available()>384*1024**2 and old_high<640*1024**2:
   target_high=min(640*1024**2,max_mem)
- weight=min(int(before['CPUWeight']),20)
+ old_weight=int(before['CPUWeight']) if before['CPUWeight'].isdigit() else 100
+ weight=min(old_weight,20)
  backup=Path(tempfile.mkdtemp(prefix='domain-resource-',dir='/root'));backup.chmod(0o700)
  if dropin.exists():shutil.copy2(dropin,backup/'dropin.before')
  dropin.parent.mkdir(parents=True,exist_ok=True)
@@ -63,6 +64,6 @@ except Exception as e:
    elif dropin.exists():dropin.unlink()
    run('systemctl','daemon-reload')
    oldquota='infinity' if quota_raw=='max' else str(int(quota_raw)*100/int(period_raw))+'%'
-   run('systemctl','set-property','--runtime','dsh.service','CPUQuota='+oldquota,'CPUWeight='+before['CPUWeight'],'MemoryHigh='+before['MemoryHigh'])
+   run('systemctl','set-property','--runtime','dsh.service','CPUQuota='+oldquota,'CPUWeight='+str(old_weight),'MemoryHigh='+before['MemoryHigh'])
   except Exception:pass
  print(json.dumps({'ok':False,'errorType':type(e).__name__,'line':traceback.extract_tb(e.__traceback__)[-1].lineno}))
