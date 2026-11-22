@@ -1,0 +1,26 @@
+ def dsh_control_proxy(self):
+  # Fixed loopback upstream; never proxy a user-supplied destination.
+  import http.client
+  path=self.path.split('?',1)[0]
+  if path=='/panel/dsh':
+   self.send_response(308);self.send_header('Location','/panel/dsh/');self.send_header('Content-Length','0');self.end_headers();return True
+  if not path.startswith('/panel/dsh/'):return False
+  try:
+   length=int(self.headers.get('Content-Length','0'))
+   if length<0 or length>4096:return self.reply(413,{'error':'请求过大'}) or True
+   body=self.rfile.read(length) if length else None
+   headers={k:self.headers[k] for k in ('Cookie','Content-Type','Origin','X-CSRF-Token') if self.headers.get(k)}
+   headers['Host']='gaozy.tech'
+   connection=http.client.HTTPConnection('127.0.0.1',1378,timeout=25)
+   try:
+    connection.request(self.command,self.path[len('/panel/dsh'):],body=body,headers=headers)
+    response=connection.getresponse();data=response.read(1048577)
+    if len(data)>1048576:raise ValueError('response too large')
+    self.send_response(response.status)
+    for key,value in response.getheaders():
+     if key.lower() not in ('connection','transfer-encoding','server','date','content-length'):self.send_header(key,value)
+    self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data)
+   finally:connection.close()
+  except Exception:
+   self.reply(503,{'error':'DSH 管理界面暂不可用'})
+  return True

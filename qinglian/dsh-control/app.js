@@ -1,0 +1,18 @@
+'use strict';
+const $=id=>document.getElementById(id);let csrf='',busy=false,polling=false,timer;
+function notice(text){$('message').textContent=text;clearTimeout(timer);timer=setTimeout(()=>$('message').textContent='',7000)}
+async function api(path,data){const response=await fetch('./api/'+path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json','X-CSRF-Token':csrf}:{},body:data?JSON.stringify(data):undefined,credentials:'same-origin'});const result=await response.json();if(!response.ok){if(response.status===401&&path!=='login')show(false);throw new Error(result.error||'请求失败')}return result}
+function show(logged){$('login').hidden=logged;$('dashboard').hidden=!logged;$('logout').hidden=!logged;if(!logged)csrf=''}
+function bytes(value){const n=Number(value);return Number.isFinite(n)?Math.round(n/1048576)+' MB':'—'}
+function duration(s){return s>=86400?Math.floor(s/86400)+' 天 '+Math.floor(s%86400/3600)+' 小时':s>=3600?Math.floor(s/3600)+' 小时 '+Math.floor(s%3600/60)+' 分':Math.floor(s/60)+' 分 '+s%60+' 秒'}
+async function refresh(){if(!csrf||polling)return;polling=true;try{const {status:s}=await api('command',{op:'status'});const active=s.ActiveState==='active';$('state').textContent=active?(s.backendReady?'运行中':'后端无响应'):({inactive:'已停止',failed:'启动失败',activating:'启动中',deactivating:'停止中'}[s.ActiveState]||s.ActiveState);$('state').className='pill '+(active&&s.backendReady?'good':'bad');$('health').textContent=active?(s.backendReady?'服务在线，可正常连接网页后端。':'进程仍在运行，后端尚未就绪；健康检查将持续检测。'):'服务当前未运行，可点击“启动”恢复。';$('uptime').textContent=duration(s.uptimeSeconds);$('memory').textContent=bytes(s.MemoryCurrent)+' / '+bytes(s.MemoryMax);$('restarts').textContent=s.NRestarts||'0';$('backend').textContent=s.backendReady?'正常':'未就绪';await loadLogs()}catch(e){notice(e.message)}finally{polling=false}}
+async function loadLogs(){const result=await api('command',{op:'logs',source:$('source').value,lines:Number($('lines').value)});const log=$('log'),bottom=log.scrollHeight-log.scrollTop-log.clientHeight<60;log.textContent=result.text||'暂无日志';if(bottom)log.scrollTop=log.scrollHeight;$('updated').textContent='更新于 '+new Date().toLocaleTimeString('zh-CN',{hour12:false})}
+$('login-form').addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;try{await api('login',{username:$('username').value,password:$('password').value});$('password').value='';csrf=(await api('session')).csrf;show(true);await refresh()}catch(e){notice(e.message)}finally{b.disabled=false}});
+$('logout').onclick=async()=>{try{await api('logout',{});show(false)}catch(e){notice(e.message)}};
+let pending;
+document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{const op=b.dataset.action;if(op==='start')return act(op);pending=op;$('confirm-title').textContent=op==='stop'?'停止 DSH 服务？':'重启 DSH 服务？';$('confirm').showModal()});
+$('cancel').onclick=()=>$('confirm').close();$('proceed').onclick=()=>{$('confirm').close();act(pending)};
+async function act(op){if(busy)return;busy=true;document.querySelectorAll('[data-action]').forEach(b=>b.disabled=true);try{await api('command',{op});notice({start:'已提交启动请求',stop:'已提交停止请求',restart:'已提交重启请求'}[op]);setTimeout(refresh,1500)}catch(e){notice(e.message)}finally{setTimeout(()=>{busy=false;document.querySelectorAll('[data-action]').forEach(b=>b.disabled=false)},5000)}}
+$('refresh').onclick=refresh;['source','lines'].forEach(id=>$(id).onchange=()=>loadLogs().catch(e=>notice(e.message)));
+setInterval(()=>{if(!document.hidden&&$('auto').checked)refresh()},5000);
+(async()=>{try{csrf=(await api('session')).csrf;show(true);await refresh()}catch(e){show(false)}})();
