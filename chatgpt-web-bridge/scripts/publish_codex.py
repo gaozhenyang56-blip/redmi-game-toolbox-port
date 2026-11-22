@@ -39,10 +39,12 @@ def change(token, method, path, body=None):
         response = conn.getresponse()
         if not 200 <= response.status < 300:
             raise RuntimeError(f"Cloudflare Origin Rules {method} 被拒绝（HTTP {response.status}）。")
+        if method == "DELETE" and response.status == 204:
+            return None
         payload = json.load(response)
         if not payload.get("success"):
             raise RuntimeError("Cloudflare 未确认 Origin Rules 操作。")
-        return payload["result"]
+        return payload.get("result") if method == "DELETE" else payload["result"]
     finally:
         conn.close()
 
