@@ -11,6 +11,7 @@ import ssl
 import tempfile
 import time
 import subprocess,sys
+import urllib.error
 import urllib.parse
 import urllib.request
 import websocket
@@ -78,6 +79,12 @@ def public_check(ssh,meta):
     for path,marker in [('/xui/qinglian/ssh',b'qinglian-ssh/xterm.js'),('/assets/qinglian-ssh/xterm.js',b'Terminal'),('/assets/qinglian-ssh/addon-fit.js',b'FitAddon')]:
         phase='https-terminal-page' if path.startswith('/xui/') else 'https-terminal-assets'
         with opener.open(urllib.request.Request(origin+path,headers=headers),timeout=15) as response:assert response.status==200 and marker in response.read(1048576)
+    phase='existing-cohosted-routes'
+    for route,want in [('/panel/',200),('/dsh/',401)]:
+        try:
+            with opener.open(urllib.request.Request(origin+route,headers=headers),timeout=15) as response:status=response.status
+        except urllib.error.HTTPError as error:status=error.code
+        assert status==want
     phase='clash-subscriptions'
     from clash_check import verify_clash
     verify_clash(opener,origin,headers)
