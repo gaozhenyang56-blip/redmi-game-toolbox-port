@@ -1,5 +1,8 @@
 name: Restore previous verified panel after route regression
 on:
+  push:
+    branches: [codex/qinglian-routing-and-presence]
+    paths: ['.github/workflows/qinglian-clash-recovery.yml']
   workflow_dispatch:
 permissions:
   contents: read
