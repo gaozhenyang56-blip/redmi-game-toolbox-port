@@ -29,7 +29,9 @@ for path in Path('/tmp').iterdir():
   if not stat.S_ISDIR(info.st_mode) or stat.S_ISLNK(info.st_mode) or info.st_uid!=0:continue
   if now-info.st_mtime<86400:continue
   if any(a==str(path) or a.startswith(str(path)+'/') for a in active):continue
-  size=sum(f.lstat().st_blocks*512 for base,dirs,files in os.walk(path,followlinks=False) for f in [Path(base)/name for name in files] if not f.is_symlink())
+  entries=[Path(base)/name for base,dirs,files in os.walk(path,followlinks=False) for name in dirs+files]
+  if any(now<f.lstat().st_mtime+86400 for f in entries):continue
+  size=sum(f.lstat().st_blocks*512 for f in entries if not f.is_symlink())
   items.append({'category':'old-maintenance-staging','bytes':size,'ageDays':int((now-info.st_mtime)//86400)})
   if clean:shutil.rmtree(path);removed+=size
  except OSError:errors+=1

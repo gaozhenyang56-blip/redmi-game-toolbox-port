@@ -78,6 +78,9 @@ def public_check(ssh,meta):
     for path,marker in [('/xui/qinglian/ssh',b'qinglian-ssh/xterm.js'),('/assets/qinglian-ssh/xterm.js',b'Terminal'),('/assets/qinglian-ssh/addon-fit.js',b'FitAddon')]:
         phase='https-terminal-page' if path.startswith('/xui/') else 'https-terminal-assets'
         with opener.open(urllib.request.Request(origin+path,headers=headers),timeout=15) as response:assert response.status==200 and marker in response.read(1048576)
+    phase='clash-subscriptions'
+    from clash_check import verify_clash
+    verify_clash(opener,origin,headers)
     phase='windows-update-api'
     request=urllib.request.Request(origin+'/api/v1/windows/updates',headers={**headers,'Authorization':'Bearer '+meta['cfg']['clientToken']})
     with opener.open(request,timeout=15) as response:

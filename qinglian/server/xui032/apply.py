@@ -13,12 +13,17 @@ text=text.replace(needle,needle+'\n\ts.qinglian = controller.NewQinglianControll
 def replace_once(text,needle,replacement):
     if text.count(needle)!=1:raise SystemExit('Unexpected server lifecycle layout')
     return text.replace(needle,replacement)
+text=replace_once(text,'engine := gin.Default()','engine := gin.New()\n engine.Use(controller.QClashRedact(), gin.Logger(), gin.Recovery())')
 text=replace_once(text,'\txui    *controller.XUIController','\txui    *controller.XUIController\n\tqinglian *controller.QinglianController')
 text=replace_once(text,'\t\ts.httpServer.Serve(listener)\n\t}()','\t\ts.httpServer.Serve(listener)\n\t}()\n\tif s.qinglian != nil { if err := s.qinglian.StartTLS(engine); err != nil { logger.Warning("Qinglian TLS API unavailable") } }')
 text=replace_once(text,'\treturn common.Combine(err1, err2)','\tif s.qinglian != nil { s.qinglian.Close() }\n\treturn common.Combine(err1, err2)')
 sider=source/'web/html/xui/common_sider.html';menu=sider.read_text();needle='<a-menu-item key="{{ .base_path }}xui/setting">'
 if menu.count(needle)!=1:raise SystemExit('Unexpected menu layout')
 menu=menu.replace(needle,'<a-menu-item key="{{ .base_path }}xui/qinglian"><a-icon type="laptop"></a-icon><span>轻连 App</span></a-menu-item>\n<a-menu-item key="{{ .base_path }}xui/qinglian/ssh"><a-icon type="code"></a-icon><span>SSH 终端</span></a-menu-item>\n'+needle)
+inbounds=source/'web/html/xui/inbounds.html';inbound_text=inbounds.read_text()
+inbound_text=replace_once(inbound_text,'<a-button type="primary" icon="plus" @click="openAddInbound"></a-button>','<a-button type="primary" icon="plus" @click="openAddInbound"></a-button>\n<a-button href="{{.base_path}}xui/qinglian/clash?auto=1" icon="export" style="margin-left:8px">Clash 订阅</a-button>')
+inbound_text=replace_once(inbound_text,'<a-menu-item key="edit">','<a-menu-item key="clash"><a :href="\'{{.base_path}}xui/qinglian/clash?auto=1&amp;inbound=\'+dbInbound.id">Clash 订阅</a></a-menu-item>\n<a-menu-item key="edit">')
+inbounds.write_text(inbound_text)
 mod=source/'go.mod';modules=mod.read_text();needle='require (\n'
 if modules.count(needle)!=1:raise SystemExit('Unexpected dependency layout')
 modules=modules.replace(needle,needle+'\tgithub.com/gorilla/websocket v1.5.3\n\tgithub.com/mattn/go-sqlite3 v1.14.5\n\tgolang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2\n')

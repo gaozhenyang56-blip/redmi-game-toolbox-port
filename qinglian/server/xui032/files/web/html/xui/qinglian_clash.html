@@ -1,0 +1,38 @@
+<!DOCTYPE html><html lang="zh-CN">
+{{template "head" .}}
+<style>.qc-content{margin:24px;max-width:1100px;min-width:0}.qc-content .ant-card{margin-bottom:20px}.qc-nodes{display:flex;flex-direction:column;gap:12px;margin:20px 0}.qc-actions{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.qc-url{width:100%;word-break:break-all}.qc-note{color:#777}.qc-result{display:flex;gap:24px;flex-wrap:wrap}.qc-result>div{flex:1;min-width:220px}#subscription-qr{max-width:100%;height:auto!important}.qc-content .ant-table-body{overflow-x:auto}@media(max-width:600px){.qc-content{margin:12px}.qc-content .ant-card-body{padding:16px}.qc-result>div{min-width:0;width:100%;flex:auto}}</style>
+<body><a-layout id="app" v-cloak>{{template "commonSider" .}}<a-layout><a-layout-content class="qc-content">
+<h1>Clash 订阅</h1><p><a href="{{.base_path}}xui/inbounds">返回节点列表</a> · <a href="{{.base_path}}xui/qinglian/manage/nodes">App 节点管理</a></p>
+<a-alert v-if="error" :message="error" type="error" show-icon style="margin-bottom:16px"></a-alert>
+<a-card title="生成订阅链接" :loading="loading">
+<p>传统 Clash 配置包含 VMess、Shadowsocks 和兼容的 Trojan；Mihomo 配置另支持 VLESS、HY2。客户端内核决定协议支持范围，无法识别的节点会列出原因。</p>
+<a-alert v-if="!domainReady&&!loading" message="请先配置面板 HTTPS 域名，再生成订阅链接。" type="warning" show-icon></a-alert>
+<label for="clash-name">订阅名称</label><a-input id="clash-name" v-model="name" :max-length="80" style="margin:8px 0 16px" placeholder="我的订阅"></a-input>
+<a-radio-group v-model="flavor" @change="hy2=false"><a-radio-button value="clash">传统 Clash 兼容</a-radio-button><a-radio-button value="mihomo">Mihomo / Clash Meta</a-radio-button></a-radio-group>
+<p v-if="flavor==='mihomo'" style="margin-top:16px"><a-checkbox v-model="hy2">包含所选节点绑定的 HY2 加速通道</a-checkbox></p>
+<p class="qc-note">仅导出勾选节点。链接刷新时同步节点参数，并自动排除停用、到期和耗尽额度的节点。导出不会增加额度或修改现有节点。</p>
+<div class="qc-actions"><a-button @click="selected=nodes.filter(n=>n.available).map(n=>n.id)" :disabled="busy">全选可用节点</a-button><a-button @click="selected=[]" :disabled="busy">清空</a-button></div>
+<div class="qc-nodes"><a-checkbox v-for="node in nodes" :key="node.id" :checked="selected.includes(node.id)" :disabled="busy||!node.available" @change="toggle(node.id,$event.target.checked)">[[ node.name ]] · [[ node.protocol ]] [[ node.available?'':'（不可用）' ]]</a-checkbox><span v-if="!nodes.length">尚无节点，请先在入站列表添加。</span></div>
+<a-button type="primary" icon="export" :loading="busy" :disabled="!domainReady||!selected.length" @click="generate">生成链接与二维码</a-button>
+</a-card>
+<a-card v-if="result" title="订阅已生成">
+<p>包含 [[ result.count ]] 个节点。链接具有这些节点的连接权限，请私下分发；只有这次生成时显示完整链接，可在下方撤销后重新生成。</p>
+<div class="qc-result"><div><a-textarea id="subscription-url" class="qc-url" :value="result.url" readonly :rows="4" aria-label="订阅链接"></a-textarea>
+<div class="qc-actions"><a-button class="qc-copy" data-clipboard-target="#subscription-url">复制链接</a-button><a-button :href="result.url" download>下载 YAML</a-button><a-button @click="saveQR">保存二维码</a-button></div>
+<p class="qc-note">在客户端中选择“从 URL 导入”，或使用支持订阅扫码的客户端扫描。此二维码包含订阅链接，不是单个节点二维码。</p></div><canvas id="subscription-qr" aria-label="订阅链接二维码" role="img"></canvas></div>
+</a-card>
+<a-card v-if="skipped.length" title="未包含的节点"><p v-for="(reason,index) in skipped" :key="index">[[ reason ]]</p></a-card>
+<a-card title="已生成的订阅"><p class="qc-note">撤销后链接立即停止提供配置；已下载到客户端的节点凭据仍然有效，如需禁止连接，请停用对应节点。</p>
+<a-table :data-source="subscriptions" :columns="columns" row-key="id" :pagination="{pageSize:8}" :scroll="{x:500}"><template slot="flavor" slot-scope="v">[[ v==='mihomo'?'Mihomo':'传统 Clash' ]]</template><template slot="action" slot-scope="v,row"><a-popconfirm title="撤销此订阅链接？" @confirm="revoke(row.id)"><a-button size="small" :disabled="busy">撤销链接</a-button></a-popconfirm></template></a-table>
+</a-card></a-layout-content></a-layout></a-layout>
+{{template "js" .}}
+<script>
+const clashAPI=axios.create({baseURL:basePath,headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}});
+const app=new Vue({el:'#app',delimiters:['[[',']]'],data:{loading:true,busy:false,error:'',nodes:[],subscriptions:[],selected:[],name:'我的订阅',flavor:'clash',hy2:false,domainReady:false,result:null,skipped:[],columns:[{title:'名称',dataIndex:'name'},{title:'配置',dataIndex:'flavor',scopedSlots:{customRender:'flavor'}},{title:'操作',key:'action',scopedSlots:{customRender:'action'}}]},methods:{
+ async refresh(){const r=await clashAPI.get('xui/qinglian/clash/links');this.nodes=r.data.nodes;this.subscriptions=r.data.subscriptions;this.domainReady=r.data.domainReady;},
+ toggle(id,checked){this.selected=checked?Array.from(new Set([...this.selected,id])):this.selected.filter(v=>v!==id);},
+ async generate(){if(this.busy)return;this.busy=true;this.error='';this.result=null;this.skipped=[];try{const r=await clashAPI.post('xui/qinglian/clash/links',{name:this.name,flavor:this.flavor,inbounds:this.selected,hy2:this.hy2},{headers:{'X-Requested-With':'XMLHttpRequest'}});this.result=r.data;this.skipped=r.data.skipped;await this.$nextTick();this.qr=new QRious({element:document.getElementById('subscription-qr'),value:r.data.url,size:280,level:'M'});await this.refresh();}catch(e){this.error=e.response&&e.response.data.error||'生成失败，请稍后重试';this.skipped=e.response&&e.response.data.skipped||[];}finally{this.busy=false;}},
+ async revoke(id){if(this.busy)return;this.busy=true;this.error='';try{await clashAPI.delete('xui/qinglian/clash/links/'+id,{headers:{'X-Requested-With':'XMLHttpRequest'}});if(this.result&&this.result.id===id)this.result=null;await this.refresh();}catch(e){this.error='撤销失败，请稍后重试';}finally{this.busy=false;}},
+ saveQR(){if(!this.qr)return;const a=document.createElement('a');a.href=this.qr.toDataURL();a.download='qinglian-subscription.png';a.click();}
+},async mounted(){this.clipboard=new ClipboardJS('.qc-copy');this.clipboard.on('success',()=>this.$message.success('链接已复制'));try{await this.refresh();const q=new URLSearchParams(location.search);const id=Number(q.get('inbound'));this.selected=this.nodes.filter(n=>n.available&&(!id||n.id===id)).map(n=>n.id);if(q.get('auto')==='1'&&this.selected.length&&this.domainReady)await this.generate();}catch(e){this.error='无法读取节点，请检查登录状态';}finally{this.loading=false;}},beforeDestroy(){if(this.clipboard)this.clipboard.destroy();}});
+</script></body></html>

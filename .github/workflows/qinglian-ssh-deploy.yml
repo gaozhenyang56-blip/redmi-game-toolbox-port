@@ -1,4 +1,4 @@
-name: Qinglian panel SSH terminal verification and deployment
+name: Qinglian panel verification and deployment
 on:
   push:
     branches: [codex/qinglian-routing-and-presence]
@@ -51,6 +51,8 @@ jobs:
         env:
           QINGLIAN_SSH_RENDER: ${{ runner.temp }}/ssh-rendered.html
           QINGLIAN_DIAGNOSTIC_RENDER: ${{ runner.temp }}/diagnostic-rendered.html
+          QINGLIAN_CLASH_RENDER: ${{ runner.temp }}/clash-rendered.html
+          QINGLIAN_CLASH_FIXTURES: ${{ runner.temp }}/clash-fixtures
         run: |
           python3 -m unittest discover -s qinglian/server -p test_export_engine.py -v
           git clone --branch 0.3.2 --depth 1 https://github.com/vaxilu/x-ui.git "$RUNNER_TEMP/x-ui"
@@ -58,19 +60,21 @@ jobs:
           cd "$RUNNER_TEMP/x-ui"
           go test -race ./web/controller ./web
           go build -trimpath -o "$RUNNER_TEMP/qinglian-x-ui" .
+      - name: Verify real Mihomo configuration loader
+        run: |
+          curl -fsSL https://github.com/MetaCubeX/mihomo/releases/download/v1.19.16/mihomo-linux-amd64-v1.19.16.gz -o "$RUNNER_TEMP/mihomo.gz"
+          printf '%s  %s\n' d06f37a21df275bc36002b98ad35835caf9ac1b1c4cb3fad750fd2b3f94617fe "$RUNNER_TEMP/mihomo.gz" | sha256sum -c -
+          gzip -dc "$RUNNER_TEMP/mihomo.gz" > "$RUNNER_TEMP/mihomo"
+          chmod 755 "$RUNNER_TEMP/mihomo"
+          "$RUNNER_TEMP/mihomo" -t -d "$RUNNER_TEMP/mihomo-data" -f "$RUNNER_TEMP/clash-fixtures/clash.yaml"
+          "$RUNNER_TEMP/mihomo" -t -d "$RUNNER_TEMP/mihomo-data" -f "$RUNNER_TEMP/clash-fixtures/mihomo.yaml"
       - name: Chromium terminal page, fixture WSS and mobile layout
         env:
           QINGLIAN_CHROME: /usr/bin/google-chrome
         run: |
           python3 qinglian/server/github/test_ssh_ui.py "$RUNNER_TEMP/ssh-rendered.html" "$RUNNER_TEMP/x-ui/web/assets"
           python3 qinglian/server/github/test_diagnostics_ui.py "$RUNNER_TEMP/diagnostic-rendered.html" "$RUNNER_TEMP/x-ui/web/assets"
-      - name: Install guarded worker recovery and verify diagnostic native transfers
-        env:
-          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
-          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
-          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
-          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
-        run: python3 qinglian/server/github/deploy_diagnostics.py
+          python3 qinglian/server/github/test_clash_ui.py "$RUNNER_TEMP/clash-rendered.html" "$RUNNER_TEMP/x-ui/web/assets"
       - name: Deploy binary, preserve nodes and counters, verify real HTTPS SSH PTY
         env:
           QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
@@ -79,4 +83,5 @@ jobs:
           QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
           QINGLIAN_VERIFY_CDN: '1'
           QINGLIAN_SERVER_BINARY: ${{ runner.temp }}/qinglian-x-ui
+          QINGLIAN_CLASH_CORE: ${{ runner.temp }}/mihomo
         run: python3 qinglian/server/github/ssh_upgrade.py

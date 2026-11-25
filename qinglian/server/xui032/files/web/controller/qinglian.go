@@ -152,6 +152,10 @@ func qOpen(path string) (*qStore, error) {
 		db.Close()
 		return nil, err
 	}
+	if err = qClashSchema(db); err != nil {
+		db.Close()
+		return nil, err
+	}
 	if err = qExportSchema(db); err != nil {
 		db.Close()
 		return nil, err
@@ -303,7 +307,12 @@ func NewQinglianController(g *gin.RouterGroup) *QinglianController {
 	api.POST("/guest/start", a.startGuest)
 	api.GET("/apk/:digest", a.downloadAPK)
 	api.POST("/heartbeat", a.heartbeat)
+	g.GET("/api/v1/clash/sub/:id", a.clashSubscribe)
 	panel := g.Group("/xui")
+	panel.GET("/qinglian/clash", a.clashPage)
+	panel.GET("/qinglian/clash/links", a.clashList)
+	panel.POST("/qinglian/clash/links", a.clashCreate)
+	panel.DELETE("/qinglian/clash/links/:id", a.clashDelete)
 	panel.GET("/qinglian", a.checkLogin, func(c *gin.Context) { html(c, "qinglian.html", "在线设备", nil) })
 	panel.GET("/qinglian/server-bootstrap", a.serverBootstrap)
 	panel.GET("/qinglian/diagnostics", a.diagnosticView)
