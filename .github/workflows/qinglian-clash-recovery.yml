@@ -1,0 +1,39 @@
+name: Restore previous verified panel after route regression
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: qinglian-server-maintenance
+  cancel-in-progress: false
+jobs:
+  restore:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: qinglian/server/github
+      - run: python3 -m pip install --disable-pip-version-check paramiko==3.5.1
+      - name: Restore only matching deployment backup
+        env:
+          QINGLIAN_SSH_HOST: ${{ secrets.QINGLIAN_SSH_HOST }}
+          QINGLIAN_SSH_PORT: ${{ secrets.QINGLIAN_SSH_PORT }}
+          QINGLIAN_SSH_USER: ${{ secrets.QINGLIAN_SSH_USER }}
+          QINGLIAN_SSH_PASSWORD: ${{ secrets.QINGLIAN_SSH_PASSWORD }}
+        run: python3 qinglian/server/github/clash_route_recovery.py
+      - name: Verify existing public routes
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.error,time
+          for path,want in [('/panel/',200),('/dsh/',401)]:
+            for attempt in range(20):
+              try:
+                with urllib.request.urlopen(urllib.request.Request('https://gaozy.tech'+path,headers={'User-Agent':'Qinglian-Deploy/1.0'}),timeout=10) as r:status=r.status
+              except urllib.error.HTTPError as e:status=e.code
+              if status==want:break
+              time.sleep(.5)
+            assert status==want,(path,status)
+          print('Existing hub and DSH routes restored.')
+          PY
