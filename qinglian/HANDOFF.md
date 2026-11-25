@@ -1,3 +1,13 @@
+# Clash 订阅已上线，服务器旧临时目录已清理（2026-11-26，北京时间）
+
+用户要求面板节点列表一键生成 Clash 订阅、链接与二维码，并在完成后清理服务器。现已上线 https://gaozy.tech/xui/qinglian/clash ：入站列表顶部全选一键生成，每行操作只导出该入站；可多选、命名、传统 Clash / Mihomo、可选 HY2、本地二维码 / PNG、YAML 下载及撤销。链接令牌仅保存摘要，限 owner 的 HTTPS 同源管理；刷新时重查入站归属、停用、到期及额度，不改节点凭据或计数。传统 Clash 不支持 VLESS/HY2，界面明确排除原因；这些协议使用 Mihomo，不承诺所有旧内核支持所有协议。
+
+公开 main `03c4ce7` 已同步，Android、面板、Windows、Ubuntu CI 全部成功。本次为面板功能，无需发布新客户端安装包；AI 开发说明保留。生产最终代码 `181fad4`，部署 45653223014 全部成功，包含真实订阅创建/拉取/核心加载/撤销、HTTPS owner SSH、诊断和 CDN WSS / HY2 原生数据传输，原配置与计数保持。
+
+第一次安装发现旧维护分支缺少另一分支已部署的 DSH 路由，已通过 45652816477 先恢复旧程序，再从 `codex/dsh-deploy-20261115` 原样合入 DSH gateway 及测试后重新部署。现 `/panel/` 200、`/dsh/` 401（原认证门）保持，并成为升级门禁。今后任何分支全量重建 x-ui 前必须合并最新覆盖层，不能覆盖 DSH/聚合面板/Clash 路由；通用公开仓库不包含这台服务器专属的 DSH 集成。
+
+清理 45654288916 删除 18 天前旧维护临时目录 33,075,200 字节（约 31.5 MiB），错误 0，剩余约 2.05 GiB；账号、节点、永久历史、PKI、root 私有备份、6 份回滚程序和其他项目保留。备份已加密上传；清理后入口复核通过。详见 [verification/CLASH_SUBSCRIPTIONS_20261126.md](verification/CLASH_SUBSCRIPTIONS_20261126.md)、[server/CLASH_SUBSCRIPTIONS.md](server/CLASH_SUBSCRIPTIONS.md)。
+
 # 原内置VPN节点到期已恢复（2026-11-19，北京时间）
 
 用户轻连取节点失败、v2rayNG read/io closed pipe，未换服务器。已确认当前App与原bootstrap共用inbound1于11月17日22:15到期被停用，额度未满，API/数据库/worker服务本身正常。44547290854通过面板正常owner API仅恢复该节点enable=true、expiryTime=0（长期有效），保留1TiB总额、既有用量、原凭据/端口/伪装及其他节点/账号/导出7天规则。root私有一致性快照保留于/root/qinglian-parent-expiry-*；未重启HTTPS前端或其他项目。
