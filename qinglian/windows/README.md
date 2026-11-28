@@ -46,3 +46,17 @@ TUN CI只在保留测试前缀验证真实IPv4/IPv6转发、管理员助手和�
 关闭窗口默认驻留托盘，保持当前连接；右键托盘图标可打开、断开或退出。关于页可关闭此行为，系统没有可用托盘时窗口正常退出。程序升级和明确退出始终清理连接后完整退出。图标按用户要求采用2dust/v2rayN的蓝色图标，固定来源提交与SHA256在assets/UPSTREAM.json，GPL-3.0许可随包提供；应用名称和服务仍为轻连。
 
 系统代理模式默认申请域名443/WSS兼容数据通道，以避免直接依赖源站高端口。TUN仍明确申请原IP直连节点，保留固定服务器绕行和原路由保护；CDN不能代理HY2 UDP，不保证移动网络HY2可用。
+
+## Windows preview8：Codex 侧边浏览器直连
+
+连接页开启 TUN，再在 ChatGPT 页勾选“自动识别 Codex/ChatGPT 浏览器 PID”，重新连接。默认关闭；只识别当前 Windows 用户在 Program Files/WindowsApps 安装的 OpenAI Codex/ChatGPT 网络服务进程，其他程序和未知进程继续代理。识别取自连接完整四元组和进程身份，PID 重启后重新判断，不硬编码任务管理器中的数字。
+
+普通 HTTP Host / HTTPS ClientHello 中可识别的网页直连；OpenAI、ChatGPT、oaistatic、oaiusercontent、Auth0 域名保留代理。无法识别、ECH、非 HTTP 流量保留代理；浏览器 UDP 443 回退 TCP。不会解密 HTTPS、关闭证书校验、安装根证书或上传网页主机名。进程共享仍存在，因此不是按 PID 就把整个网络进程放行。
+
+Chromium 经常发送 ECH/GREASE，导致无法确认目标的连接保留代理。如已识别但网页没有直连，请先完全退出 Codex，再选择 exe，点击“为 TUN 浏览器直连启动”。它只为该次启动移除显式代理环境并增加 `--no-proxy-server --disable-quic --disable-features=EncryptedClientHello`，保留沙箱和 TLS。已经运行的实例可能忽略新启动参数，轻连不会强杀它。
+
+开启期间临时关闭本用户系统代理/PAC，让 TUN 获得原始连接所属 PID；断开、退出或崩溃恢复原值。其他软件改过的代理配置不会被覆盖。“恢复全部代理”关闭已有直连连接，新连接恢复代理，不重启整个 VPN；重新开启需重连。此模式不是断网保护。
+
+本机只显示 PID 和聚合连接计数；不会记录浏览历史或把它们上传。代码主要由 OpenAI Codex（AI）依维护者需求开发。
+
+PID TUN 引擎在 `browser_tun/`，使用 Go 1.23.12、`GOOS=windows GOARCH=amd64 GOAMD64=v1 CGO_ENABLED=0`、`-trimpath -buildvcs=false -ldflags="-s -w -buildid="` 构建，按 `browser_pins.py` 的固定 SHA256 校验后才能提权运行。底层 tun2socks v2.6.0、Wintun 0.14.1 和既有核心版本锁定；不开放任意目的路由/命令 API。

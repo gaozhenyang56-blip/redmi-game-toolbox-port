@@ -53,7 +53,7 @@ jobs:
           QINGLIAN_BROWSER_NATIVE: '1'
         run: |
           New-Item -ItemType Directory -Force "$env:RUNNER_TEMP/browser-native" | Out-Null
-          Copy-Item "$env:RUNNER_TEMP/fixture/resources"/wintun.dll "$env:RUNNER_TEMP/browser-native/wintun.dll"
+          Copy-Item "$env:RUNNER_TEMP/fixture/resources/wintun.dll" "$env:RUNNER_TEMP/browser-native/wintun.dll"
           Push-Location qinglian/windows/browser_tun
           go test -c -o "$env:RUNNER_TEMP/browser-native/browser-test.exe" .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
