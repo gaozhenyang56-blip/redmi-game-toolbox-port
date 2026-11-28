@@ -1,3 +1,13 @@
+# Windows preview8 已发布并通过面板推送（2026-11-28，北京时间）
+
+用户要求为 Windows Codex 侧边浏览器自动抓 PID 直连，并授权开发和推送。现已发布 `qinglian-windows-v1.0.0-preview8`，安装版/免安装版均支持原程序更新器；46093062948 完整 Windows 验收成功，46093598448 已从官方 Release 导入原面板并验证真实 CDN 完整 ZIP 的大小/SHA256/资源哈希。维护发布源码 b7f4a6a，公开 main e4f7891（四端 CI 全绿）。服务器程序/节点/账号/原界面发布配置保留；不需要重新部署 x-ui。
+
+使用：关于页检查更新、断开 VPN 后下载重启；开启 TUN，在 ChatGPT 页勾选浏览器直连并重连，完全退出旧 Codex，选择 WindowsApps 的 ChatGPT.exe，点击“为 TUN 浏览器直连启动”。普通网页 DIRECT，OpenAI 和登录相关域名继续代理；PID 自动跟随网络服务重启，无需用户填写。默认关闭，既有实例可能忽略启动参数，不能把整组 ChatGPT.exe 或固定 PID 放行。
+
+最终设计为固定本地 PAC + TUN 连接四元组/PID/用户/安装路径/同映像父进程精确 PAC 参数识别。TUN 就绪后才临时关闭本用户系统代理，保留同一恢复守护；PAC 加载后才放行，未知进程继续代理。“恢复全部代理”关闭已有直连连接，新连接走代理；保留 ECH、TLS 验证及沙箱，无 TLS 首包解密或浏览记录。Go 引擎使用固定 Go1.23.12 构建并在构建/提权前校验摘要，保留所有旧 TUN IPC/权限/清理边界。不能仅用 UI 热配置推送这项程序逻辑。
+
+Windows 原生 PID/父进程、隔离 TUN 物理直连/其他 PID 代理/恢复、PAC JS、五协议、GUI、IPv4/IPv6、真实 CDN 四条计量路径、打包更新/安装/卸载通过；用户本机 Codex 和移动现场效果仍需确认。细节与可下载文件见 [verification/WINDOWS_BROWSER_PID_20261128.md](verification/WINDOWS_BROWSER_PID_20261128.md)。下一 Windows 版本至少 preview9，Android 版本不变。
+
 # Clash 订阅已上线，服务器旧临时目录已清理（2026-11-26，北京时间）
 
 用户要求面板节点列表一键生成 Clash 订阅、链接与二维码，并在完成后清理服务器。现已上线 https://gaozy.tech/xui/qinglian/clash ：入站列表顶部全选一键生成，每行操作只导出该入站；可多选、命名、传统 Clash / Mihomo、可选 HY2、本地二维码 / PNG、YAML 下载及撤销。链接令牌仅保存摘要，限 owner 的 HTTPS 同源管理；刷新时重查入站归属、停用、到期及额度，不改节点凭据或计数。传统 Clash 不支持 VLESS/HY2，界面明确排除原因；这些协议使用 Mihomo，不承诺所有旧内核支持所有协议。

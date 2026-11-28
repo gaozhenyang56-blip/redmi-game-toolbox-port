@@ -58,3 +58,5 @@ Windows后台统计与更新轮询必须独立于前台working锁，不得阻挡
 域名443/WSS数据桥接已部署，Android21重连自动取WS；桌面Windows/Ubuntu最新preview6系统代理申请cdnCompatibility:true，TUN必须false。保留原worker认证/计量/告知及原后端私有CA，不能为修移动网络放宽TUN任意地址限制或把HY2 UDP宣称经普通CDN。手机现场结果待用户确认，详见server/CDN_TRANSPORT.md。
 
 Android22已发布原签名。WS冷启动验证单次15秒，仅1字节可恢复失败最多重试一次，复用核心和会话；对照不重试、稳态短预算/取消/严格TLS保持。失败码只用固定类别，不把H-VERIFY当作已证实UDP限制。用户移动现场需安装22复测，勿宣称已恢复。
+
+Windows preview8 已正式发布并推送，下一版至少 preview9。用户明确授权可选 Codex 侧边浏览器直连：固定本地 PAC 保留 OpenAI 代理，TUN 按完整四元组/PID/用户/WindowsApps 映像和父进程精确本地 PAC 启动参数放行普通网页，不是全放行同名进程。默认关，TUN 就绪后切换系统代理并保留原恢复守护；PAC 加载前及未匹配进程继续代理，恢复按钮须立即关闭直连 socket 且不能被迟到的启动覆盖。保留 ECH/TLS/沙箱、无浏览记录上传；引擎固定 Go1.23.12 和 browser_pins.py 摘要，改 Go 产品代码必须重算并通过 Windows 可复现哈希验证。只推程序更新、需断开并由用户确认重启，不能把程序代码塞进 UI 热配置。详情见最新 HANDOFF 和 WINDOWS_BROWSER_PID_20261128。
