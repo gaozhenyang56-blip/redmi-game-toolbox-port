@@ -23,7 +23,7 @@ class ClientTests(unittest.TestCase):
         with patch.object(client.common.ProxySettings,'__init__',return_value=None):c=client.Connection(MagicMock(),MagicMock())
         with patch.object(client.common.Connection,'start'),patch.object(platform,'ProxySettings') as proxy,patch('browser_pac.BrowserPAC'):
             c.start('compat',True,True,True,True)
-            self.assertTrue(c.browser_direct);self.assertEqual(c.proxy.enable,c.proxy.enable_tun_only)
+            self.assertTrue(c.browser_direct);self.assertNotEqual(c.proxy.enable,c.proxy.enable_tun_only);c.proxy.enable_tun_only.assert_not_called()
             c.browser_session=MagicMock();c.restore_browser_proxy();c.browser_session.disable_browser.assert_called_once();self.assertFalse(c.browser_direct)
             c.start('compat',True,True,False,True);self.assertFalse(c.browser_direct)
     def test_explicit_proxy_launch_is_rejected_when_browser_direct_is_active(self):

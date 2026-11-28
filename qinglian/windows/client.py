@@ -95,7 +95,6 @@ class Connection(common.Connection):
             from browser_pac import BrowserPAC
             self.browser_pac=BrowserPAC()
         self.proxy=platform.ProxySettings()
-        if self.browser_direct:self.proxy.enable=self.proxy.enable_tun_only
         super().start(mode!='compat',performance,False if tun else rule,False)
     def run(self,accelerated,performance,rule,tun):
         notify=self.notify; self.api.hold_session=True
@@ -111,6 +110,7 @@ class Connection(common.Connection):
                                 from tun_ipc import TunSession
                                 self.connected=False; notify('state','正在请求管理员授权并建立 TUN…')
                                 helper=TunSession(server=urllib.parse.urlsplit(self.api.config['url']).hostname,browser_direct=getattr(self,'browser_direct',False),browser_pac=getattr(self,'browser_pac',None),on_status=lambda v:notify('browser',v)).start(self.cancel); self.browser_session=helper; self.procs.append(helper)
+                                if getattr(self,'browser_direct',False):self.proxy.enable_tun_only()
                                 self.api.verify_proxy(self.cancel,cold_hy2=choice)
                                 if self.cancel.is_set(): raise common.ProbeCancelled('已取消连接')
                                 self.connected=True; value=value.split(' · ')[0]+' · TUN 全局'

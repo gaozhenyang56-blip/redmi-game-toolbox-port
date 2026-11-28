@@ -106,7 +106,12 @@ class ProxySettings:
         self._enable(installed_proxy())
     def enable_tun_only(self):
         values=installed_proxy();values['ProxyEnable']=[0,winreg.REG_DWORD];values['ProxyServer']=None
-        self._enable(values)
+        if not self.guard:raise RuntimeError('TUN 系统代理切换必须在代理已建立后进行')
+        state=read(self.path)
+        if not state or proxy_values()!=state['ours']:raise RuntimeError('其他程序已改变系统代理，请先断开再重连')
+        state['ours']=values;save(self.path,state)
+        try:write_proxy(values)
+        except Exception:self.close();raise
     def _enable(self,values):
         restore_proxy(self.path)
         state={'before':proxy_values(),'ours':values}; save(self.path,state)
