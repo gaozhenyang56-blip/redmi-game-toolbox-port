@@ -3,7 +3,7 @@ import http.server
 import secrets
 import threading
 
-PROTECTED=('openai.com','chatgpt.com','oaistatic.com','oaiusercontent.com','auth0.com')
+PROTECTED=('openai.com','chatgpt.com','oaistatic.com','oaiusercontent.com','auth0.com','challenges.cloudflare.com','arkoselabs.com','chatgpt.livekit.cloud')
 def script():
     import json
     return '''function FindProxyForURL(url, host) {

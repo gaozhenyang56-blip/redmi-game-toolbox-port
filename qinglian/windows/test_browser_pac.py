@@ -13,7 +13,7 @@ import browser_pac
 class PACTests(unittest.TestCase):
  def test_fixed_browser_domain_policy_in_real_javascript_engine(self):
   source="function dnsDomainIs(h,d){return h.substring(h.length-d.length)===d;}\n"+browser_pac.script()
-  for host in ('chatgpt.com','auth.openai.com','CDN.OAISTATIC.COM.','images.oaiusercontent.com','login.auth0.com'):
+  for host in ('chatgpt.com','auth.openai.com','CDN.OAISTATIC.COM.','images.oaiusercontent.com','login.auth0.com','challenges.cloudflare.com','client-api.arkoselabs.com','chatgpt.livekit.cloud'):
    source+="\nif(FindProxyForURL('https://'+"+json.dumps(host)+","+json.dumps(host)+")!=='PROXY 127.0.0.1:10809')throw Error('protected URL was not proxied');"
   for host in ('message.rakuten-insight.cn','example.org','openai.com.example.org','notopenai.com'):
    source+="\nif(FindProxyForURL('https://'+"+json.dumps(host)+","+json.dumps(host)+")!=='DIRECT')throw Error('ordinary browser URL was not direct');"
