@@ -9,6 +9,7 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+import threading
 import win_platform as platform
 from tun_ipc import Pipe,kernel
 
@@ -39,7 +40,7 @@ def peer_image(pid):
     return handle
 
 class Network:
-    def __init__(self,isolated=False): self.server=None; self.isolated=isolated; self.process=None; self.index=None; self.exemption=None; self.stage='S-TUN-CONFLICT'
+    def __init__(self,isolated=False): self.browser_direct=False;self.owner_pid=None;self.browser_status=None;self.upstream=None;self.server=None; self.isolated=isolated; self.process=None; self.index=None; self.exemption=None; self.stage='S-TUN-CONFLICT'
     def start(self):
         if powershell("if(Get-NetAdapter|Where-Object Name -eq 'Qinglian'){'exists'}")=='exists': raise RuntimeError('TUN adapter already exists')
         if not self.isolated:
@@ -47,7 +48,7 @@ class Network:
             existing=powershell("@(Get-NetRoute -ErrorAction SilentlyContinue|Where-Object {$_.DestinationPrefix -in @('0.0.0.0/1','128.0.0.0/1','::/1','8000::/1')}).Count")
             if existing!='0': raise RuntimeError('Another VPN owns global routes')
             result=powershell("$r=Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0'|Sort-Object @{Expression={$_.RouteMetric+(Get-NetIPInterface -InterfaceIndex $_.InterfaceIndex -AddressFamily IPv4).InterfaceMetric}}|Select-Object -First 1;if(!$r){throw 'No upstream'};@{index=$r.InterfaceIndex;gateway=$r.NextHop}|ConvertTo-Json -Compress")
-            upstream=json.loads(result); index=int(upstream['index']); gateway=str(ipaddress.IPv4Address(upstream['gateway'])); address=self.server or server_ip()
+            upstream=json.loads(result); index=int(upstream['index']); self.upstream=index; gateway=str(ipaddress.IPv4Address(upstream['gateway'])); address=self.server or server_ip()
             created=powershell(f"if(!(Get-NetRoute -DestinationPrefix '{address}/32' -InterfaceIndex {index} -ErrorAction SilentlyContinue|Where-Object NextHop -eq '{gateway}')){{New-NetRoute -DestinationPrefix '{address}/32' -InterfaceIndex {index} -NextHop '{gateway}' -RouteMetric 1 -PolicyStore ActiveStore|Out-Null;'created'}}")
             if created=='created': self.exemption=(address,index,gateway)
         # Verify every executable/DLL before elevated launch; DLL is adjacent.
@@ -58,7 +59,21 @@ class Network:
         with (ROOT/'tun2socks.exe').open('rb') as file:
             if hashlib.file_digest(file,'sha256').hexdigest()!=expected: raise RuntimeError('TUN engine hash mismatch')
         self.stage='S-TUN-DRIVER'
-        self.process=platform.spawn([str(ROOT/'tun2socks.exe'),'-device','tun://'+ADAPTER,'-proxy','socks5://127.0.0.1:10808','-mtu','1500','-loglevel','silent'],cwd=str(ROOT))
+        if self.browser_direct:
+            from browser_pins import SHA256
+            if self.isolated or not self.upstream or not self.owner_pid:raise RuntimeError('Browser routing requires global TUN')
+            if hashlib.sha256((ROOT/'browser-tun.exe').read_bytes()).hexdigest()!=SHA256:raise RuntimeError('Browser TUN hash mismatch')
+            self.process=platform.spawn([str(ROOT/'browser-tun.exe'),'--owner',str(self.owner_pid),'--upstream',str(self.upstream)],cwd=str(ROOT),stdout=subprocess.PIPE)
+            def status():
+                for line in iter(self.process.stdout.readline,b''):
+                    try:
+                        if len(line)>4096:continue
+                        value=json.loads(line)
+                        if set(value)=={'type','enabled','pids','direct','proxy'} and value['type']=='browser' and type(value['enabled']) is bool and isinstance(value['pids'],list) and len(value['pids'])<=32 and all(type(p) is int and 0<p<2**32 for p in value['pids']) and all(type(value[k]) is int and 0<=value[k]<2**63 for k in ('direct','proxy')):self.browser_status=value
+                    except (ValueError,TypeError):pass
+            threading.Thread(target=status,daemon=True).start()
+        else:
+            self.process=platform.spawn([str(ROOT/'tun2socks.exe'),'-device','tun://'+ADAPTER,'-proxy','socks5://127.0.0.1:10808','-mtu','1500','-loglevel','silent'],cwd=str(ROOT))
         for _ in range(40):
             if self.process.poll() is not None: raise RuntimeError('TUN engine exited')
             value=powershell("$a=Get-NetAdapter|Where-Object Name -eq 'Qinglian';if($a){$a.ifIndex}")
@@ -112,19 +127,24 @@ def helper(pipe_name,parent_pid,mode):
         deadline=time.monotonic()+5; selection=None
         while selection is None and time.monotonic()<deadline:
             selection=pipe.read();time.sleep(.01)
-        if not selection or set(selection)!={'type','server'} or selection['type']!='configure':raise ValueError('TUN configuration required')
+        if not selection or set(selection)!={'type','server','browserDirect'} or selection['type']!='configure':raise ValueError('TUN configuration required')
         address=str(ipaddress.IPv4Address(selection['server']))
         try:embedded=server_ip()
         except ValueError:embedded=None
         if address!=embedded and not ipaddress.IPv4Address(address).is_global:raise ValueError('TUN requires public server IPv4')
-        network.server=address
+        if type(selection['browserDirect']) is not bool or mode=='isolated' and selection['browserDirect']:raise ValueError('Invalid browser selection')
+        network.server=address;network.browser_direct=selection['browserDirect'];network.owner_pid=parent_pid
         network.start(); pipe.send({'status':'ready'})
         api.WaitForSingleObject.argtypes=[wintypes.HANDLE,wintypes.DWORD]
         last_ping=time.monotonic()
         while api.WaitForSingleObject(process_handle,0)==258 and network.process.poll() is None and time.monotonic()-last_ping<8:
             value=pipe.read()
             if value and value.get('type')=='stop': break
-            if value and value.get('type')=='ping': last_ping=time.monotonic()
+            if value and value.get('type')=='browser-off' and network.browser_direct:
+                network.process.stdin.write(b'disable\n');network.process.stdin.flush();network.browser_direct=False
+            if value and value.get('type')=='ping':
+                last_ping=time.monotonic()
+                if network.browser_status:pipe.send(network.browser_status)
             time.sleep(.1)
     except Exception:
         try: pipe.send({'status':'error','code':network.stage})

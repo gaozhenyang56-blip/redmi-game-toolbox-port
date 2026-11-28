@@ -12,7 +12,7 @@ import urllib.request
 import zipfile
 
 HERE=Path(__file__).resolve().parent; PROJECT=HERE.parent
-VERSION='1.0.0-preview7'
+VERSION='1.0.0-preview8'
 PINS={
  'tun2socks.zip':('https://github.com/xjasonlyu/tun2socks/releases/download/v2.6.0/tun2socks-windows-amd64.zip','1429e2e3b1ea09052da2c65e5005538b5730d63da37e304f4ad6fd2698a66695'),
  'wintun.zip':('https://www.wintun.net/builds/wintun-0.14.1.zip','07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51'),
@@ -44,6 +44,13 @@ def main():
     for name in (['profile.json',ca] if ca else ['profile.json']): shutil.copy2(args.assets/name,resources/name)
     shutil.copy2(fetch('json.jar',args.cache),resources/'json.jar'); shutil.copy2(fetch('hysteria.exe',args.cache),resources/'hysteria.exe')
     with zipfile.ZipFile(fetch('tun2socks.zip',args.cache)) as archive: (resources/'tun2socks.exe').write_bytes(archive.read('tun2socks-windows-amd64.exe'))
+    # The PID-aware engine is built from pinned source with a fixed Go toolchain.
+    if subprocess.check_output(['go','version'],text=True).split()[2]!='go1.23.12': raise RuntimeError('Browser routing requires Go 1.23.12')
+    native_env={**os.environ,'GOOS':'windows','GOARCH':'amd64','GOAMD64':'v1','CGO_ENABLED':'0','GOTOOLCHAIN':'local'}
+    subprocess.run(['go','build','-mod=readonly','-trimpath','-buildvcs=false','-ldflags=-s -w -buildid=','-o',str(resources/'browser-tun.exe'),'.'],cwd=HERE/'browser_tun',env=native_env,check=True)
+    from browser_pins import SHA256 as browser_hash
+    if digest(resources/'browser-tun.exe')!=browser_hash: raise RuntimeError('PID routing engine reproducible hash mismatch')
+
     with zipfile.ZipFile(fetch('wintun.zip',args.cache)) as archive: (resources/'wintun.dll').write_bytes(archive.read('wintun/bin/amd64/wintun.dll'))
     with zipfile.ZipFile(fetch('v2ray.zip',args.cache)) as archive:
         for source,target in [('v2ray.exe','v2ray.exe'),('geoip-only-cn-private.dat','geoip.dat'),('geosite.dat','geosite.dat')]: (resources/target).write_bytes(archive.read(source))
@@ -77,6 +84,7 @@ def main():
     (licenses/'Windows-components.txt').write_text('Qinglian integration: GPL-3.0, corresponding source in source/.\nPySide6 6.8.3 / Qt: LGPL-3.0 / GPL-3.0, dynamic libraries distributed with PyInstaller.\nhttps://code.qt.io/pyside/pyside-setup.git/tag/?h=v6.8.3\nhttps://code.qt.io/qt/qtbase.git/tag/?h=v6.8.3\nTemurin OpenJDK 17.0.20+8: GPLv2 with Classpath Exception, notices in jre/legal/.\nhttps://github.com/adoptium/temurin17-binaries/releases/tag/jdk-17.0.20%2B8\nPython and PyInstaller notices are included in licenses/.\n',encoding='utf-8')
     src=resources/'source'; src.mkdir(exist_ok=True)
     for file in HERE.glob('*.py'): shutil.copy2(file,src/file.name)
+    shutil.copytree(HERE/'browser_tun',src/'browser_tun',dirs_exist_ok=True)
     shutil.copy2(HERE/'installer.iss',src/'installer.iss')
     for name in ('README.md','RELEASE_NOTES.md'): shutil.copy2(HERE/name,resources/name)
     shutil.copy2(PROJECT/'ubuntu/runtime.py',src/'shared_runtime.py'); shutil.copy2(PROJECT/'app/src/main/java/com/gzy/qinglian/NodeConfig.java',src/'NodeConfig.java'); shutil.copy2(PROJECT/'server/NodeConfigCli.java',src/'NodeConfigCli.java')
@@ -103,7 +111,7 @@ def main():
     shutil.copy2(output/'helper/updater.exe',resources/'updater.exe')
     shutil.copy2(resources/'updater.exe',output/'dist/Qinglian/_internal/resources/updater.exe')
     app=output/'dist/Qinglian'
-    (resources/'build-info.json').write_text(json.dumps({'version':VERSION,'architecture':'x64','sha256':{name:digest(resources/name) for name in (['v2ray.exe','hysteria.exe','tun2socks.exe','wintun.dll','node-config.jar','profile.json']+([ca] if ca else []))}}))
+    (resources/'build-info.json').write_text(json.dumps({'version':VERSION,'architecture':'x64','sha256':{name:digest(resources/name) for name in (['v2ray.exe','hysteria.exe','tun2socks.exe','browser-tun.exe','wintun.dll','node-config.jar','profile.json']+([ca] if ca else []))}}))
     shutil.copy2(resources/'build-info.json',app/'_internal/resources/build-info.json')
     shutil.make_archive(str(output/('Qinglian-'+VERSION+'-windows-x64-portable')),'zip',output/'dist','Qinglian')
     iscc=Path(os.environ.get('ProgramFiles(x86)',r'C:\Program Files (x86)'))/'Inno Setup 6/ISCC.exe'

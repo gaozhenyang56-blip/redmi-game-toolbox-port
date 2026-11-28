@@ -69,7 +69,14 @@ def run(screenshot):
         assert window.channel.currentIndex()==0 and not window.consent.isChecked()
         for index in range(6):
             window.nav.setCurrentRow(index); application.processEvents(); assert window.stack.currentIndex()==index
-        window.tun.setChecked(True); assert not window.route.isEnabled()
+        assert not window.browser_direct.isChecked() and not window.browser_direct.isEnabled()
+        window.tun.setChecked(True); assert not window.route.isEnabled() and window.browser_direct.isEnabled()
+        window.browser_direct.setChecked(True)
+        window.on_event('browser',{'type':'browser','enabled':True,'pids':[29764],'direct':2,'proxy':3})
+        assert '29764' in window.browser_status.text()
+        with patch.object(window.conn,'restore_browser_proxy') as restore:
+            window.restore_browser_proxy();restore.assert_called_once();assert not window.browser_direct.isChecked()
+        assert '已恢复' in window.browser_status.text()
         connection=window.conn; window.username.setText('draft-user'); window.password.setText('draft-pass')
         with patch.object(connection,'start') as start,patch.object(connection,'disconnect') as stop:
             window.compact.setChecked(True); window.theme.setCurrentIndex(1); application.processEvents()

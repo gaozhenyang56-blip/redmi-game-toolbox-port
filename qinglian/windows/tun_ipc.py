@@ -111,7 +111,7 @@ class ElevatedProcess:
 
 class TunSession:
     stdin=None
-    def __init__(self,isolated=False,server=None): self.server=server; self.pipe=None; self.process=None; self.isolated=isolated; self.stop=threading.Event(); self.heartbeat=None
+    def __init__(self,isolated=False,server=None,browser_direct=False,on_status=None): self.browser_direct=bool(browser_direct and not isolated);self.on_status=on_status;self.server=server; self.pipe=None; self.process=None; self.isolated=isolated; self.stop=threading.Event(); self.heartbeat=None
     def start(self,cancel):
         self.pipe=Pipe(server=True)
         try:
@@ -122,20 +122,27 @@ class TunSession:
                 self.server=server_ip()
             import ipaddress
             address=str(ipaddress.IPv4Address(self.server))
-            self.pipe.send({'type':'configure','server':address}); deadline=time.monotonic()+45
+            self.pipe.send({'type':'configure','server':address,'browserDirect':self.browser_direct}); deadline=time.monotonic()+45
             while True:
                 if cancel.is_set() or self.process.poll() is not None or time.monotonic()>deadline: raise RuntimeError('TUN 启动取消、失败或超时 [S-TUN]')
                 value=self.pipe.read()
                 if value:
                     if value.get('status')=='ready':
                         def ping():
-                            while not self.stop.wait(2):
-                                try: self.pipe.send({'type':'ping'})
-                                except Exception: return
+                            last=0
+                            while not self.stop.wait(.1):
+                                try:
+                                    if time.monotonic()-last>=2:self.pipe.send({'type':'ping'});last=time.monotonic()
+                                    status=self.pipe.read()
+                                    if status and status.get('type')=='browser' and self.on_status:self.on_status(status)
+                                except Exception:return
                         self.heartbeat=threading.Thread(target=ping,daemon=True); self.heartbeat.start(); return self
                     raise RuntimeError('TUN 启动失败，请关闭其他 VPN 并检查管理员授权 ['+value.get('code','S-TUN')+']')
                 cancel.wait(.05)
         except Exception: self.close(); raise
+    def disable_browser(self):
+        if self.pipe:self.pipe.send({'type':'browser-off'})
+        self.browser_direct=False
     def poll(self): return self.process.poll() if self.process else 1
     def terminate(self): self.close()
     def kill(self): self.close()

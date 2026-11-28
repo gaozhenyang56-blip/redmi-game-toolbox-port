@@ -26,7 +26,7 @@ import fluent
 import updater
 QCheckBox=fluent.CheckBox
 
-VERSION='1.0.0-preview7'
+VERSION='1.0.0-preview8'
 class Bridge(QObject):
     event=Signal(str,object)
     finished=Signal(object,object)
@@ -119,7 +119,7 @@ class Window(QMainWindow):
         self.speed_start=button('开始下载测速',self.start_speed); self.speed_stop=button('停止测速',self.test_cancel.set)
         card(self.pages[1],self.speed_result,label('测试总大小'),self.size,self.progress,self.speed_start,self.speed_stop,label('经当前 VPN 下载服务器测试数据，计入流量；Mbps ÷ 8 约为 MB/s。测试失败不等于 VPN 断开。'))
     def build_rules(self):
-        card(self.pages[2],label('规则模式','section'),label('使用与手机端相同的 V2Ray 规则：大陆域名、国内 IP 和私网直连，其余通过代理。全局模式则忽略这些绕行规则。'),label('修改连接页的规则/全局选项后，重新连接生效。系统代理模式只影响遵循系统代理的程序；TUN 模式会接管更多程序的 IPv4/IPv6 流量。'),label('本版支持可选 TUN 全局接管，不提供 Windows 按应用黑白名单。ChatGPT 页提供显式代理启动与 HTTPS 路径检查。'))
+        card(self.pages[2],label('规则模式','section'),label('使用与手机端相同的 V2Ray 规则：大陆域名、国内 IP 和私网直连，其余通过代理。全局模式则忽略这些绕行规则。'),label('修改连接页的规则/全局选项后，重新连接生效。系统代理模式只影响遵循系统代理的程序；TUN 模式会接管更多程序的 IPv4/IPv6 流量。'),label('本版提供 TUN 全局接管；ChatGPT 页可选自动识别其 Chromium 网络服务 PID，为普通网页直连并保留 OpenAI 代理。不是通用应用黑白名单。'))
     def build_account(self):
         layout=self.pages[3]; self.username=QLineEdit(); self.username.setPlaceholderText('用户名'); self.password=QLineEdit(); self.password.setPlaceholderText('密码'); self.password.setEchoMode(QLineEdit.Password)
         self.consent=QCheckBox('我已阅读并同意以下账号连接记录告知')
@@ -130,9 +130,15 @@ class Window(QMainWindow):
         self.protocol=combo(['vmess','vless','trojan','shadowsocks','hysteria2']); self.export_size=QSpinBox(); self.export_size.setRange(1,262144); self.export_size.setValue(1024); self.export_size.setSuffix(' MiB'); self.remark=QLineEdit(); self.remark.setPlaceholderText('导出备注名称（可选）')
         card(layout,label('导出独立节点','section'),self.protocol,self.export_size,self.remark,button('导出节点 ZIP',self.export))
     def build_chat(self):
+        self.browser_direct=QCheckBox('自动识别 Codex/ChatGPT 浏览器 PID，普通网页直连（实验）')
+        self.browser_direct.setChecked(self.settings.get('browserDirect',False));self.browser_direct.setEnabled(self.tun.isChecked())
+        self.browser_direct.toggled.connect(self.store);self.controls.append(self.browser_direct)
+        self.tun.toggled.connect(lambda value:self.browser_direct.setEnabled(value and not self.busy))
+        self.browser_status=label('未启用浏览器直连')
+        card(self.pages[4],label('侧边浏览器直连','section'),self.browser_direct,label('仅 TUN 模式生效，勾选后重新连接。自动识别本 Windows 用户已安装的 OpenAI Codex/ChatGPT Chromium 网络服务 PID，不按固定 PID 或所有同名程序放行。普通 HTTP/HTTPS 网页直连；ChatGPT/OpenAI 域名、加密 ClientHello 和无法识别的流量继续代理。浏览器 QUIC 将回退 TCP。'),label('连接期间暂时关闭当前用户的系统代理/PAC，由 TUN 接管；断开或崩溃后恢复原设置。若已识别 PID 但网页仍走代理，请完全退出 Codex 后用下方“为 TUN 浏览器直连启动”，仅为该次启动关闭 ECH/QUIC 和显式代理，保留 TLS 校验和沙箱。进程识别和首包判断仅在本机进行，不上传网页地址。'),self.browser_status,button('恢复全部代理',self.restore_browser_proxy))
         self.chat_result=label('请先连接轻连'); self.chat_path=QLineEdit(self.settings.get('chatPath','')); self.chat_path.setReadOnly(True)
         card(self.pages[4],label('ChatGPT 连接路径','section'),label('先用兼容通道连接。HY2 下 OpenAI 和静态资源域名沿用兼容通道策略；可分别检查 HTTPS 响应，HTTP 403 不表示登录成功。'),button('检查 ChatGPT HTTPS',lambda:self.task(self.conn.probe,self.chat_result.setText)),self.chat_result,button('打开 ChatGPT 网页',self.open_chat_web))
-        card(self.pages[4],label('显式代理启动桌面程序','section'),label('先完整退出正在运行的 ChatGPT，再选择其 exe。启动只为该进程添加代理及 WebView2 参数，不修改全局环境、不关闭 TLS 或沙箱。不同安装形式可能忽略参数，可用网页版验证。'),self.chat_path,button('选择 ChatGPT.exe',self.choose_chat),button('带代理启动',lambda:self.task(lambda:self.conn.launch_chatgpt(self.chat_path.text()),lambda _:self.message.setText('已启动，请在 ChatGPT 中确认联网'))))
+        card(self.pages[4],label('显式代理启动桌面程序','section'),label('先完整退出正在运行的 ChatGPT，再选择其 exe。启动只为该进程添加代理及 WebView2 参数，不修改全局环境、不关闭 TLS 或沙箱。不同安装形式可能忽略参数，可用网页版验证。'),self.chat_path,button('选择 ChatGPT.exe',self.choose_chat),button('为 TUN 浏览器直连启动',lambda:self.task(lambda:self.conn.launch_browser_direct(self.chat_path.text()),lambda _:self.message.setText('已请求启动；请确认旧 Codex 已完全退出，新启动窗口的网页连接将按 PID 判断'))),button('带代理启动',lambda:self.task(lambda:self.conn.launch_chatgpt(self.chat_path.text()),lambda _:self.message.setText('已启动，请在 ChatGPT 中确认联网'))))
     def build_about(self):
         self.background=QCheckBox('关闭窗口后驻留托盘，保持连接'); self.background.setChecked(self.settings.get('background',True)); self.background.setEnabled(QSystemTrayIcon.isSystemTrayAvailable())
         self.background.toggled.connect(self.store)
@@ -152,7 +158,7 @@ class Window(QMainWindow):
         self.notice.setText(self.remote_ui['notice'] if self.remote_enabled.isChecked() else ''); self.notice.setVisible(bool(self.notice.text()))
         self.store()
     def store(self):
-        self.settings.update(background=self.background.isChecked(),remoteEnabled=self.remote_enabled.isChecked(),remoteUI=self.remote_ui,compact=self.compact.isChecked(),material=self.material.isChecked(),theme=self.theme.currentIndex(),channel=self.channel.currentIndex(),performance=self.performance.currentIndex(),route=self.route.currentIndex(),tun=self.tun.isChecked(),testMiB=self.size.value(),chatPath=self.chat_path.text())
+        self.settings.update(background=self.background.isChecked(),remoteEnabled=self.remote_enabled.isChecked(),remoteUI=self.remote_ui,compact=self.compact.isChecked(),material=self.material.isChecked(),theme=self.theme.currentIndex(),channel=self.channel.currentIndex(),performance=self.performance.currentIndex(),route=self.route.currentIndex(),tun=self.tun.isChecked(),browserDirect=self.browser_direct.isChecked(),testMiB=self.size.value(),chatPath=self.chat_path.text())
         client.save(client.STATE/'settings.json',self.settings)
     def navigate(self,index):
         self.stack.setCurrentIndex(index)
@@ -181,8 +187,13 @@ class Window(QMainWindow):
         self.store(); self.busy=True
         for control in self.controls: control.setEnabled(False)
         self.account_card.setEnabled(False); self.connect_button.setText('取消连接')
-        self.conn.start(['compat','hy2','auto'][self.channel.currentIndex()],self.performance.currentIndex()==0,self.route.currentIndex()==0,self.tun.isChecked())
+        self.conn.start(['compat','hy2','auto'][self.channel.currentIndex()],self.performance.currentIndex()==0,self.route.currentIndex()==0,self.tun.isChecked(),self.browser_direct.isChecked())
+    def restore_browser_proxy(self):
+        self.conn.restore_browser_proxy();self.browser_direct.setChecked(False);self.browser_status.setText('已恢复全部代理；直连连接将关闭并重新建立')
     def on_event(self,event,value):
+        if event=='browser':
+            pids=', '.join(str(p) for p in value['pids'])
+            self.browser_status.setText(('PID '+pids if pids else '等待浏览器发起网络请求')+' · 网页直连连接 '+str(value['direct'])+' · 代理连接 '+str(value['proxy']) if value['enabled'] else '已恢复全部代理')
         if event=='update_failed': self.update_apply.setEnabled(True); self.update_status.setText('下载或校验失败，当前程序未改变')
         if event in ('state','warning','error'): self.message.setText(str(value))
         if event=='connected':
@@ -191,7 +202,7 @@ class Window(QMainWindow):
         elif event=='stopped':
             self.busy=False; self.started=None; self.status.setText('未连接'); self.connect_button.setText('连接'); self.session.setText('00:00:00')
             for control in self.controls: control.setEnabled(True)
-            self.account_card.setEnabled(True); self.route.setEnabled(not self.tun.isChecked())
+            self.account_card.setEnabled(True); self.route.setEnabled(not self.tun.isChecked());self.browser_direct.setEnabled(self.tun.isChecked());self.browser_status.setText('已断开，浏览器 PID 规则已停止')
             if self.closing: QTimer.singleShot(0,self.close)
     @staticmethod
     def format_quota(value):

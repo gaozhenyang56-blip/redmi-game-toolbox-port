@@ -18,7 +18,7 @@ permissions:
 jobs:
   windows:
     runs-on: windows-2022
-    timeout-minutes: 30
+    timeout-minutes: 40
     permissions:
       contents: write
     defaults:
@@ -33,6 +33,13 @@ jobs:
         with:
           python-version: '3.12'
           architecture: x64
+      - name: Install pinned Go for PID-aware TUN
+        run: |
+          $archive = "$env:RUNNER_TEMP/go-sdk.zip"
+          Invoke-WebRequest https://go.dev/dl/go1.23.12.windows-amd64.zip -OutFile $archive
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne '07c35866cdd864b81bb6f1cfbf25ac7f87ddc3a976ede1bf5112acbb12dfe6dc') { throw 'Go SDK hash mismatch' }
+          Expand-Archive $archive "$env:RUNNER_TEMP/go-sdk"
+          "$env:RUNNER_TEMP/go-sdk/go/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Install fixed GUI and packaging tools
         run: python -m pip install --disable-pip-version-check PySide6==6.8.3 pyinstaller==6.11.1 paramiko==3.5.1
       - name: Prepare isolated bootstrap and pinned native resources
@@ -41,6 +48,20 @@ jobs:
           Copy-Item qinglian/app/src/test/resources/tls-ca.pem "$env:RUNNER_TEMP/fixture-assets/ca.pem"
           '{"url":"https://203.0.113.1/api/v1/profile","clientToken":"public-ci-fixture-not-real","caAsset":"ca.pem"}' | Set-Content -Encoding utf8NoBOM "$env:RUNNER_TEMP/fixture-assets/profile.json"
           python qinglian/windows/build.py --assets "$env:RUNNER_TEMP/fixture-assets" --output "$env:RUNNER_TEMP/fixture" --resources-only --fixture
+      - name: Real Windows socket owner, command line and reserved TUN PID routing
+        env:
+          QINGLIAN_BROWSER_NATIVE: '1'
+        run: |
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP/browser-native" | Out-Null
+          Copy-Item "$env:RUNNER_TEMP/fixture/resources"/wintun.dll "$env:RUNNER_TEMP/browser-native/wintun.dll"
+          Push-Location qinglian/windows/browser_tun
+          go test -c -o "$env:RUNNER_TEMP/browser-native/browser-test.exe" .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
+          Push-Location "$env:RUNNER_TEMP/browser-native"
+          & ./browser-test.exe -test.v -test.timeout=120s
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
       - name: Platform lifecycle, DPAPI and unchanged shared TLS behavior
         run: |
           python -m unittest discover -s qinglian/windows -p test_client.py -v
@@ -103,9 +124,9 @@ jobs:
           if ($p.ExitCode -ne 0 -or -not (Test-Path $tunResult)) { throw 'Packaged TUN test failed' }
           $tunCheck = Get-Content $tunResult | ConvertFrom-Json
           if (-not ($tunCheck.ok -and $tunCheck.ipv4 -and $tunCheck.ipv6 -and $tunCheck.defaultRoutesPreserved)) { throw 'Packaged TUN verification incomplete' }
-          python qinglian/windows/test_update_packaged.py $app "$env:RUNNER_TEMP/production/Qinglian-1.0.0-preview7-windows-x64-portable.zip"
+          python qinglian/windows/test_update_packaged.py $app "$env:RUNNER_TEMP/production/Qinglian-1.0.0-preview8-windows-x64-portable.zip"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $setup = "$env:RUNNER_TEMP/production/Qinglian-1.0.0-preview7-windows-x64-setup.exe"
+          $setup = "$env:RUNNER_TEMP/production/Qinglian-1.0.0-preview8-windows-x64-setup.exe"
           $install = "$env:RUNNER_TEMP/installed-qinglian"
           $p = Start-Process -FilePath $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$install") -Wait -PassThru
           if ($p.ExitCode -ne 0 -or -not (Test-Path "$install/Qinglian.exe")) { throw 'Installer failed' }
@@ -117,7 +138,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $delivery = "$env:RUNNER_TEMP/production"
-          gh release create qinglian-windows-v1.0.0-preview7 -R "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --prerelease --title '轻连 Windows 1.0.0-preview7' --notes-file qinglian/windows/RELEASE_NOTES.md "$delivery/Qinglian-1.0.0-preview7-windows-x64-setup.exe" "$delivery/Qinglian-1.0.0-preview7-windows-x64-portable.zip" "$delivery/SHA256SUMS.txt"
+          gh release create qinglian-windows-v1.0.0-preview8 -R "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --prerelease --title '轻连 Windows 1.0.0-preview8' --notes-file qinglian/windows/RELEASE_NOTES.md "$delivery/Qinglian-1.0.0-preview8-windows-x64-setup.exe" "$delivery/Qinglian-1.0.0-preview8-windows-x64-portable.zip" "$delivery/SHA256SUMS.txt"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

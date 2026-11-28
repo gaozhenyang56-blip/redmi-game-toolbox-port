@@ -87,9 +87,12 @@ def may_fallback(error):
     return any('['+code+']' in error for code in ('H-TIMEOUT','H-VERIFY','H-CORE','H502','H503','H504'))
 
 class Connection(common.Connection):
-    def start(self,mode='compat',performance=True,rule=True,tun=False):
+    def start(self,mode='compat',performance=True,rule=True,tun=False,browser_direct=False):
         if mode not in ('compat','hy2','auto'): raise ValueError('不支持的连接模式')
         self.mode=mode; self.tun_requested=tun; self.api.tun_required=tun
+        self.browser_direct=bool(tun and browser_direct);self.browser_session=None
+        self.proxy=platform.ProxySettings()
+        if self.browser_direct:self.proxy.enable=self.proxy.enable_tun_only
         super().start(mode!='compat',performance,False if tun else rule,False)
     def run(self,accelerated,performance,rule,tun):
         notify=self.notify; self.api.hold_session=True
@@ -104,7 +107,7 @@ class Connection(common.Connection):
                             if getattr(self,'tun_requested',False):
                                 from tun_ipc import TunSession
                                 self.connected=False; notify('state','正在请求管理员授权并建立 TUN…')
-                                helper=TunSession(server=urllib.parse.urlsplit(self.api.config['url']).hostname).start(self.cancel); self.procs.append(helper)
+                                helper=TunSession(server=urllib.parse.urlsplit(self.api.config['url']).hostname,browser_direct=getattr(self,'browser_direct',False),on_status=lambda v:notify('browser',v)).start(self.cancel); self.browser_session=helper; self.procs.append(helper)
                                 self.api.verify_proxy(self.cancel,cold_hy2=choice)
                                 if self.cancel.is_set(): raise common.ProbeCancelled('已取消连接')
                                 self.connected=True; value=value.split(' · ')[0]+' · TUN 全局'
@@ -137,10 +140,24 @@ class Connection(common.Connection):
             self.connected=False
             if failed: notify('error','连接已停止，但清理未全部确认 [S-CLEANUP]，请检查 Windows 代理设置')
             notify('stopped','已断开')
+    def restore_browser_proxy(self):
+        helper=getattr(self,'browser_session',None)
+        if helper:helper.disable_browser()
+        self.browser_direct=False
+    def launch_browser_direct(self,path):
+        if not self.connected or not getattr(self,'tun_requested',False) or not getattr(self,'browser_direct',False):raise RuntimeError('请先开启浏览器直连并连接 TUN')
+        path=Path(path)
+        if not path.is_file() or path.suffix.lower()!='.exe':raise RuntimeError('请选择 Codex/ChatGPT 的可执行文件')
+        env={k:v for k,v in os.environ.items() if k.lower() not in ('http_proxy','https_proxy','all_proxy','no_proxy','webview2_additional_browser_arguments')}
+        # Keep TLS verification and sandboxing. Disable ECH/QUIC only in this
+        # user-launched app so its target SNI is observable to local TUN policy.
+        subprocess.Popen([str(path),'--no-proxy-server','--disable-quic','--disable-features=EncryptedClientHello'],env=env,creationflags=platform.NO_WINDOW,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     def launch_chatgpt(self,path):
         if not self.connected: raise RuntimeError('请先连接轻连')
         path=Path(path)
         if not path.is_file() or path.suffix.lower()!='.exe': raise RuntimeError('请选择 ChatGPT 的可执行文件')
+        if getattr(self,'browser_direct',False):
+            raise RuntimeError('浏览器直连时请从开始菜单正常启动 Codex/ChatGPT；若此前带代理启动过，请完全退出后重新打开')
         env=os.environ.copy()
         for key in ('http_proxy','https_proxy','HTTP_PROXY','HTTPS_PROXY'): env[key]='http://127.0.0.1:10809'
         env['ALL_PROXY']=env['all_proxy']='socks5h://127.0.0.1:10808'

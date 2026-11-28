@@ -10,6 +10,28 @@ import client
 import win_platform as platform
 
 class ClientTests(unittest.TestCase):
+    def test_browser_direct_launcher_is_child_only_and_preserves_tls_and_sandbox(self):
+        c=client.Connection.__new__(client.Connection);c.connected=True;c.tun_requested=True;c.browser_direct=True
+        with tempfile.TemporaryDirectory() as d,patch.object(client.subprocess,'Popen') as launch:
+            path=Path(d)/'ChatGPT.exe';path.write_bytes(b'fixture');c.launch_browser_direct(path)
+            args=launch.call_args.args[0];env=launch.call_args.kwargs['env']
+            self.assertIn('--no-proxy-server',args);self.assertIn('--disable-features=EncryptedClientHello',args)
+            self.assertNotIn('--no-sandbox',args);self.assertNotIn('--ignore-certificate-errors',args)
+            self.assertFalse(any(k.lower() in ('https_proxy','all_proxy') for k in env))
+
+    def test_browser_tun_selection_disables_only_own_system_proxy_and_preserves_selection(self):
+        with patch.object(client.common.ProxySettings,'__init__',return_value=None):c=client.Connection(MagicMock(),MagicMock())
+        with patch.object(client.common.Connection,'start'),patch.object(platform,'ProxySettings') as proxy:
+            c.start('compat',True,True,True,True)
+            self.assertTrue(c.browser_direct);self.assertEqual(c.proxy.enable,c.proxy.enable_tun_only)
+            c.browser_session=MagicMock();c.restore_browser_proxy();c.browser_session.disable_browser.assert_called_once();self.assertFalse(c.browser_direct)
+            c.start('compat',True,True,False,True);self.assertFalse(c.browser_direct)
+    def test_explicit_proxy_launch_is_rejected_when_browser_direct_is_active(self):
+        c=client.Connection.__new__(client.Connection);c.connected=True;c.browser_direct=True
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'ChatGPT.exe';path.write_bytes(b'fixture')
+            with self.assertRaisesRegex(RuntimeError,'开始菜单'):c.launch_chatgpt(path)
+
     def test_tun_profiles_cannot_add_remote_bypass_destinations(self):
         api=client.Api.__new__(client.Api); api.config={'url':'https://203.0.113.1/api/v1/profile'}; api.tun_required=True
         for address,allowed in [('203.0.113.1',True),('198.51.100.1',False),('external.example',False)]:

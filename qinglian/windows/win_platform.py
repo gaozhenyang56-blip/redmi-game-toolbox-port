@@ -103,8 +103,13 @@ def launch_self(args,**kwargs):
 class ProxySettings:
     def __init__(self): self.path=STATE/'proxy-restore.json'; self.guard=None
     def enable(self):
+        self._enable(installed_proxy())
+    def enable_tun_only(self):
+        values=installed_proxy();values['ProxyEnable']=[0,winreg.REG_DWORD];values['ProxyServer']=None
+        self._enable(values)
+    def _enable(self,values):
         restore_proxy(self.path)
-        state={'before':proxy_values(),'ours':installed_proxy()}; save(self.path,state)
+        state={'before':proxy_values(),'ours':values}; save(self.path,state)
         self.guard=launch_self(['--proxy-guard',str(self.path)],stdin=subprocess.PIPE)
         try: write_proxy(state['ours'])
         except Exception: self.close(); raise
