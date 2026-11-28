@@ -51,29 +51,7 @@ class Network:
             upstream=json.loads(result); index=int(upstream['index']); self.upstream=index; gateway=str(ipaddress.IPv4Address(upstream['gateway'])); address=self.server or server_ip()
             created=powershell(f"if(!(Get-NetRoute -DestinationPrefix '{address}/32' -InterfaceIndex {index} -ErrorAction SilentlyContinue|Where-Object NextHop -eq '{gateway}')){{New-NetRoute -DestinationPrefix '{address}/32' -InterfaceIndex {index} -NextHop '{gateway}' -RouteMetric 1 -PolicyStore ActiveStore|Out-Null;'created'}}")
             if created=='created': self.exemption=(address,index,gateway)
-        # Verify every executable/DLL before elevated launch; DLL is adjacent.
-        self.stage='S-TUN-INTEGRITY'
-        with (ROOT/'wintun.dll').open('rb') as file:
-            if hashlib.file_digest(file,'sha256').hexdigest()!=DLL_HASH: raise RuntimeError('Wintun hash mismatch')
-        expected=TUN_HASH
-        with (ROOT/'tun2socks.exe').open('rb') as file:
-            if hashlib.file_digest(file,'sha256').hexdigest()!=expected: raise RuntimeError('TUN engine hash mismatch')
-        self.stage='S-TUN-DRIVER'
-        if self.browser_direct:
-            from browser_pins import SHA256
-            if self.isolated or not self.upstream or not self.owner_pid:raise RuntimeError('Browser routing requires global TUN')
-            if hashlib.sha256((ROOT/'browser-tun.exe').read_bytes()).hexdigest()!=SHA256:raise RuntimeError('Browser TUN hash mismatch')
-            self.process=platform.spawn([str(ROOT/'browser-tun.exe'),'--owner',str(self.owner_pid),'--upstream',str(self.upstream),'--pac-port',str(self.browser_pac['port']),'--pac-token',self.browser_pac['token']],cwd=str(ROOT),stdout=subprocess.PIPE)
-            def status():
-                for line in iter(self.process.stdout.readline,b''):
-                    try:
-                        if len(line)>4096:continue
-                        value=json.loads(line)
-                        if set(value)=={'type','enabled','pids','direct','proxy'} and value['type']=='browser' and type(value['enabled']) is bool and isinstance(value['pids'],list) and len(value['pids'])<=32 and all(type(p) is int and 0<p<2**32 for p in value['pids']) and all(type(value[k]) is int and 0<=value[k]<2**63 for k in ('direct','proxy')):self.browser_status=value
-                    except (ValueError,TypeError):pass
-            threading.Thread(target=status,daemon=True).start()
-        else:
-            self.process=platform.spawn([str(ROOT/'tun2socks.exe'),'-device','tun://'+ADAPTER,'-proxy','socks5://127.0.0.1:10808','-mtu','1500','-loglevel','silent'],cwd=str(ROOT))
+        self.start_engine()
         for _ in range(40):
             if self.process.poll() is not None: raise RuntimeError('TUN engine exited')
             value=powershell("$a=Get-NetAdapter|Where-Object Name -eq 'Qinglian';if($a){$a.ifIndex}")
@@ -99,6 +77,30 @@ class Network:
             if self.process.poll() is not None: raise RuntimeError('TUN engine exited')
             time.sleep(.1)
         else: raise RuntimeError('TUN source address not ready')
+    def start_engine(self):
+        # Verify every executable/DLL before elevated launch; DLL is adjacent.
+        self.stage='S-TUN-INTEGRITY'
+        with (ROOT/'wintun.dll').open('rb') as file:
+            if hashlib.file_digest(file,'sha256').hexdigest()!=DLL_HASH: raise RuntimeError('Wintun hash mismatch')
+        expected=TUN_HASH
+        with (ROOT/'tun2socks.exe').open('rb') as file:
+            if hashlib.file_digest(file,'sha256').hexdigest()!=expected: raise RuntimeError('TUN engine hash mismatch')
+        self.stage='S-TUN-DRIVER'
+        if self.browser_direct:
+            from browser_pins import SHA256
+            if self.isolated or not self.upstream or not self.owner_pid:raise RuntimeError('Browser routing requires global TUN')
+            if hashlib.sha256((ROOT/'browser-tun.exe').read_bytes()).hexdigest()!=SHA256:raise RuntimeError('Browser TUN hash mismatch')
+            self.process=platform.spawn([str(ROOT/'browser-tun.exe'),'--owner',str(self.owner_pid),'--upstream',str(self.upstream),'--pac-port',str(self.browser_pac['port']),'--pac-token',self.browser_pac['token']],cwd=str(ROOT),stdout=subprocess.PIPE)
+            def status():
+                for line in iter(self.process.stdout.readline,b''):
+                    try:
+                        if len(line)>4096:continue
+                        value=json.loads(line)
+                        if set(value)=={'type','enabled','pids','direct','proxy'} and value['type']=='browser' and type(value['enabled']) is bool and isinstance(value['pids'],list) and len(value['pids'])<=32 and all(type(p) is int and 0<p<2**32 for p in value['pids']) and all(type(value[k]) is int and 0<=value[k]<2**63 for k in ('direct','proxy')):self.browser_status=value
+                    except (ValueError,TypeError):pass
+            threading.Thread(target=status,daemon=True).start()
+        else:
+            self.process=platform.spawn([str(ROOT/'tun2socks.exe'),'-device','tun://'+ADAPTER,'-proxy','socks5://127.0.0.1:10808','-mtu','1500','-loglevel','silent'],cwd=str(ROOT))
     def close(self):
         errors=[]
         if self.index is not None:

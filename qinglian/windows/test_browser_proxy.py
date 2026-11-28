@@ -29,4 +29,33 @@ class BrowserProxyTests(unittest.TestCase):
   text=client.windows_failure(e.exception,'proxy',False);self.assertIn('[S-TUN-DRIVER]',text);self.assertNotIn('private',text)
   error=client.PostTunProbe(OSError('private network details'))
   text=client.windows_failure(error,'proxy',False);self.assertIn('[C-VERIFY]',text);self.assertNotIn('private',text)
+def windows_self_test(output):
+ import os,queue,threading,time
+ if os.name!='nt' or os.environ.get('QINGLIAN_CI_WINDOWS')!='1':raise RuntimeError('Disposable Windows CI only')
+ import tun
+ from browser_pac import BrowserPAC
+ from browser_pins import SHA256
+ before=platform.proxy_values();proxy=platform.ProxySettings();network=tun.Network();pac=BrowserPAC()
+ baseline=tun.powershell("@(Get-NetRoute|Where-Object {$_.DestinationPrefix -in @('0.0.0.0/0','::/0')}|Select-Object DestinationPrefix,InterfaceIndex,NextHop,RouteMetric|Sort-Object DestinationPrefix,InterfaceIndex,NextHop)|ConvertTo-Json -Compress")
+ try:
+  proxy.enable();guard=proxy.guard;proxy.enable_tun_only();assert proxy.guard is guard
+  expected=platform.read(proxy.path)['ours'];assert platform.proxy_owned(platform.proxy_values(),expected)
+  network.browser_direct=True;network.owner_pid=os.getpid();network.browser_pac={'port':pac.port,'token':pac.token}
+  network.upstream=int(tun.powershell("(Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0'|Sort-Object RouteMetric|Select-Object -First 1).InterfaceIndex"))
+  network.start_engine();deadline=time.monotonic()+20
+  def until(want):
+   while time.monotonic()<deadline:
+    assert network.process.poll() is None
+    value=network.browser_status
+    if value and value['enabled'] is want:return
+    time.sleep(.05)
+   raise RuntimeError('Packaged browser engine status timeout')
+  until(False);network.process.stdin.write(b'enable\n');network.process.stdin.flush();until(True)
+  network.process.stdin.write(b'disable\n');network.process.stdin.flush();until(False)
+ finally:
+  network.close();pac.close();proxy.close()
+ assert platform.proxy_values()==before
+ assert tun.powershell("@(Get-NetRoute|Where-Object {$_.DestinationPrefix -in @('0.0.0.0/0','::/0')}|Select-Object DestinationPrefix,InterfaceIndex,NextHop,RouteMetric|Sort-Object DestinationPrefix,InterfaceIndex,NextHop)|ConvertTo-Json -Compress")==baseline
+ Path(output).write_text(json.dumps({'ok':True,'realRegistrySwitchAndRestore':True,'sameRecoveryGuard':True,'browserEngineBootAndControl':True,'globalRoutesPreserved':True}),encoding='utf-8')
+
 if __name__=='__main__':unittest.main()
