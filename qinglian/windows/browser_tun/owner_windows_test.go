@@ -157,7 +157,7 @@ func TestWindowsReservedTUNPIDRouting(t *testing.T) {
 	engine.Insert(&engine.Key{Device: "tun://QinglianBrowserFixture", Proxy: "socks5://127.0.0.1:10808", MTU: 1500, LogLevel: "silent"})
 	engine.Start()
 	defer engine.Stop()
-	defer ps(t, "$a=Get-NetAdapter -Name QinglianBrowserFixture -ErrorAction SilentlyContinue;if($a){Get-NetRoute -InterfaceIndex $a.ifIndex -ErrorAction SilentlyContinue|Remove-NetRoute -Confirm:$false -ErrorAction SilentlyContinue}")
+	defer ps(t, "$a=Get-NetAdapter -Name QinglianBrowserFixture -ErrorAction SilentlyContinue;if($a){Get-NetRoute -DestinationPrefix 198.18.10.0/24 -InterfaceIndex $a.ifIndex -ErrorAction Stop|Remove-NetRoute -Confirm:$false -ErrorAction Stop}")
 	ps(t, "$a=Get-NetAdapter -Name QinglianBrowserFixture;Set-NetIPInterface -InterfaceIndex $a.ifIndex -AddressFamily IPv4 -Dhcp Disabled;New-NetIPAddress -InterfaceIndex $a.ifIndex -IPAddress 198.18.0.1 -PrefixLength 15|Out-Null;New-NetRoute -DestinationPrefix 198.18.10.0/24 -InterfaceIndex $a.ifIndex -NextHop 0.0.0.0 -PolicyStore ActiveStore|Out-Null")
 	for i := 0; i < 30; i++ {
 		if ps(t, "(Get-NetIPAddress -IPAddress 198.18.0.1).AddressState") == "Preferred" {
