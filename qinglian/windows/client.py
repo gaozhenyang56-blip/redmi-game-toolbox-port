@@ -111,6 +111,7 @@ class Connection(common.Connection):
                                 self.connected=False; notify('state','正在请求管理员授权并建立 TUN…')
                                 helper=TunSession(server=urllib.parse.urlsplit(self.api.config['url']).hostname,browser_direct=getattr(self,'browser_direct',False),browser_pac=getattr(self,'browser_pac',None),on_status=lambda v:notify('browser',v)).start(self.cancel); self.browser_session=helper; self.procs.append(helper)
                                 if getattr(self,'browser_direct',False):self.proxy.enable_tun_only()
+                                elif getattr(helper,'browser_direct',False):helper.disable_browser()
                                 self.api.verify_proxy(self.cancel,cold_hy2=choice)
                                 if self.cancel.is_set(): raise common.ProbeCancelled('已取消连接')
                                 self.connected=True; value=value.split(' · ')[0]+' · TUN 全局'
