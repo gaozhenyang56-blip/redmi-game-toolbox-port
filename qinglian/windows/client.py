@@ -86,6 +86,46 @@ def may_fallback(error):
     # Permission/quota/auth/TLS errors are never treated as a blocked UDP route.
     return any('['+code+']' in error for code in ('H-TIMEOUT','H-VERIFY','H-CORE','H502','H503','H504'))
 
+# Preserve only fixed local startup categories, never arbitrary OS/URL text.
+class PostTunProbe(RuntimeError):
+    def __init__(self,cause):self.cause=cause;super().__init__('post-TUN verification failed')
+
+class StartupError(RuntimeError):
+    def __init__(self,code):self.code=code;super().__init__(code)
+_STARTUP_MESSAGES={
+ 'S-TUN-AUTH':'管理员授权被取消或未完成',
+ 'S-TUN-CONFLICT':'已有轻连适配器或其他 VPN 正在使用路由',
+ 'S-TUN-UPSTREAM':'找不到可用的物理网络或服务器直达路由',
+ 'S-TUN-INTEGRITY':'TUN 资源校验失败，请重新更新程序',
+ 'S-TUN-DRIVER':'TUN 引擎或驱动未能启动',
+ 'S-TUN-ADDRESS':'TUN 地址尚未就绪或 IPv6 配置不可用',
+ 'S-TUN-ROUTES':'无法建立本应用的临时路由',
+ 'S-TUN-DNS':'无法配置本应用适配器的 DNS',
+ 'S-TUN':'TUN 启动超时或本地通信失败',
+ 'S-PROXY-STATE':'系统代理恢复记录不可用，请退出轻连后重新打开',
+ 'S-PROXY-CHANGED':'其他程序改变了代理地址、PAC 或绕行配置，请关闭该代理后重连',
+ 'S-PROXY-WRITE':'无法切换本用户的系统代理设置',
+}
+_original_failure=common.connection_failure
+def windows_failure(error,phase,accelerated):
+    if isinstance(error,PostTunProbe):return _original_failure(error.cause,'verify',accelerated)
+    if isinstance(error,StartupError) and error.code in _STARTUP_MESSAGES:return '连接失败 ['+error.code+']，'+_STARTUP_MESSAGES[error.code]
+    return _original_failure(error,phase,accelerated)
+common.connection_failure=windows_failure
+
+def startup_tun(session,cancel):
+    try:return session.start(cancel)
+    except Exception as error:
+        import re
+        match=re.search(r'\[(S-TUN(?:-[A-Z]+)?)\]',str(error))
+        code=match.group(1) if match and match.group(1) in _STARTUP_MESSAGES else 'S-TUN'
+        raise StartupError(code) from None
+
+def switch_browser_proxy(proxy):
+    try:proxy.enable_tun_only()
+    except platform.ProxyTransitionError as error:raise StartupError(error.code) from None
+    except Exception:raise StartupError('S-PROXY-WRITE') from None
+
 class Connection(common.Connection):
     def start(self,mode='compat',performance=True,rule=True,tun=False,browser_direct=False):
         if mode not in ('compat','hy2','auto'): raise ValueError('不支持的连接模式')
@@ -109,10 +149,12 @@ class Connection(common.Connection):
                             if getattr(self,'tun_requested',False):
                                 from tun_ipc import TunSession
                                 self.connected=False; notify('state','正在请求管理员授权并建立 TUN…')
-                                helper=TunSession(server=urllib.parse.urlsplit(self.api.config['url']).hostname,browser_direct=getattr(self,'browser_direct',False),browser_pac=getattr(self,'browser_pac',None),on_status=lambda v:notify('browser',v)).start(self.cancel); self.browser_session=helper; self.procs.append(helper)
-                                if getattr(self,'browser_direct',False):self.proxy.enable_tun_only()
+                                helper=startup_tun(TunSession(server=urllib.parse.urlsplit(self.api.config['url']).hostname,browser_direct=getattr(self,'browser_direct',False),browser_pac=getattr(self,'browser_pac',None),on_status=lambda v:notify('browser',v)),self.cancel); self.browser_session=helper; self.procs.append(helper)
+                                if getattr(self,'browser_direct',False):switch_browser_proxy(self.proxy)
                                 elif getattr(helper,'browser_direct',False):helper.disable_browser()
-                                self.api.verify_proxy(self.cancel,cold_hy2=choice)
+                                try:self.api.verify_proxy(self.cancel,cold_hy2=choice)
+                                except Exception as error:
+                                    raise PostTunProbe(error) from None
                                 if self.cancel.is_set(): raise common.ProbeCancelled('已取消连接')
                                 self.connected=True; value=value.split(' · ')[0]+' · TUN 全局'
                             reached[0]=True

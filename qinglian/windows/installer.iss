@@ -1,8 +1,8 @@
 #ifndef AppDisplayVersion
-#define AppDisplayVersion "1.0.0-preview8"
+#define AppDisplayVersion "1.0.0-preview9"
 #endif
 #ifndef AppNumericVersion
-#define AppNumericVersion "1.0.0.8"
+#define AppNumericVersion "1.0.0.9"
 #endif
 [Setup]
 AppId={{E3026A84-EC16-445C-9789-039394F32298}

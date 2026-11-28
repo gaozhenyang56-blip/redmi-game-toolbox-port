@@ -16,7 +16,7 @@ try:
   expected=platform.read(proxy.path)['ours'];actual=platform.proxy_values()
   print(json.dumps({'phase':phase,'differentKeys':[k for k in expected if expected[k]!=actual.get(k)]}))
   phase='proxy-switch';proxy.enable_tun_only()
-  print(json.dumps({'phase':phase,'ok':True}))
+  print(json.dumps({'phase':phase,'ok':True,'singleRecoveryGuard':proxy.guard is not None}))
  finally:
   phase_before_cleanup=phase;proxy.close();assert platform.proxy_values()==before
   print(json.dumps({'phase':'proxy-restored','ok':True}));phase=phase_before_cleanup

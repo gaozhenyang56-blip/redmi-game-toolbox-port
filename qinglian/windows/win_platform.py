@@ -87,12 +87,27 @@ def write_proxy(values,key_name=PROXY_KEY):
 def installed_proxy():
     return {name:None if value is None else [value,winreg.REG_DWORD if isinstance(value,int) else winreg.REG_SZ] for name,value in OUR_PROXY.items()}
 
+class ProxyTransitionError(RuntimeError):
+    def __init__(self,code):
+        if code not in ('S-PROXY-STATE','S-PROXY-CHANGED','S-PROXY-WRITE'):raise ValueError('Invalid local proxy code')
+        self.code=code;super().__init__(code)
+
+def proxy_owned(observed,ours,before=None):
+    # InternetSetOption/WinINet may rewrite this legacy mirror after refreshing
+    # connection settings. It is not evidence that another program changed the
+    # active proxy. Endpoint, PAC, enable and bypass fields remain strict.
+    for name in OUR_PROXY:
+        if name=='AutoDetect':
+            if observed.get(name) not in (None,[0,4],[1,4],ours.get(name),(before or {}).get(name)):return False
+        elif observed.get(name)!=ours.get(name) and (before is None or observed.get(name)!=before.get(name)):return False
+    return True
+
 def restore_proxy(path,key_name=PROXY_KEY):
     state=read(path)
     if not state: return
     # If another proxy took over, preserve its entire profile, including PAC.
     observed=proxy_values(key_name)
-    if all(observed.get(name) in (state['ours'][name],state['before'][name]) for name in OUR_PROXY):
+    if proxy_owned(observed,state['ours'],state['before']):
         write_proxy(state['before'],key_name)
     Path(path).unlink(missing_ok=True)
 
@@ -106,12 +121,13 @@ class ProxySettings:
         self._enable(installed_proxy())
     def enable_tun_only(self):
         values=installed_proxy();values['ProxyEnable']=[0,winreg.REG_DWORD];values['ProxyServer']=None
-        if not self.guard:raise RuntimeError('TUN 系统代理切换必须在代理已建立后进行')
+        if not self.guard:raise ProxyTransitionError('S-PROXY-STATE')
         state=read(self.path)
-        if not state or proxy_values()!=state['ours']:raise RuntimeError('其他程序已改变系统代理，请先断开再重连')
+        if not state:raise ProxyTransitionError('S-PROXY-STATE')
+        if not proxy_owned(proxy_values(),state['ours']):raise ProxyTransitionError('S-PROXY-CHANGED')
         state['ours']=values;save(self.path,state)
         try:write_proxy(values)
-        except Exception:self.close();raise
+        except Exception:self.close();raise ProxyTransitionError('S-PROXY-WRITE') from None
     def _enable(self,values):
         restore_proxy(self.path)
         state={'before':proxy_values(),'ours':values}; save(self.path,state)
