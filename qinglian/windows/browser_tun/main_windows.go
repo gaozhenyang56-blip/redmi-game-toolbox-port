@@ -5,6 +5,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -22,7 +23,14 @@ import (
 func main() {
 	owner := flag.Uint("owner", 0, "owning Qinglian GUI PID")
 	index := flag.Int("upstream", 0, "fixed physical upstream index")
+	pacPort := flag.Int("pac-port", 0, "fixed loopback PAC port")
+	pacToken := flag.String("pac-token", "", "fixed local PAC capability")
 	flag.Parse()
+	token, tokenErr := hex.DecodeString(*pacToken)
+	if *pacPort < 1024 || *pacPort > 65535 || tokenErr != nil || len(token) != 16 {
+		os.Exit(2)
+	}
+	pacURL := fmt.Sprintf("http://127.0.0.1:%d/%s/browser.pac", *pacPort, *pacToken)
 	if *owner == 0 || *index < 1 || *index > 1<<24 || flag.NArg() != 0 {
 		os.Exit(2)
 	}
@@ -38,7 +46,7 @@ func main() {
 	engine.Insert(&engine.Key{Device: "tun://Qinglian", Proxy: "socks5://127.0.0.1:10808", MTU: 1500, LogLevel: "silent"})
 	engine.Start()
 	defer engine.Stop()
-	r := &router{upstream: tunnel.T().Dialer(), eligible: windowsOwner(sid, programFiles())}
+	r := &router{upstream: tunnel.T().Dialer(), eligible: windowsOwner(sid, programFiles(), pacURL)}
 	r.direct = func(ctx context.Context, m *M.Metadata) (net.Conn, error) {
 		network := "tcp4"
 		if m.DstIP.Is6() {
@@ -46,15 +54,20 @@ func main() {
 		}
 		return dialer.DefaultDialer.DialContextWithOptions(ctx, network, m.DestinationAddress(), &dialer.Options{InterfaceIndex: *index})
 	}
-	r.enabled.Store(true)
+	r.enabled.Store(false)
 	tunnel.T().SetDialer(r)
 	done := make(chan struct{})
 	var output sync.Mutex
 	go func() {
 		scan := bufio.NewScanner(os.Stdin)
 		scan.Buffer(make([]byte, 1024), 1024)
+		sealed := false
 		for scan.Scan() {
+			if scan.Text() == "enable" && !sealed {
+				r.enabled.Store(true)
+			}
 			if scan.Text() == "disable" {
+				sealed = true
 				r.disable()
 			}
 		}

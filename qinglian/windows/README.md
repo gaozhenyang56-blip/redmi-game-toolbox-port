@@ -49,14 +49,14 @@ TUN CI只在保留测试前缀验证真实IPv4/IPv6转发、管理员助手和�
 
 ## Windows preview8：Codex 侧边浏览器直连
 
-连接页开启 TUN，再在 ChatGPT 页勾选“自动识别 Codex/ChatGPT 浏览器 PID”，重新连接。默认关闭；只识别当前 Windows 用户在 Program Files/WindowsApps 安装的 OpenAI Codex/ChatGPT 网络服务进程，其他程序和未知进程继续代理。识别取自连接完整四元组和进程身份，PID 重启后重新判断，不硬编码任务管理器中的数字。
+连接页开启 TUN，在 ChatGPT 页勾选“自动识别 Codex/ChatGPT 浏览器 PID”后重新连接。然后完全退出 Codex/ChatGPT，选择其 exe，点击“为 TUN 浏览器直连启动”。默认关闭，不强杀用户程序；已经运行的实例可能忽略新参数。
 
-普通 HTTP Host / HTTPS ClientHello 中可识别的网页直连；OpenAI、ChatGPT、oaistatic、oaiusercontent、Auth0 域名保留代理。无法识别、ECH、非 HTTP 流量保留代理；浏览器 UDP 443 回退 TCP。不会解密 HTTPS、关闭证书校验、安装根证书或上传网页主机名。进程共享仍存在，因此不是按 PID 就把整个网络进程放行。
+采用浏览器原生 PAC + TUN PID 识别。固定本地 PAC 将 OpenAI、ChatGPT、oaistatic、oaiusercontent、Auth0 域名送到本地代理（没有 DIRECT 兜底），普通网页使用 DIRECT。TUN 初始全部代理，只有本地 PAC 已被加载，且连接所属的网络服务 PID / Windows 用户 / 安装路径 / 父进程 PAC 启动参数匹配时才直连，其他程序继续代理。PID 重启后重新识别，不手动填写数字。
 
-Chromium 经常发送 ECH/GREASE，导致无法确认目标的连接保留代理。如已识别但网页没有直连，请先完全退出 Codex，再选择 exe，点击“为 TUN 浏览器直连启动”。它只为该次启动移除显式代理环境并增加 `--no-proxy-server --disable-quic --disable-features=EncryptedClientHello`，保留沙箱和 TLS。已经运行的实例可能忽略新启动参数，轻连不会强杀它。
+启动只为该实例移除继承的显式代理环境，并设置 `--proxy-pac-url=http://127.0.0.1:端口/随机值/browser.pac --disable-quic`。保留 ECH、TLS 证书校验、沙箱，不解密 TLS 或读取网页首包。浏览器 UDP 443 回退 TCP；其他 UDP 仍代理。仅识别当前 Windows 用户在 Program Files/WindowsApps 安装的 OpenAI Codex/ChatGPT，其他安装路径保持代理。
 
-开启期间临时关闭本用户系统代理/PAC，让 TUN 获得原始连接所属 PID；断开、退出或崩溃恢复原值。其他软件改过的代理配置不会被覆盖。“恢复全部代理”关闭已有直连连接，新连接恢复代理，不重启整个 VPN；重新开启需重连。此模式不是断网保护。
+连接期间临时关闭本用户系统代理/PAC，让 TUN 获得原始连接 PID；断开、退出或崩溃后恢复原值。其他软件改过的代理配置不会被覆盖。“恢复全部代理”关闭已有直连连接，新连接恢复代理，不重启整个 VPN；重新开启需重连。该模式不是断网保护。
 
-本机只显示 PID 和聚合连接计数；不会记录浏览历史或把它们上传。代码主要由 OpenAI Codex（AI）依维护者需求开发。
+PID 和聚合计数仅本机显示；PAC 不记录或上传请求。网页直连数据不会计入 VPN 服务器流量。主要由 OpenAI Codex（AI）依维护者需求开发。
 
-PID TUN 引擎在 `browser_tun/`，使用 Go 1.23.12、`GOOS=windows GOARCH=amd64 GOAMD64=v1 CGO_ENABLED=0`、`-trimpath -buildvcs=false -ldflags="-s -w -buildid="` 构建，按 `browser_pins.py` 的固定 SHA256 校验后才能提权运行。底层 tun2socks v2.6.0、Wintun 0.14.1 和既有核心版本锁定；不开放任意目的路由/命令 API。
+引擎 `browser_tun/` 使用 Go 1.23.12、`GOOS=windows GOARCH=amd64 GOAMD64=v1 CGO_ENABLED=0`、`-trimpath -buildvcs=false -ldflags="-s -w -buildid="` 构建，并按 `browser_pins.py` 的固定 SHA256 校验后提权运行。底层 tun2socks v2.6.0、Wintun 0.14.1 及既有核心锁定；不开放任意命令、目的路由或远程 PAC 输入。

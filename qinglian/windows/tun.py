@@ -40,7 +40,7 @@ def peer_image(pid):
     return handle
 
 class Network:
-    def __init__(self,isolated=False): self.browser_direct=False;self.owner_pid=None;self.browser_status=None;self.upstream=None;self.server=None; self.isolated=isolated; self.process=None; self.index=None; self.exemption=None; self.stage='S-TUN-CONFLICT'
+    def __init__(self,isolated=False): self.browser_direct=False;self.browser_pac=None;self.owner_pid=None;self.browser_status=None;self.upstream=None;self.server=None; self.isolated=isolated; self.process=None; self.index=None; self.exemption=None; self.stage='S-TUN-CONFLICT'
     def start(self):
         if powershell("if(Get-NetAdapter|Where-Object Name -eq 'Qinglian'){'exists'}")=='exists': raise RuntimeError('TUN adapter already exists')
         if not self.isolated:
@@ -63,7 +63,7 @@ class Network:
             from browser_pins import SHA256
             if self.isolated or not self.upstream or not self.owner_pid:raise RuntimeError('Browser routing requires global TUN')
             if hashlib.sha256((ROOT/'browser-tun.exe').read_bytes()).hexdigest()!=SHA256:raise RuntimeError('Browser TUN hash mismatch')
-            self.process=platform.spawn([str(ROOT/'browser-tun.exe'),'--owner',str(self.owner_pid),'--upstream',str(self.upstream)],cwd=str(ROOT),stdout=subprocess.PIPE)
+            self.process=platform.spawn([str(ROOT/'browser-tun.exe'),'--owner',str(self.owner_pid),'--upstream',str(self.upstream),'--pac-port',str(self.browser_pac['port']),'--pac-token',self.browser_pac['token']],cwd=str(ROOT),stdout=subprocess.PIPE)
             def status():
                 for line in iter(self.process.stdout.readline,b''):
                     try:
@@ -127,19 +127,26 @@ def helper(pipe_name,parent_pid,mode):
         deadline=time.monotonic()+5; selection=None
         while selection is None and time.monotonic()<deadline:
             selection=pipe.read();time.sleep(.01)
-        if not selection or set(selection)!={'type','server','browserDirect'} or selection['type']!='configure':raise ValueError('TUN configuration required')
+        if not selection or set(selection)!={'type','server','browserDirect','browserPAC'} or selection['type']!='configure':raise ValueError('TUN configuration required')
         address=str(ipaddress.IPv4Address(selection['server']))
         try:embedded=server_ip()
         except ValueError:embedded=None
         if address!=embedded and not ipaddress.IPv4Address(address).is_global:raise ValueError('TUN requires public server IPv4')
         if type(selection['browserDirect']) is not bool or mode=='isolated' and selection['browserDirect']:raise ValueError('Invalid browser selection')
-        network.server=address;network.browser_direct=selection['browserDirect'];network.owner_pid=parent_pid
+        pac=selection['browserPAC']
+        if selection['browserDirect']:
+            import re
+            if not isinstance(pac,dict) or set(pac)!={'port','token'} or type(pac['port']) is not int or not 1024<=pac['port']<=65535 or not isinstance(pac['token'],str) or not re.fullmatch('[0-9a-f]{32}',pac['token']):raise ValueError('Invalid local PAC capability')
+        elif pac is not None:raise ValueError('Unexpected PAC')
+        network.server=address;network.browser_direct=selection['browserDirect'];network.owner_pid=parent_pid;network.browser_pac=pac
         network.start(); pipe.send({'status':'ready'})
         api.WaitForSingleObject.argtypes=[wintypes.HANDLE,wintypes.DWORD]
         last_ping=time.monotonic()
         while api.WaitForSingleObject(process_handle,0)==258 and network.process.poll() is None and time.monotonic()-last_ping<8:
             value=pipe.read()
             if value and value.get('type')=='stop': break
+            if value and value.get('type')=='browser-ready' and network.browser_direct:
+                network.process.stdin.write(b'enable\n');network.process.stdin.flush()
             if value and value.get('type')=='browser-off' and network.browser_direct:
                 network.process.stdin.write(b'disable\n');network.process.stdin.flush();network.browser_direct=False
             if value and value.get('type')=='ping':

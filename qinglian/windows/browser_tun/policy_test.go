@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"encoding/binary"
 	M "github.com/xjasonlyu/tun2socks/v2/metadata"
 	"io"
 	"net"
@@ -25,61 +23,13 @@ func TestInstalledNetworkServiceOnly(t *testing.T) {
 		}
 	}
 }
-func hello(t *testing.T, host string) []byte {
-	t.Helper()
-	a, b := net.Pipe()
-	defer b.Close()
-	go func() { defer a.Close(); tls.Client(a, &tls.Config{ServerName: host}).Handshake() }()
-	b.SetReadDeadline(time.Now().Add(time.Second))
-	header := make([]byte, 5)
-	if _, err := io.ReadFull(b, header); err != nil {
-		t.Fatal(err)
+func TestPACArgumentExactMatch(t *testing.T) {
+	url := "http://127.0.0.1:32100/0123456789abcdef/browser.pac"
+	if !hasPAC("app.exe --proxy-pac-url="+url, url) {
+		t.Fatal("PAC launch argument missing")
 	}
-	payload := make([]byte, int(binary.BigEndian.Uint16(header[3:5])))
-	if _, err := io.ReadFull(b, payload); err != nil {
-		t.Fatal(err)
-	}
-	return append(header, payload...)
-}
-func TestHTTPAndTLSFragmentsAndProtectedHosts(t *testing.T) {
-	for _, host := range []string{"www.example.org", "chatgpt.com", "auth.openai.com", "images.rakuten-insight.cn"} {
-		data := hello(t, host)
-		for i := 1; i < len(data); i++ {
-			if _, complete := sniff(data[:i]); complete {
-				t.Fatal("premature TLS decision", i)
-			}
-		}
-		got, done := sniff(data)
-		if !done || got != host {
-			t.Fatal("ClientHello parse", got, done)
-		}
-		payload := data[5:]
-		a, b := append([]byte(nil), data[:5]...), append([]byte(nil), data[:5]...)
-		binary.BigEndian.PutUint16(a[3:5], 20)
-		binary.BigEndian.PutUint16(b[3:5], uint16(len(payload)-20))
-		fragmented := append(append(append(a, payload[:20]...), b...), payload[20:]...)
-		if got, done := sniff(fragmented); !done || got != host {
-			t.Fatal("TLS record fragmentation")
-		}
-	}
-	for _, host := range []string{"openai.com", "AUTH.OPENAI.COM.", "chatgpt.com", "cdn.oaistatic.com", "files.oaiusercontent.com", "login.auth0.com"} {
-		if !protected(host) {
-			t.Fatal("protected destination missed")
-		}
-	}
-	for _, host := range []string{"notopenai.com", "openai.com.example.org", "www.example.org"} {
-		if protected(host) {
-			t.Fatal("overbroad suffix")
-		}
-	}
-	if host, done := sniff([]byte("GET / HTTP/1.1\r\nHost: example.org:80\r\n\r\n")); !done || host != "example.org" {
-		t.Fatal("HTTP host")
-	}
-	for _, data := range [][]byte{[]byte("SSH-2.0-test"), make([]byte, 70000), {22, 3, 3, 255, 255}, []byte("GET / HTTP/1.1\r\nHost: 192.0.2.1\r\n\r\n"), []byte("GET / HTTP/1.1\r\nHost: a.test\r\nHost: b.test\r\n\r\n")} {
-		host, _ := sniff(data)
-		if host != "" {
-			t.Fatal("unobservable/invalid request direct")
-		}
+	if hasPAC("app.exe --other=--proxy-pac-url="+url, url) {
+		t.Fatal("substring matched")
 	}
 }
 
@@ -135,18 +85,18 @@ func TestRouterInitialProxyPIDRoutingRollbackAndUnknown(t *testing.T) {
 	}
 	r.enabled.Store(true)
 	request("example.org")
-	request("chatgpt.com")
-	if direct.calls.Load() != 1 || upstream.calls.Load() != 2 {
+	request("other.example.org")
+	if direct.calls.Load() != 2 || upstream.calls.Load() != 1 {
 		t.Fatal("PID direct/protected proxy routing")
 	}
 	r.eligible = func(*M.Metadata) uint32 { return 0 }
 	request("example.org")
-	if upstream.calls.Load() != 3 {
+	if upstream.calls.Load() != 2 {
 		t.Fatal("unknown PID must proxy")
 	}
 	r.disable()
 	request("example.org")
-	if upstream.calls.Load() != 4 {
+	if upstream.calls.Load() != 3 {
 		t.Fatal("restore proxy")
 	}
 	r.enabled.Store(true)

@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/xjasonlyu/tun2socks/v2/dialer"
 	"github.com/xjasonlyu/tun2socks/v2/engine"
@@ -22,6 +23,45 @@ import (
 	"time"
 )
 
+var testPAC = flag.String("proxy-pac-url", "", "fixture parent PAC launch argument")
+
+func TestWindowsPACChild(t *testing.T) {
+	url := os.Getenv("QINGLIAN_PARENT_PAC")
+	if url == "" {
+		t.Skip()
+	}
+	h, e := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(os.Getpid()))
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer windows.CloseHandle(h)
+	sid, e := processSID(h)
+	if e != nil {
+		t.Fatal(e)
+	}
+	image := make([]uint16, 32768)
+	n := uint32(len(image))
+	if windows.QueryFullProcessImageName(h, 0, &image[0], &n) != nil {
+		t.Fatal("image query")
+	}
+	name := windows.UTF16ToString(image[:n])
+	if !parentUsesPAC(h, name, sid, url) {
+		t.Fatal("verified same-image parent PAC not found")
+	}
+	if parentUsesPAC(h, name, sid, url+"-wrong") {
+		t.Fatal("wrong PAC matched")
+	}
+}
+func TestWindowsParentPACChain(t *testing.T) {
+	if *testPAC == "" {
+		t.Skip("fixture flag required")
+	}
+	c := exec.Command(os.Args[0], "-test.run=^TestWindowsPACChild$")
+	c.Env = append(os.Environ(), "QINGLIAN_PARENT_PAC="+*testPAC)
+	if b, e := c.CombinedOutput(); e != nil {
+		t.Fatal(e, string(b))
+	}
+}
 func TestWindowsRealSocketOwnerAndProcessCommandLine(t *testing.T) {
 	listener, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
@@ -156,10 +196,13 @@ func TestWindowsReservedTUNPIDRouting(t *testing.T) {
 	if direct.Load() != 1 || upstreamDial.calls.Load() != 0 {
 		t.Fatal("selected PID did not direct")
 	}
-	request("chatgpt.com")
+	originalOwner := r.eligible
+	r.eligible = func(*M.Metadata) uint32 { return 0 }
+	request("example.org")
 	if direct.Load() != 1 || upstreamDial.calls.Load() != 1 {
-		t.Fatal("protected ChatGPT request not proxied")
+		t.Fatal("unidentified process not proxied")
 	}
+	r.eligible = originalOwner
 	cmd := exec.Command(os.Args[0], "-test.run=^TestWindowsBrowserChild$")
 	cmd.Env = append(os.Environ(), "QINGLIAN_BROWSER_CHILD="+address)
 	if b, e := cmd.CombinedOutput(); e != nil {

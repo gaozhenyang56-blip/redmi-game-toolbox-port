@@ -11,17 +11,17 @@ import win_platform as platform
 
 class ClientTests(unittest.TestCase):
     def test_browser_direct_launcher_is_child_only_and_preserves_tls_and_sandbox(self):
-        c=client.Connection.__new__(client.Connection);c.connected=True;c.tun_requested=True;c.browser_direct=True
+        c=client.Connection.__new__(client.Connection);c.connected=True;c.tun_requested=True;c.browser_direct=True;c.browser_pac=MagicMock(url="http://127.0.0.1:32100/fixture/browser.pac")
         with tempfile.TemporaryDirectory() as d,patch.object(client.subprocess,'Popen') as launch:
             path=Path(d)/'ChatGPT.exe';path.write_bytes(b'fixture');c.launch_browser_direct(path)
             args=launch.call_args.args[0];env=launch.call_args.kwargs['env']
-            self.assertIn('--no-proxy-server',args);self.assertIn('--disable-features=EncryptedClientHello',args)
+            self.assertIn('--proxy-pac-url=http://127.0.0.1:32100/fixture/browser.pac',args);self.assertNotIn('--disable-features=EncryptedClientHello',args)
             self.assertNotIn('--no-sandbox',args);self.assertNotIn('--ignore-certificate-errors',args)
             self.assertFalse(any(k.lower() in ('https_proxy','all_proxy') for k in env))
 
     def test_browser_tun_selection_disables_only_own_system_proxy_and_preserves_selection(self):
         with patch.object(client.common.ProxySettings,'__init__',return_value=None):c=client.Connection(MagicMock(),MagicMock())
-        with patch.object(client.common.Connection,'start'),patch.object(platform,'ProxySettings') as proxy:
+        with patch.object(client.common.Connection,'start'),patch.object(platform,'ProxySettings') as proxy,patch('browser_pac.BrowserPAC'):
             c.start('compat',True,True,True,True)
             self.assertTrue(c.browser_direct);self.assertEqual(c.proxy.enable,c.proxy.enable_tun_only)
             c.browser_session=MagicMock();c.restore_browser_proxy();c.browser_session.disable_browser.assert_called_once();self.assertFalse(c.browser_direct)

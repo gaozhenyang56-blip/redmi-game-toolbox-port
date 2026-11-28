@@ -164,7 +164,7 @@ func ownerWithInspector(m *M.Metadata, inspect func(windows.Handle, uint32) bool
 	}
 	return pid
 }
-func windowsOwner(ownerSID, programFiles string) func(*M.Metadata) uint32 {
+func windowsOwner(ownerSID, programFiles, pacURL string) func(*M.Metadata) uint32 {
 	return func(m *M.Metadata) uint32 {
 		return ownerWithInspector(m, func(handle windows.Handle, pid uint32) bool {
 			sid, err := processSID(handle)
@@ -176,11 +176,52 @@ func windowsOwner(ownerSID, programFiles string) func(*M.Metadata) uint32 {
 			if windows.QueryFullProcessImageName(handle, 0, &image[0], &size) != nil {
 				return false
 			}
-			return candidate(windows.UTF16ToString(image[:size]), commandLine(handle), programFiles)
+			if !candidate(windows.UTF16ToString(image[:size]), commandLine(handle), programFiles) {
+				return false
+			}
+			return parentUsesPAC(handle, windows.UTF16ToString(image[:size]), ownerSID, pacURL)
 		})
 	}
 }
 
+func parentUsesPAC(handle windows.Handle, image, ownerSID, pacURL string) bool {
+	// Holding each process handle prevents its PID from being recycled while the
+	// parent identity is checked. Only the same installed image and user qualify.
+	current := handle
+	for depth := 0; depth < 4; depth++ {
+		if hasPAC(commandLine(current), pacURL) {
+			if current != handle {
+				windows.CloseHandle(current)
+			}
+			return true
+		}
+		var info [6]uintptr
+		var size uint32
+		code, _, _ := ntQuery.Call(uintptr(current), 0, uintptr(unsafe.Pointer(&info[0])), uintptr(unsafe.Sizeof(info)), uintptr(unsafe.Pointer(&size)))
+		if current != handle {
+			windows.CloseHandle(current)
+		}
+		if code != 0 || info[5] == 0 {
+			return false
+		}
+		next, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(info[5]))
+		if err != nil {
+			return false
+		}
+		sid, err := processSID(next)
+		name := make([]uint16, 32768)
+		n := uint32(len(name))
+		if err != nil || sid != ownerSID || windows.QueryFullProcessImageName(next, 0, &name[0], &n) != nil || !strings.EqualFold(windows.UTF16ToString(name[:n]), image) {
+			windows.CloseHandle(next)
+			return false
+		}
+		current = next
+	}
+	if current != handle {
+		windows.CloseHandle(current)
+	}
+	return false
+}
 func programFiles() string {
 	path, err := windows.KnownFolderPath(windows.FOLDERID_ProgramFilesX64, 0)
 	if err != nil {

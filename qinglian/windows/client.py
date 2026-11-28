@@ -91,6 +91,9 @@ class Connection(common.Connection):
         if mode not in ('compat','hy2','auto'): raise ValueError('不支持的连接模式')
         self.mode=mode; self.tun_requested=tun; self.api.tun_required=tun
         self.browser_direct=bool(tun and browser_direct);self.browser_session=None
+        if self.browser_direct and not getattr(self,'browser_pac',None):
+            from browser_pac import BrowserPAC
+            self.browser_pac=BrowserPAC()
         self.proxy=platform.ProxySettings()
         if self.browser_direct:self.proxy.enable=self.proxy.enable_tun_only
         super().start(mode!='compat',performance,False if tun else rule,False)
@@ -107,7 +110,7 @@ class Connection(common.Connection):
                             if getattr(self,'tun_requested',False):
                                 from tun_ipc import TunSession
                                 self.connected=False; notify('state','正在请求管理员授权并建立 TUN…')
-                                helper=TunSession(server=urllib.parse.urlsplit(self.api.config['url']).hostname,browser_direct=getattr(self,'browser_direct',False),on_status=lambda v:notify('browser',v)).start(self.cancel); self.browser_session=helper; self.procs.append(helper)
+                                helper=TunSession(server=urllib.parse.urlsplit(self.api.config['url']).hostname,browser_direct=getattr(self,'browser_direct',False),browser_pac=getattr(self,'browser_pac',None),on_status=lambda v:notify('browser',v)).start(self.cancel); self.browser_session=helper; self.procs.append(helper)
                                 self.api.verify_proxy(self.cancel,cold_hy2=choice)
                                 if self.cancel.is_set(): raise common.ProbeCancelled('已取消连接')
                                 self.connected=True; value=value.split(' · ')[0]+' · TUN 全局'
@@ -149,9 +152,9 @@ class Connection(common.Connection):
         path=Path(path)
         if not path.is_file() or path.suffix.lower()!='.exe':raise RuntimeError('请选择 Codex/ChatGPT 的可执行文件')
         env={k:v for k,v in os.environ.items() if k.lower() not in ('http_proxy','https_proxy','all_proxy','no_proxy','webview2_additional_browser_arguments')}
-        # Keep TLS verification and sandboxing. Disable ECH/QUIC only in this
-        # user-launched app so its target SNI is observable to local TUN policy.
-        subprocess.Popen([str(path),'--no-proxy-server','--disable-quic','--disable-features=EncryptedClientHello'],env=env,creationflags=platform.NO_WINDOW,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        # PAC separates browser URL policy before TLS/ECH; TUN identifies only
+        # network services launched with this exact per-GUI loopback PAC.
+        subprocess.Popen([str(path),'--proxy-pac-url='+self.browser_pac.url,'--disable-quic'],env=env,creationflags=platform.NO_WINDOW,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     def launch_chatgpt(self,path):
         if not self.connected: raise RuntimeError('请先连接轻连')
         path=Path(path)

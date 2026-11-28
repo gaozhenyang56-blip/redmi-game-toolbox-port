@@ -135,7 +135,7 @@ class Window(QMainWindow):
         self.browser_direct.toggled.connect(self.store);self.controls.append(self.browser_direct)
         self.tun.toggled.connect(lambda value:self.browser_direct.setEnabled(value and not self.busy))
         self.browser_status=label('未启用浏览器直连')
-        card(self.pages[4],label('侧边浏览器直连','section'),self.browser_direct,label('仅 TUN 模式生效，勾选后重新连接。自动识别本 Windows 用户已安装的 OpenAI Codex/ChatGPT Chromium 网络服务 PID，不按固定 PID 或所有同名程序放行。普通 HTTP/HTTPS 网页直连；ChatGPT/OpenAI 域名、加密 ClientHello 和无法识别的流量继续代理。浏览器 QUIC 将回退 TCP。'),label('连接期间暂时关闭当前用户的系统代理/PAC，由 TUN 接管；断开或崩溃后恢复原设置。若已识别 PID 但网页仍走代理，请完全退出 Codex 后用下方“为 TUN 浏览器直连启动”，仅为该次启动关闭 ECH/QUIC 和显式代理，保留 TLS 校验和沙箱。进程识别和首包判断仅在本机进行，不上传网页地址。'),self.browser_status,button('恢复全部代理',self.restore_browser_proxy))
+        card(self.pages[4],label('侧边浏览器直连','section'),self.browser_direct,label('仅 TUN 模式生效，勾选后重新连接，并使用本页的直连启动按钮。自动识别本 Windows 用户已安装的 OpenAI Codex/ChatGPT Chromium 网络服务 PID，不按固定 PID 或所有同名程序放行。浏览器原生 PAC 将 ChatGPT/OpenAI 域名固定代理，普通网页直连；TUN 只放行使用本次 PAC 启动的对应网络服务 PID，未匹配进程继续代理。浏览器 QUIC 将回退 TCP。'),label('连接期间暂时关闭当前用户的系统代理/PAC，由 TUN 接管；断开或崩溃后恢复原设置。请完全退出 Codex 后使用下方“为 TUN 浏览器直连启动”，为该实例应用本地 PAC。保留 ECH、TLS 校验和沙箱，关闭 QUIC 以使用 TCP 路由。进程识别与 PAC 仅在本机处理，不上传网页地址。'),self.browser_status,button('恢复全部代理',self.restore_browser_proxy))
         self.chat_result=label('请先连接轻连'); self.chat_path=QLineEdit(self.settings.get('chatPath','')); self.chat_path.setReadOnly(True)
         card(self.pages[4],label('ChatGPT 连接路径','section'),label('先用兼容通道连接。HY2 下 OpenAI 和静态资源域名沿用兼容通道策略；可分别检查 HTTPS 响应，HTTP 403 不表示登录成功。'),button('检查 ChatGPT HTTPS',lambda:self.task(self.conn.probe,self.chat_result.setText)),self.chat_result,button('打开 ChatGPT 网页',self.open_chat_web))
         card(self.pages[4],label('显式代理启动桌面程序','section'),label('先完整退出正在运行的 ChatGPT，再选择其 exe。启动只为该进程添加代理及 WebView2 参数，不修改全局环境、不关闭 TLS 或沙箱。不同安装形式可能忽略参数，可用网页版验证。'),self.chat_path,button('选择 ChatGPT.exe',self.choose_chat),button('为 TUN 浏览器直连启动',lambda:self.task(lambda:self.conn.launch_browser_direct(self.chat_path.text()),lambda _:self.message.setText('已请求启动；请确认旧 Codex 已完全退出，新启动窗口的网页连接将按 PID 判断'))),button('带代理启动',lambda:self.task(lambda:self.conn.launch_chatgpt(self.chat_path.text()),lambda _:self.message.setText('已启动，请在 ChatGPT 中确认联网'))))
@@ -193,7 +193,7 @@ class Window(QMainWindow):
     def on_event(self,event,value):
         if event=='browser':
             pids=', '.join(str(p) for p in value['pids'])
-            self.browser_status.setText(('PID '+pids if pids else '等待浏览器发起网络请求')+' · 网页直连连接 '+str(value['direct'])+' · 代理连接 '+str(value['proxy']) if value['enabled'] else '已恢复全部代理')
+            self.browser_status.setText(('PID '+pids if pids else '等待浏览器发起网络请求')+' · 网页直连连接 '+str(value['direct'])+' · 代理连接 '+str(value['proxy']) if value['enabled'] else ('等待浏览器加载本地 PAC，请使用直连启动按钮' if self.browser_direct.isChecked() else '已恢复全部代理'))
         if event=='update_failed': self.update_apply.setEnabled(True); self.update_status.setText('下载或校验失败，当前程序未改变')
         if event in ('state','warning','error'): self.message.setText(str(value))
         if event=='connected':

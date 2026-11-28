@@ -59,11 +59,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Pop-Location
           Push-Location "$env:RUNNER_TEMP/browser-native"
-          & ./browser-test.exe -test.v -test.timeout=120s
+          & ./browser-test.exe '-test.v' '-test.timeout=120s' '--proxy-pac-url=http://127.0.0.1:32100/11111111111111111111111111111111/browser.pac'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Pop-Location
       - name: Platform lifecycle, DPAPI and unchanged shared TLS behavior
         run: |
+          python -m unittest discover -s qinglian/windows -p test_browser_pac.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m unittest discover -s qinglian/windows -p test_client.py -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python qinglian/windows/test_transport.py
@@ -111,6 +113,8 @@ jobs:
           QINGLIAN_TEST_APP: ${{ runner.temp }}/production/dist/Qinglian/Qinglian.exe
           QINGLIAN_CI_WINDOWS: '1'
         run: |
+          python -m unittest discover -s qinglian/windows -p test_browser_pac.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m unittest discover -s qinglian/windows -p test_client.py -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $app = "$env:RUNNER_TEMP/production/dist/Qinglian/Qinglian.exe"

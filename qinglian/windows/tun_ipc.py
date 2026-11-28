@@ -111,7 +111,7 @@ class ElevatedProcess:
 
 class TunSession:
     stdin=None
-    def __init__(self,isolated=False,server=None,browser_direct=False,on_status=None): self.browser_direct=bool(browser_direct and not isolated);self.on_status=on_status;self.server=server; self.pipe=None; self.process=None; self.isolated=isolated; self.stop=threading.Event(); self.heartbeat=None
+    def __init__(self,isolated=False,server=None,browser_direct=False,browser_pac=None,on_status=None): self.browser_direct=bool(browser_direct and not isolated);self.browser_pac=browser_pac;self.on_status=on_status;self.server=server; self.pipe=None; self.process=None; self.isolated=isolated; self.stop=threading.Event(); self.heartbeat=None
     def start(self,cancel):
         self.pipe=Pipe(server=True)
         try:
@@ -122,7 +122,7 @@ class TunSession:
                 self.server=server_ip()
             import ipaddress
             address=str(ipaddress.IPv4Address(self.server))
-            self.pipe.send({'type':'configure','server':address,'browserDirect':self.browser_direct}); deadline=time.monotonic()+45
+            self.pipe.send({'type':'configure','server':address,'browserDirect':self.browser_direct,'browserPAC':{'port':self.browser_pac.port,'token':self.browser_pac.token} if self.browser_direct else None}); deadline=time.monotonic()+45
             while True:
                 if cancel.is_set() or self.process.poll() is not None or time.monotonic()>deadline: raise RuntimeError('TUN 启动取消、失败或超时 [S-TUN]')
                 value=self.pipe.read()
@@ -132,7 +132,9 @@ class TunSession:
                             last=0
                             while not self.stop.wait(.1):
                                 try:
-                                    if time.monotonic()-last>=2:self.pipe.send({'type':'ping'});last=time.monotonic()
+                                    if time.monotonic()-last>=2:
+                                        self.pipe.send({'type':'ping'});last=time.monotonic()
+                                        if self.browser_direct and self.browser_pac.loaded.is_set():self.pipe.send({'type':'browser-ready'})
                                     status=self.pipe.read()
                                     if status and status.get('type')=='browser' and self.on_status:self.on_status(status)
                                 except Exception:return
